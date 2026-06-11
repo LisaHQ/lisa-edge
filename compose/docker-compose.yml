@@ -1,0 +1,28 @@
+name: ${COMPOSE_PROJECT_NAME:-lisa-edge}
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: lisa-mqtt
+    restart: unless-stopped
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+      - "${MQTT_WS_PORT:-9001}:9001"
+    volumes:
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/config:/mosquitto/config
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/data:/mosquitto/data
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/#' -C 1 -W 5 >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: lisa-uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "${UPTIME_KUMA_PORT:-3001}:3001"
+    volumes:
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/uptime-kuma:/app/data

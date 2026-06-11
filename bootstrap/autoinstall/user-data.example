@@ -1,0 +1,20 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: lisa-edge-01
+    username: lisa
+    password: "$6$REPLACE_WITH_HASHED_PASSWORD"
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY
+  packages:
+    - curl
+    - git
+    - htop
+    - ca-certificates
+  late-commands:
+    - curtin in-target --target=/target -- git clone https://github.com/YOUR_ORG/lisa-edge.git /opt/lisa-edge
+    - curtin in-target --target=/target -- bash /opt/lisa-edge/bootstrap/bootstrap.sh
