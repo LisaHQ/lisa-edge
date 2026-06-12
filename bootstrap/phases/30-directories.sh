@@ -20,9 +20,10 @@ set -euo pipefail
 # .\
 # └─ srv/lisa-edge/
 #    ├─ backups
+#    │  └─ otbr
 #    ├─ data
 #    │  ├─ tailscale
-#    │  ├─ zigbee2mqtt
+#    │  └─ zigbee2mqtt
 #    ├─ docker/
 #    │  ├─ volumes/
 #    │  │  ├─ mosquitto/

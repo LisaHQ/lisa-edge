@@ -4,20 +4,28 @@ services:
     container_name: lisa-otbr
     restart: unless-stopped
     network_mode: host
-    privileged: true
-    dns:
-      - 127.0.0.1
-    sysctls:
-      net.ipv6.conf.all.disable_ipv6: 0
-      net.ipv4.ip_forward: 1
-      net.ipv6.conf.all.forwarding: 1
+
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
     devices:
-      - ${THREAD_RADIO_DEVICE:-/dev/serial/by-id/YOUR_THREAD_RCP_RADIO}:/dev/ttyThreadRCP
+      - ${THREAD_RADIO_DEVICE}:/dev/ttyThreadRCP
       - /dev/net/tun:/dev/net/tun
+
     volumes:
       - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/otbr:/data
-    command:
-      - --radio-url
-      - ${THREAD_RADIO_URL:-spinel+hdlc+uart:///dev/ttyThreadRCP?uart-baudrate=460800}
-      - --backbone-interface
-      - ${OTBR_BACKBONE_IF:-eth0}
+
+    environment:
+      OT_RCP_DEVICE: ${THREAD_RADIO_URL:-spinel+hdlc+uart:///dev/ttyThreadRCP?uart-baudrate=460800}
+      OT_INFRA_IF: ${OTBR_BACKBONE_IF}
+      OT_THREAD_IF: ${OTBR_THREAD_IF:-wpan0}
+      OT_LOG_LEVEL: ${OTBR_LOG_LEVEL:-5}
+      TZ: ${TZ:-America/Los_Angeles}
+
+    healthcheck:
+      test: ["CMD-SHELL", "ot-ctl state | grep -E 'leader|router|child|detached' >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

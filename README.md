@@ -1,112 +1,186 @@
 # LISA Edge
 
-> Infrastructure-as-Code repository for the LISA Smart Home Edge Platform.
-> Provides unattended Ubuntu provisioning, automated bootstrap, Docker service deployment,
-> backup/recovery workflows, VPN connectivity, MQTT, Thread Border Router, NUT integration
-> and production-ready edge services running on ZimaBoard 2.
+Lightweight edge infrastructure services for smart homes, Matter, Thread, and local-first automation.
 
-LISA Edge is the lightweight edge infrastructure platform for the LISA Smart Home ecosystem.
+LISA Edge provides the infrastructure layer that supports the larger LISA ecosystem.
 
-It targets ZimaBoard 2 running Ubuntu Server on SSD, while the internal eMMC is kept as a Rescue OS for recovery and reinstall operations.
+It focuses on reliability, local operation, disaster recovery, and infrastructure services rather than AI workloads.
 
-## GitHub description
+---
 
-Infrastructure-as-Code repository for the LISA Smart Home Edge Platform. Provides unattended Ubuntu provisioning, automated bootstrap, Docker service deployment, backup/recovery workflows, VPN connectivity, MQTT, Thread Border Router, NUT integration and production-ready edge services running on ZimaBoard 2.
+# Goals
 
-## Design goals
+LISA Edge exists to provide:
 
-- Production OS on SSD
-- eMMC reserved for Rescue OS
-- USB autoinstall support
-- Fully reproducible bootstrap
-- Docker Compose-based services
-- Lightweight services only
-- VLAN-aware deployment
-- Backup and restore first
-- No public admin dashboards
-- VPN-first administration
+* Thread Border Router (OTBR)
+* MQTT messaging
+* NUT (UPS integration)
+* DNS and service helpers
+* Reverse proxy
+* VPN endpoints
+* Monitoring and health checks
+* Backup and recovery automation
 
-## Target hardware
+LISA Edge is intentionally lightweight.
 
-- ZimaBoard 2 1664
-- 16GB RAM
-- SSD for production OS and service data
-- eMMC for Rescue OS
-- UPS available
-- Optional dual-port 10GbE NIC
-- Thread RCP radio such as nRF52840/ZBT-2 flashed as RCP
+Heavy workloads belong on dedicated servers:
 
-## First boot flow
+* LLM inference
+* Speech processing
+* Computer vision
+* Databases
+* NAS workloads
+
+---
+
+# Architecture
 
 ```text
-USB autoinstall
-  -> install Ubuntu Server to SSD
-  -> clone this repo into /opt/lisa-edge
-  -> run bootstrap/bootstrap.sh
-  -> configure host
-  -> install Docker
-  -> create data directories
-  -> deploy service stack
-  -> enable systemd deploy unit
-  -> run healthcheck
+Internet
+    │
+    ▼
+Network Gateway (UniFi)
+    │
+    ▼
+LISA Edge
+    │
+    ├── OTBR
+    ├── MQTT
+    ├── NUT
+    ├── VPN
+    ├── DNS Helpers
+    └── Monitoring
+    │
+    ▼
+Matter / Thread / IoT Devices
 ```
 
-## Quick start after OS installation
+---
+
+# Supported Platforms
+
+LISA Edge is hardware agnostic.
+
+Any Linux system capable of running Docker may be used.
+
+Examples:
+
+* ZimaBoard 2
+* Raspberry Pi 4
+* Raspberry Pi 5
+* Intel NUC
+* Mini PC
+* Generic x86-64 server
+* Virtual Machine
+
+---
+
+# Reference Platform
+
+The recommended reference platform is:
+
+* ZimaBoard 2
+
+Reasons:
+
+* Low power consumption
+* SATA support
+* PCIe expansion
+* Reliable Docker performance
+* Compact deployment footprint
+
+All documentation and testing are primarily validated against this platform.
+
+---
+
+# Core Services
+
+| Service       | Purpose                  |
+|---------------| ------------------------ |
+| OTBR          | Thread Border Router     |
+| MQTT          | Event messaging          |
+| NUT           | UPS integration          |
+| Reverse Proxy | Internal service routing |
+| Tailscale     | Remote access            |
+| Uptime Kuma   | Health monitoring        |
+
+---
+
+# Thread and Matter
+
+LISA Edge supports Matter-over-Thread deployments through OpenThread Border Router (OTBR).
+
+Important:
+
+The Thread Dataset is critical infrastructure.
+
+Loss of the dataset may require re-pairing Matter-over-Thread devices.
+
+LISA Edge includes:
+
+* Dataset backup
+* Dataset restore
+* Migration support
+* Disaster recovery automation
+
+See:
+
+* docs/THREAD.md
+* docs/MATTER.md
+* docs/OTBR.md
+* docs/OTBR-RECOVERY.md
+
+---
+
+# Deployment
+
+Clone repository:
 
 ```bash
-sudo git clone https://github.com/YOUR_ORG/lisa-edge.git /opt/lisa-edge
-cd /opt/lisa-edge
-sudo cp .env.example .env
-sudo nano .env
-sudo ./bootstrap/bootstrap.sh
+git clone https://github.com/huysrc/lisa-edge.git
+cd lisa-edge
 ```
 
-## Services
-
-Core services:
-
-- Mosquitto MQTT
-- Uptime Kuma
-- Backup Agent
-
-Optional services:
-- NUT client/server placeholder
-- OTBR (OpenThread Border Router)
-- Traefik internal reverse proxy placeholder
-- LISA Gateway
-
-Thread Border Router is intentionally isolated into a profile because it depends on the real radio path and backbone network interface.
-
-## Storage policy
-
-```text
-SSD:
-  /opt/lisa-edge    : code/config template from Git
-  /srv/lisa-edge    : data, volume, generated secrets, runtime files
-  Docker
-  service volumes
-
-eMMC:
-  Rescue OS only
-```
-
-## Deploy
+Configure environment:
 
 ```bash
-sudo ./scripts/deploy.sh
+cp .env.example .env
 ```
 
-With Thread Border Router:
+Deploy:
 
 ```bash
-sudo LISA_COMPOSE_SERVICES=otbr ./scripts/deploy.sh
+./scripts/deploy.sh
 ```
-## License
+
+---
+
+# Disaster Recovery
+
+Critical services should be recoverable from backup.
+
+LISA Edge emphasizes:
+
+* Config as code
+* Docker Compose
+* Portable volumes
+* Automated backups
+* Minimal manual intervention
+
+---
+
+# Security Principles
+
+* Local-first
+* VPN-first administration
+* SSH key authentication
+* Minimal exposed ports
+* VLAN segmentation
+* Secrets outside Git
+* Backup critical datasets
+
+---
+
+# License
 
 MIT License
-
-Copyright (c) 2026 Huy Nguyen
-
-This repository provides the infrastructure layer of the LISA Smart Home ecosystem.
-
-The license applies only to this repository and does not grant rights to proprietary LISA components, models, datasets, or private services.

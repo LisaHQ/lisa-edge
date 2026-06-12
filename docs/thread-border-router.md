@@ -7,7 +7,7 @@ LISA Edge supports OpenThread Border Router as an optional Docker Compose profil
 - Thread radio flashed with RCP firmware
 - Stable `/dev/serial/by-id/...` device path
 - IPv6 enabled on the host
-- Correct backbone interface, usually the ZimaBoard service-facing NIC
+- Correct backbone interface, usually the Reference deployment service-facing NIC
 
 ## Find radio device
 

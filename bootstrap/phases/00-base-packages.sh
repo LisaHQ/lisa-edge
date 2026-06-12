@@ -22,7 +22,7 @@ apt-get install -y \
 #jq               ⚠️ optional    Parse JSON script
 #rsync            ⚠️ optional    backup/restore, will be installed by the 60-backup-tools.sh script
 #ufw              ⚠️ optional    Not need if using UniFi network
-#chrony           ⚠️ optional    Only need if ZimaBoard work as NTP helper
+#chrony           ⚠️ optional    Only need if Reference deployment work as NTP helper
 #avahi-daemon     ⚠️ optional    Needed for mDNS/Thread/HomeKit discovery
 #gnupg            ❌            Not need because will use get.docker.com
 #lsb-release      ❌            Not need in current flow

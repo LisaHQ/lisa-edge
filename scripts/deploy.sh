@@ -31,3 +31,7 @@ done
 docker compose --env-file .env "${FILES[@]}" pull || true
 docker compose --env-file .env "${FILES[@]}" up -d
 "$EDGE_REPO/scripts/healthcheck.sh"
+
+if echo "${LISA_COMPOSE_SERVICES:-}" | grep -qw otbr; then
+  "$EDGE_REPO/scripts/otbr-init-or-restore.sh"
+fi
