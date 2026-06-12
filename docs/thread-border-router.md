@@ -20,7 +20,7 @@ Set this in `.env`:
 ```env
 THREAD_RADIO_DEVICE=/dev/serial/by-id/usb-YOUR-RCP-RADIO
 OTBR_BACKBONE_IF=enp1s0
-LISA_COMPOSE_PROFILES=otbr
+LISA_COMPOSE_SERVICES=otbr
 ```
 
 ## Deploy

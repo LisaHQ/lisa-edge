@@ -8,4 +8,4 @@ services:
     ports:
       - "${NODE_RED_BIND_ADDR:-0.0.0.0}:${NODE_RED_PORT:-1880}:1880"
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/node-red:/data
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/node-red:/data

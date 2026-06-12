@@ -14,13 +14,13 @@ set -a
 . ./.env
 set +a
 
-DATA_ROOT="${DATA_ROOT:-/svr/lisa-edge}"
+DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 BACKUP_DIR="${BACKUP_DEST:-$DATA_ROOT/backups}"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 ARCHIVE="$BACKUP_DIR/lisa-edge-backup-$TIMESTAMP.tar.gz"
 FILES=(-f compose/docker-compose.yml)
-for profile in ${LISA_COMPOSE_PROFILES:-}; do
-  [ -f "compose/profiles/$profile.yml" ] && FILES+=(-f "compose/profiles/$profile.yml")
+for profile in ${LISA_COMPOSE_SERVICES:-}; do
+  [ -f "compose/services/$profile.yml" ] && FILES+=(-f "compose/services/$profile.yml")
 done
 
 mkdir -p "$BACKUP_DIR"

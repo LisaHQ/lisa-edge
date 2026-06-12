@@ -6,5 +6,5 @@ services:
     network_mode: host
     privileged: true
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/homeassistant:/config
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/homeassistant:/config
       - /etc/localtime:/etc/localtime:ro

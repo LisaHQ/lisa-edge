@@ -8,7 +8,7 @@ services:
     ports:
       - "${ZIGBEE2MQTT_BIND_ADDR:-0.0.0.0}:${ZIGBEE2MQTT_PORT:-8080}:8080"
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/zigbee2mqtt:/app/data
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/zigbee2mqtt:/app/data
       - /run/udev:/run/udev:ro
     devices:
       - ${ZIGBEE_DONGLE:-/dev/ttyACM0}:/dev/ttyUSB0

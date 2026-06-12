@@ -9,9 +9,9 @@ services:
       - "${MQTT_BIND_ADDR:-0.0.0.0}:${MQTT_PORT:-1883}:1883"
       - "${MQTT_BIND_ADDR:-0.0.0.0}:${MQTT_WS_PORT:-9001}:9001"
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/mosquitto/config:/mosquitto/config
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/mosquitto/data:/mosquitto/data
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/mosquitto/log:/mosquitto/log
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/config:/mosquitto/config
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/data:/mosquitto/data
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/log:/mosquitto/log
     healthcheck:
       test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -u \"$${MQTT_USERNAME:-lisa}\" -P \"$${MQTT_PASSWORD:-changeme}\" -t '$$SYS/#' -C 1 -W 5 >/dev/null 2>&1 || exit 1"]
       interval: 30s
@@ -28,7 +28,7 @@ services:
     ports:
       - "${UPTIME_KUMA_BIND_ADDR:-0.0.0.0}:${UPTIME_KUMA_PORT:-3001}:3001"
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/uptime-kuma:/app/data
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/uptime-kuma:/app/data
 
   backup-helper:
     image: alpine:3.20
@@ -36,6 +36,6 @@ services:
     restart: unless-stopped
     command: ["/bin/sh", "-c", "while true; do sleep 3600; done"]
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}:/svr/lisa-edge:ro
-      - ${BACKUP_DEST:-/svr/lisa-edge/backups}:/backups
-      - ./services/backup-helper:/helper:ro
+      - ${DATA_ROOT:-/srv/lisa-edge}:/srv/lisa-edge:ro
+      - ${BACKUP_DEST:-/srv/lisa-edge/backups}:/backups
+      - ./config/backup-helper:/helper:ro

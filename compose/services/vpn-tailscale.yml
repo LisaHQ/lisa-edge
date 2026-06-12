@@ -11,5 +11,5 @@ services:
       - TS_EXTRA_ARGS=${TS_EXTRA_ARGS:-}
       #- TS_EXTRA_ARGS=--advertise-routes=192.168.10.0/24,192.168.20.0/24,192.168.30.0/24,192.168.40.0/24
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/tailscale:/var/lib/tailscale
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/tailscale:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun

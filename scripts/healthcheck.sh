@@ -10,7 +10,7 @@ set -a
 set +a
 
 FILES=(-f compose/docker-compose.yml)
-for service in ${LISA_COMPOSE_PROFILES:-}; do
+for service in ${LISA_COMPOSE_SERVICES:-}; do
   [ -f "compose/services/$service.yml" ] && FILES+=(-f "compose/services/$service.yml")
 done
 

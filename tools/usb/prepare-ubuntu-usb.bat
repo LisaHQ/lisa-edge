@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 set "SCRIPT_DIR=%~dp0"
 set "REPO_DIR=%SCRIPT_DIR%..\.."
-set "SRC_DIR=%REPO_DIR%\bootstrap\USB autoinstall"
+set "SRC_DIR=%REPO_DIR%\tools\usb\autoinstall"
 set "USB_DRIVE="
 
 if not exist "%SRC_DIR%\user-data" (

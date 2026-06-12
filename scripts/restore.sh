@@ -22,7 +22,7 @@ if [ -f .env ]; then
   set +a
 fi
 
-DATA_ROOT="${DATA_ROOT:-/svr/lisa-edge}"
+DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 mkdir -p "$DATA_ROOT"
 
 if [ -f .env ]; then

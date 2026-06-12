@@ -14,7 +14,7 @@ set -a
 . ./.env
 set +a
 
-DATA_ROOT="${DATA_ROOT:-/svr/lisa-edge}"
+DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 
 read -r -p "This will stop containers and delete LISA Edge data under $DATA_ROOT. Type RESET to continue: " answer
 if [ "$answer" != "RESET" ]; then

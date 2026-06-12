@@ -15,7 +15,7 @@ services:
       - ${THREAD_RADIO_DEVICE:-/dev/serial/by-id/YOUR_THREAD_RCP_RADIO}:/dev/ttyThreadRCP
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - ${DATA_ROOT:-/svr/lisa-edge}/docker/volumes/otbr:/data
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/otbr:/data
     command:
       - --radio-url
       - ${THREAD_RADIO_URL:-spinel+hdlc+uart:///dev/ttyThreadRCP?uart-baudrate=460800}

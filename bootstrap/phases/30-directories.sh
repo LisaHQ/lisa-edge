@@ -18,7 +18,7 @@ set -euo pipefail
 #    ├─ Data volumes
 #    └─ Backups cache
 # .\
-# └─ svr/lisa-edge/
+# └─ srv/lisa-edge/
 #    ├─ backups
 #    ├─ data
 #    │  ├─ tailscale
@@ -40,7 +40,7 @@ set -euo pipefail
 #    ├─ state/
 #    └─ secrets/
 
-DATA_ROOT="${DATA_ROOT:-/svr/lisa-edge}"
+DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 
 mkdir -p "$DATA_ROOT"/{backups,data,docker}
 mkdir -p "$DATA_ROOT"/docker/{volumes,config}

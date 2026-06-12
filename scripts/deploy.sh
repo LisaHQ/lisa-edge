@@ -14,14 +14,14 @@ set -a
 set +a
 
 FILES=(-f compose/docker-compose.yml)
-for profile in ${LISA_COMPOSE_PROFILES:-}; do
+for profile in ${LISA_COMPOSE_SERVICES:-}; do
   case "$profile" in
-    otbr|ha|zigbee|node-red|vpn-tailscale)
-      FILES+=(-f "compose/profiles/$profile.yml")
+    otbr|ha|zigbee2mqtt|node-red|vpn-tailscale)
+      FILES+=(-f "compose/services/$profile.yml")
       ;;
     "") ;;
     *)
-      echo "Unknown LISA_COMPOSE_PROFILES entry: $profile" >&2
+      echo "Unknown LISA_COMPOSE_SERVICES entry: $profile" >&2
       echo "Allowed: otbr homeassistant zigbee2mqtt node-red vpn-tailscale" >&2
       exit 1
       ;;

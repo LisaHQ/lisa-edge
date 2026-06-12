@@ -67,10 +67,12 @@ Core services:
 
 - Mosquitto MQTT
 - Uptime Kuma
+- Backup Agent
+
+Optional services:
 - NUT client/server placeholder
 - OTBR (OpenThread Border Router)
 - Traefik internal reverse proxy placeholder
-- Backup Agent
 - LISA Gateway
 
 Thread Border Router is intentionally isolated into a profile because it depends on the real radio path and backbone network interface.
@@ -80,7 +82,7 @@ Thread Border Router is intentionally isolated into a profile because it depends
 ```text
 SSD:
   /opt/lisa-edge    : code/config template from Git
-  /svr/lisa-edge    : data, volume, generated secrets, runtime files
+  /srv/lisa-edge    : data, volume, generated secrets, runtime files
   Docker
   service volumes
 
@@ -97,7 +99,7 @@ sudo ./scripts/deploy.sh
 With Thread Border Router:
 
 ```bash
-sudo LISA_COMPOSE_PROFILES=otbr ./scripts/deploy.sh
+sudo LISA_COMPOSE_SERVICES=otbr ./scripts/deploy.sh
 ```
 ## License
 
