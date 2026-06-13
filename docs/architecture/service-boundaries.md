@@ -28,6 +28,23 @@ Automation / Smart Home
 
 Each layer has a specific responsibility.
 
+| Service          | Edge | Brain | NAS | Vision |
+|------------------|------|-------|-----|--------|
+| MQTT             | ✓    |       |     |        |
+| OTBR             | ✓    |       |     |        |
+| NUT              | ✓    |       |     |        |
+| DNS Helpers      | ✓    |       |     |        |
+| Reverse Proxy    | ✓    |       |     |        |
+| VPN              | ✓    |       |     |        |
+| NTP              | ✓    |       |     |        |
+| LLM              |      | ✓     |     |        |
+| ASR              |      | ✓     |     |        |
+| TTS              |      | ✓     |     |        |
+| Home Assistant   |      | ✓     |     |        |
+| Frigate          |      |       |     | ✓      |
+| Object Detection |      |       |     | ✓      |
+| Backups          |      |       | ✓   |        |
+
 ---
 
 # LISA Edge
