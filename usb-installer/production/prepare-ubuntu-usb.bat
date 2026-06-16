@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 set "SCRIPT_DIR=%~dp0"
 set "REPO_DIR=%SCRIPT_DIR%..\.."
-set "SRC_DIR=%REPO_DIR%\tools\usb\autoinstall"
+set "SRC_DIR=%REPO_DIR%\usb-installer\production\autoinstall"
 set "USB_DRIVE="
 
 if not exist "%SRC_DIR%\user-data" (
@@ -41,16 +41,16 @@ if not exist "%USB_DRIVE%\" (
 )
 
 echo USB drive: %USB_DRIVE%
-echo Files will be copied to: %USB_DRIVE%\server
+echo Files will be copied to: %USB_DRIVE%\autoinstall
 set /p CONFIRM=Type YES to continue: 
 if /I not "%CONFIRM%"=="YES" (
   echo Aborted.
   exit /b 1
 )
 
-mkdir "%USB_DRIVE%\server" 2>nul
-copy /Y "%SRC_DIR%\user-data" "%USB_DRIVE%\server\user-data" >nul
-copy /Y "%SRC_DIR%\meta-data" "%USB_DRIVE%\server\meta-data" >nul
+mkdir "%USB_DRIVE%\autoinstall" 2>nul
+copy /Y "%SRC_DIR%\user-data" "%USB_DRIVE%\autoinstall\user-data" >nul
+copy /Y "%SRC_DIR%\meta-data" "%USB_DRIVE%\autoinstall\meta-data" >nul
 
 echo Copied cloud-init files.
 echo.

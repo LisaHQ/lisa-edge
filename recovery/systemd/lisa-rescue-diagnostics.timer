@@ -1,0 +1,10 @@
+[Unit]
+Description=Run LISA Rescue Diagnostics Daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=lisa-rescue-diagnostics.service
+
+[Install]
+WantedBy=timers.target

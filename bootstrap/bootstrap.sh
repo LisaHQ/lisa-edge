@@ -6,6 +6,14 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 log() { echo "[lisa-edge bootstrap] $*"; }
 
+log "Fixing script permissions..."
+
+chmod +x "$REPO_ROOT"/bootstrap/*.sh
+chmod +x "$REPO_ROOT"/bootstrap/phases/*.sh
+chmod +x "$REPO_ROOT"/scripts/*.sh
+
+log "Starting bootstrap..."
+
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo $0" >&2
   exit 1

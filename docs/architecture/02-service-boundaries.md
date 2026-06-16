@@ -11,39 +11,40 @@ Its purpose is to prevent infrastructure sprawl and keep deployments maintainabl
 The LISA ecosystem is divided into logical layers.
 
 ```text
-Internet
-    │
-    ▼
-Network Infrastructure
-    │
-    ▼
-LISA Edge
-    │
-    ▼
-LISA Brain
-    │
-    ▼
-Automation / Smart Home
+          Internet
+             │
+             ▼
+   Network Infrastructure
+             │
+             ▼
+         LISA Edge
+             │
+             ▼
+         LISA Brain
+             │
+             ▼
+   Automation / Smart Home
 ```
 
 Each layer has a specific responsibility.
 
-| Service          | Edge | Brain | NAS | Vision |
-|------------------|------|-------|-----|--------|
-| MQTT             | ✓    |       |     |        |
-| OTBR             | ✓    |       |     |        |
-| NUT              | ✓    |       |     |        |
-| DNS Helpers      | ✓    |       |     |        |
-| Reverse Proxy    | ✓    |       |     |        |
-| VPN              | ✓    |       |     |        |
-| NTP              | ✓    |       |     |        |
-| LLM              |      | ✓     |     |        |
-| ASR              |      | ✓     |     |        |
-| TTS              |      | ✓     |     |        |
-| Home Assistant   |      | ✓     |     |        |
-| Frigate          |      |       |     | ✓      |
-| Object Detection |      |       |     | ✓      |
-| Backups          |      |       | ✓   |        |
+| Service          | Edge | Brain | Smart Home | NAS | Vision |
+|------------------|------|-------|------------|-----|--------|
+| MQTT             | ✓    |       |            |     |        |
+| OTBR             | ✓    |       |            |     |        |
+| NUT              | ✓    |       |            |     |        |
+| DNS Helpers      | ✓    |       |            |     |        |
+| Reverse Proxy    | ✓    |       |            |     |        |
+| VPN              | ✓    |       |            |     |        |
+| NTP              | ✓    |       |            |     |        |
+| LLM              |      | ✓     |            |     |        |
+| ASR              |      | ✓     |            |     |        |
+| TTS              |      | ✓     |            |     |        |
+| Homey            |      |       | ✓          |     |        |
+| Home Assistant   |      |       | ✓          |     |        |
+| Frigate          |      |       |            |     | ✓      |
+| Object Detection |      |       |            |     | ✓      |
+| Backups          |      |       |            | ✓   |        |
 
 ---
 
@@ -269,3 +270,9 @@ LISA Edge is:
 LISA Edge is infrastructure.
 
 It is not intended to become an all-in-one server.
+
+## Related Documentation
+
+- [LISA Ecosystem](01-lisa-ecosystem.md)
+- [Deployment Patterns](03-deployment-patterns.md)
+- [Reference Deployment](04-reference-deployment.md)

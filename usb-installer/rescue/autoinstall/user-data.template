@@ -1,0 +1,74 @@
+#cloud-config
+autoinstall:
+  version: 1
+
+  identity:
+    hostname: lisa-edge-rescue
+    username: lisa
+    # Replace this with your own hashed password.
+    # Generate with:
+    #   openssl passwd -6
+    password: "$6$REPLACE_WITH_HASHED_PASSWORD"
+
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - "REPLACE_WITH_YOUR_SSH_PUBLIC_KEY"
+
+  packages:
+    - ca-certificates
+    - curl
+    - git
+
+  storage:
+    layout:
+      name: direct
+    config:
+      - type: disk
+        id: rescue_emmc
+        match:
+          # Find REPLACE_WITH_EMMC_SERIAL with: lsblk -o NAME,MODEL,SERIAL,SIZE
+          serial: REPLACE_WITH_EMMC_SERIAL
+        ptable: gpt
+        wipe: superblock-recursive
+        grub_device: true
+
+      - type: partition
+        id: rescue_efi
+        device: rescue_emmc
+        size: 1G
+        flag: boot
+        number: 1
+
+      - type: partition
+        id: rescue_root
+        device: rescue_emmc
+        size: -1
+        number: 2
+
+      - type: format
+        id: rescue_efi_format
+        volume: rescue_efi
+        fstype: fat32
+
+      - type: format
+        id: rescue_root_format
+        volume: rescue_root
+        fstype: ext4
+
+      - type: mount
+        id: rescue_efi_mount
+        device: rescue_efi_format
+        path: /boot/efi
+
+      - type: mount
+        id: rescue_root_mount
+        device: rescue_root_format
+        path: /
+
+  late-commands:
+    - curtin in-target --target=/target -- mkdir -p /opt
+    - curtin in-target --target=/target -- git clone --depth 1 --branch main https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
+    - curtin in-target --target=/target -- find /opt/lisa-edge/rescue /opt/lisa-edge/scripts /opt/lisa-edge/bootstrap -type f -name "*.sh" -exec chmod +x {} \; || true
+    - curtin in-target --target=/target -- bash /opt/lisa-edge/rescue/scripts/bootstrap-rescue.sh

@@ -1,6 +1,10 @@
 # LISA Edge
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+![Documentation](https://img.shields.io/badge/Documentation-Stable-brightgreen)
+![Architecture](https://img.shields.io/badge/Architecture-Docker-blue)
+![Platform](https://img.shields.io/badge/Platform-Linux-blue)
+![Shell](https://img.shields.io/badge/Shell-Bash-blue)
 
 Part of the **LISA** ecosystem.
 
@@ -17,8 +21,8 @@ LISA Edge is the foundation that keeps the environment connected, recoverable, a
 
 For a broader overview, see:
 
-- [About LISA](docs/architecture/about-lisa.md)
-- [Ecosystem Overview](docs/architecture/ecosystem-overview.md)
+- [LISA Ecosystem](docs/architecture/01-lisa-ecosystem.md)
+- [Service Boundaries](docs/architecture/02-service-boundaries.md)
 
 ---
 
@@ -82,44 +86,44 @@ Those workloads belong on dedicated LISA Brain, NAS, Vision, or compute systems.
 
 See:
 
-- [Service Boundaries](docs/architecture/service-boundaries.md)
+- [Service Boundaries](docs/architecture/02-service-boundaries.md)
 
 ---
 
 ## LISA Ecosystem
 
 ```text
-LISA Ecosystem
-
-                   Internet
-                      │
-                      ▼
-        ┌───────────────────────────┐
-        │ Network Infrastructure    │
-        │ UniFi / VLANs / Firewall  │
-        └───────────────────────────┘
-                      │
-                      ▼
-        ┌───────────────────────────┐
-        │ LISA Edge                 │
-        │ OTBR / MQTT / NUT / VPN   │
-        │ DNS / NTP / Monitoring    │
-        │ Backup / Restore          │
-        └───────────────────────────┘
-                      │
-                      ▼
-        ┌───────────────────────────┐
-        │ LISA Brain                │
-        │ AI Reasoning / Voice      │
-        │ Memory / Agents / Tools   │
-        └───────────────────────────┘
-                      │
-                      ▼
-        ┌───────────────────────────┐
-        │ Smart Home Environment    │
-        │ Matter / Thread / IoT     │
-        │ Homey / Home Assistant    │
-        └───────────────────────────┘
+          Internet
+             │                               ┌────────────────────────────────────┐
+             │                               │  Future Compute & Vision Services  │
+             │                               │  (optional ecosystem components)   │
+             │                               └────────────────────────────────────┘
+             │                                                   ▲
+             │                                                   │
+             ▼                                                   ▼
+ ┌────────────────────────┐                       ┌───────────────────────────┐
+ │ Network Infrastructure │                ┌────► │         LISA Brain        │ ◄──────┐
+ │------------------------│                │      │---------------------------│        │
+ │    VLANs / Firewall    │                │      │  AI Reasoning / Voice     │        │
+ └───────────┬────────────┘                │      │  Memory / Agents / Tools  │        │
+             │                             │      └───────────────────────────┘        │
+             │                             ▼                                           ▼
+             │                ┌─────────────────────────┐                ┌────────────────────────────┐
+             └──────────────► │        LISA Edge        ├──────────────► │    Smart Home Platforms    │
+             ↑                │-------------------------│                │----------------------------│
+             |                │ OTBR / MQTT / NUT / VPN │                │ Homey                      │
+             |                │ DNS / NTP / Monitoring  │                │ Home Assistant             │
+             |                │ Backup / Restore        │                │ Future Controllers...      │
+             |                └─────────────────────────┘                └──────────────┬─────────────┘
+             |                                                                          ▼
+             |                                                             ┌────────────────────────┐
+             |                                                             │ Smart Home Environment │
+             |                                                             │    (Matter / Thread)   │
+             |                                                             │------------------------│
+             |                                                             │ Local IoT Devices      │
+             |                                                             │------------------------│
+             └--------------- Cloud Services (Optional) ---------------►   │ Cloud IoT Devices      │
+                                                                           └────────────────────────┘
 ```
 
 LISA Edge supports intelligence.  
@@ -173,12 +177,12 @@ Recommended storage model:
 LISA Edge should boot from SSD.  
 Avoid heavy writes to eMMC.
 
-The onboard eMMC should be preserved as an independent rescue and recovery environment whenever practical..  
+The onboard eMMC should be preserved as an independent rescue and recovery environment whenever practical.  
 This provides an additional recovery path if the primary SSD installation becomes unavailable.
 
 See:
 
-- [Reference Deployment](docs/architecture/reference-deployment.md)
+- [Reference Deployment](docs/architecture/04-reference-deployment.md)
 
 ---
 
@@ -219,8 +223,8 @@ LISA Edge documentation includes:
 
 See:
 
-- [Thread](docs/services/thread.md)
-- [Matter](docs/services/matter.md)
+- [Thread](docs/networking/thread.md)
+- [Matter](docs/networking/matter.md)
 - [OTBR](docs/services/otbr.md)
 - [OTBR Recovery](docs/operations/service-recovery/otbr.md)
 
@@ -228,19 +232,23 @@ See:
 
 ## Getting Started
 
+New users should begin with the Documentation Index before attempting deployment.  
 Start here:
 
-- [Documentation Index](docs/README.md)
-- [Quick Start](docs/getting-started/quick-start.md)
-- [Deployment Checklist](docs/getting-started/deployment-checklist.md)
-- [Deployment Validation](docs/getting-started/deployment-validation.md)
-- [USB Autoinstall Flow](docs/getting-started/autoinstall-flow.md)
+Start here:
+
+1. [Documentation Index](docs/README.md)
+2. [Quick Start](docs/getting-started/01-quick-start.md)
+3. [Service Selection](docs/getting-started/02-service-selection.md)
+4. [USB Autoinstall Flow](docs/getting-started/03-autoinstall-flow.md)
+5. [Deployment Checklist](docs/getting-started/04-deployment-checklist.md)
+6. [Deployment Validation](docs/getting-started/05-deployment-validation.md)
 
 Basic flow:
 
 ```bash
-git clone https://github.com/LisaHQ/lisa-edge.git
-cd lisa-edge
+sudo git clone https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
+cd /opt/lisa-edge
 cp .env.example .env
 sudo ./bootstrap/bootstrap.sh
 sudo ./scripts/deploy.sh
@@ -271,8 +279,8 @@ High-sensitivity networks such as alarm, access-control, camera, and management 
 See:
 
 - [Security Model](docs/security/security-model.md)
-- [Network Model](docs/security/network-model.md)
-- [UniFi Firewall Notes](docs/security/unifi-firewall.md)
+- [Network Model](docs/networking/network-model.md)
+- [UniFi Firewall Notes](docs/networking/unifi-firewall.md)
 
 ---
 
@@ -330,12 +338,10 @@ Infrastructure exists to support intelligence, not replace it.
 
 ## License
 
-Licensed under the **Apache 2.0** License.
+This repository is licensed under **Apache 2.0**.
 
 See [LICENSE](LICENSE) for details.
 
-This repository provides the infrastructure layer of the LISA ecosystem.
-
-The license applies only to this repository and does not grant rights to proprietary LISA components, models, datasets, or private services.
+Other LISA ecosystem repositories, services, models, datasets, or future components may use different licenses.
 
 Copyright (c) 2026 **[LisaHQ](https://lisahq.io)**

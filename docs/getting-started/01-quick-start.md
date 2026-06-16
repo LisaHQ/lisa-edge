@@ -7,8 +7,9 @@ Use Ubuntu Server or Debian.
 ## 2. Clone Repository
 
 ```bash
-git clone https://github.com/lisahq/lisa-edge.git
-cd lisa-edge
+sudo git clone https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
+cd /opt/lisa-edge
+sudo chmod +x bootstrap/bootstrap.sh bootstrap/phases/*.sh scripts/*.sh tools/usb/*.sh
 ```
 
 ## 3. Create Environment File

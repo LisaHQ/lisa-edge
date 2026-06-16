@@ -2,7 +2,8 @@
 
 This document describes the reference deployment used to validate LISA Edge.
 
-The reference deployment is not a hard requirement. LISA Edge is hardware-independent and should remain portable across Linux hosts, virtual machines, and future hardware.
+The reference deployment is not a hard requirement.  
+LISA Edge is hardware-independent and should remain portable across Linux hosts, virtual machines, and future hardware.
 
 ---
 
@@ -32,6 +33,17 @@ The current primary reference target is:
 - Mellanox MCX312A-XCBT for future 10GbE networking
 
 These details are deployment context, not architectural requirements.
+
+---
+
+## Current Reference Environment
+
+Current environment:
+
+- UDM-Pro-Max
+- USW-Pro-Max-16-PoE
+- U7-XGS (x2)
+- VLAN architecture documented separately
 
 ---
 
@@ -78,7 +90,7 @@ Heavy workloads should run elsewhere:
 
 See also:
 
-- [Service Boundaries](service-boundaries.md)
+- [Service Boundaries](02-service-boundaries.md)
 
 ---
 
@@ -153,3 +165,9 @@ Every service should answer:
 - Does this improve security?
 - Is the operational complexity justified?
 - Can it be backed up and restored cleanly?
+
+## Related Documentation
+
+- [LISA Ecosystem](01-lisa-ecosystem.md)
+- [Service Boundaries](02-service-boundaries.md)
+- [Deployment Patterns](03-deployment-patterns.md)

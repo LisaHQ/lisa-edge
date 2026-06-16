@@ -29,7 +29,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-SRC_DIR="$REPO_DIR/tools/usb/autoinstall"
+SRC_DIR="$REPO_DIR/usb-installer/production/autoinstall"
 
 if [ -z "$MOUNT" ]; then
   mapfile -t CANDIDATES < <(findmnt -rn -o TARGET,SOURCE,FSTYPE,LABEL | awk 'BEGIN{IGNORECASE=1} /ubuntu|jammy|noble|server|cidata|usb/ {print $1}' | sort -u)
@@ -57,15 +57,15 @@ if [ ! -f "$SRC_DIR/user-data" ] || [ ! -f "$SRC_DIR/meta-data" ]; then
 fi
 
 echo "USB mount: $MOUNT"
-echo "Files will be copied to: $MOUNT/server"
+echo "Files will be copied to: $MOUNT/autoinstall"
 if [ "$YES" -ne 1 ]; then
   read -r -p "Continue? Type YES: " answer
   [ "$answer" = "YES" ] || { echo "Aborted."; exit 1; }
 fi
 
-mkdir -p "$MOUNT/server"
-cp "$SRC_DIR/user-data" "$MOUNT/server/user-data"
-cp "$SRC_DIR/meta-data" "$MOUNT/server/meta-data"
+mkdir -p "$MOUNT/autoinstall"
+cp "$SRC_DIR/user-data" "$MOUNT/autoinstall/user-data"
+cp "$SRC_DIR/meta-data" "$MOUNT/autoinstall/meta-data"
 
 # grub.cfg location varies by ISO layout. Patch common paths when present.
 for grub in "$MOUNT/boot/grub/grub.cfg" "$MOUNT/EFI/BOOT/grub.cfg" "$MOUNT/grub/grub.cfg"; do

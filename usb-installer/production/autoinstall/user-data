@@ -32,7 +32,6 @@ autoinstall:
   packages:
     - ca-certificates
     - curl
-    - htop
     - git
 
   storage:
@@ -42,8 +41,15 @@ autoinstall:
         match:
           # Replace with your target disk serial or model.
           # Find it with: lsblk -o NAME,MODEL,SERIAL,SIZE
-          # Example: "serial: S2RANX0H6483662"
-          serial: REPLACE_WITH_TARGET_DISK_SERIAL
+          # Example: "S2RANX0H6483662"
+
+          # Default match is the largest disk. (not recommended for production use)
+          size: largest
+
+          # Comment the above 'size: largest' and uncomment the following line to match by:
+          # model: REPLACE_WITH_TARGET_DISK_MODEL
+          # serial: REPLACE_WITH_TARGET_DISK_SERIAL
+
         ptable: gpt
         wipe: superblock-recursive
         preserve: false
@@ -93,7 +99,8 @@ autoinstall:
     ssh_pwauth: false
 
   late-commands:
-    - curtin in-target --target=/target -- git clone https://github.com/lisahq/lisa-edge.git /opt/lisa-edge
+    - curtin in-target --target=/target -- git clone --branch main --depth 1 https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
+    - curtin in-target --target=/target -- find /opt/lisa-edge -type f -name "*.sh" -exec chmod +x {} \;
     - curtin in-target --target=/target -- bash /opt/lisa-edge/bootstrap/bootstrap.sh
 
   updates: security

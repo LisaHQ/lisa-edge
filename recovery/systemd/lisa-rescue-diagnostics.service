@@ -1,0 +1,8 @@
+[Unit]
+Description=LISA Rescue Diagnostics Snapshot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/lisa-rescue/scripts/diagnostics.sh
