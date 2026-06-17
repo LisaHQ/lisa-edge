@@ -93,37 +93,39 @@ See:
 ## LISA Ecosystem
 
 ```text
-          Internet
-             │                               ┌────────────────────────────────────┐
-             │                               │  Future Compute & Vision Services  │
-             │                               │  (optional ecosystem components)   │
-             │                               └────────────────────────────────────┘
-             │                                                   ▲
-             │                                                   │
-             ▼                                                   ▼
- ┌────────────────────────┐                       ┌───────────────────────────┐
- │ Network Infrastructure │                ┌────► │         LISA Brain        │ ◄──────┐
- │------------------------│                │      │---------------------------│        │
- │    VLANs / Firewall    │                │      │  AI Reasoning / Voice     │        │
- └───────────┬────────────┘                │      │  Memory / Agents / Tools  │        │
-             │                             │      └───────────────────────────┘        │
-             │                             ▼                                           ▼
-             │                ┌─────────────────────────┐                ┌────────────────────────────┐
-             └──────────────► │        LISA Edge        ├──────────────► │    Smart Home Platforms    │
-             ↑                │-------------------------│                │----------------------------│
-             |                │ OTBR / MQTT / NUT / VPN │                │ Homey                      │
-             |                │ DNS / NTP / Monitoring  │                │ Home Assistant             │
-             |                │ Backup / Restore        │                │ Future Controllers...      │
-             |                └─────────────────────────┘                └──────────────┬─────────────┘
-             |                                                                          ▼
-             |                                                             ┌────────────────────────┐
-             |                                                             │ Smart Home Environment │
-             |                                                             │    (Matter / Thread)   │
-             |                                                             │------------------------│
-             |                                                             │ Local IoT Devices      │
-             |                                                             │------------------------│
-             └--------------- Cloud Services (Optional) ---------------►   │ Cloud IoT Devices      │
-                                                                           └────────────────────────┘
+         Internet
+            │                            ┌──────────────────────────────────────┐
+            │                            │  Future Compute & Vision Services    │
+            │                            │  (optional ecosystem components)     │
+            │                            │--------------------------------------│
+            │                            │ LISA Core / LISA Vision / LISA Voice │
+            │                            └──────────────────────────────────────┘
+            │                                                ▲
+            │                                                │
+            ▼                                                ▼
+┌────────────────────────┐                     ┌───────────────────────────┐
+│ Network Infrastructure │               ┌───► │         LISA Brain        │ ◄───┐
+│------------------------│               │     │---------------------------│     │
+│    VLANs / Firewall    │               │     │  AI Reasoning / Voice     │     │
+└───────────┬────────────┘               │     │  Memory / Agents / Tools  │     │
+            │                            │     └───────────────────────────┘     │
+            │                            ▼                                       ▼
+            │               ┌─────────────────────────┐             ┌─────────────────────────┐
+            └─────────────► │        LISA Edge        ├───────────► │   Smart Home Platform   │
+            ↑               │-------------------------│             │-------------------------│
+            |               │ OTBR / MQTT / NUT / VPN │             │ Homey                   │
+            |               │ DNS / NTP / Monitoring  │             │ Home Assistant          │
+            |               │ Backup / Restore        │             │ Future Controllers...   │
+            |               └─────────────────────────┘             └────────────┬────────────┘
+            |                                                                    ▼
+            |                                                       ┌─────────────────────────┐
+            |                                                       │ Smart Home Environment  │
+            |                                                       │    (Matter / Thread)    │
+            |                                                       │-------------------------│
+            |                                                       │ Local IoT Devices       │
+            |                                                       │-------------------------│
+            └------------ Cloud Services (Optional) ------------►   │ Cloud IoT Devices       │
+                                                                    └─────────────────────────┘
 ```
 
 LISA Edge supports intelligence.  
