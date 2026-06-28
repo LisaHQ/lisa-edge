@@ -6,18 +6,14 @@
 ![Platform](https://img.shields.io/badge/Platform-Linux-blue)
 ![Shell](https://img.shields.io/badge/Shell-Bash-blue)
 
-Part of the **LISA** ecosystem.
+**LISA Edge** is the infrastructure layer of the **[LISA](https://github.com/LisaHQ)** ecosystem.
 
-**LISA** stands for **Local Intelligent System Assistant**.
+> **LISA** stands for **Local Intelligent System Assistant**.  
+> It's a local-first AI ecosystem designed to become a true digital caretaker for intelligent environments.  
+> Its long-term goal is to understand context, coordinate smart-home devices, support natural interaction, and continue operating even when cloud services are unavailable.
 
-LISA is a local-first AI ecosystem designed to become a true digital caretaker for intelligent environments. Its long-term goal is to understand context, coordinate smart-home devices, support natural interaction, and continue operating even when cloud services are unavailable.
-
-**LISA Edge** is the infrastructure layer of that ecosystem.
-
-It provides the local connectivity, messaging, networking, monitoring, backup, and operational services that allow the broader LISA platform to run reliably.
-
-LISA Edge is **not** the AI brain.  
-LISA Edge is the foundation that keeps the environment connected, recoverable, and locally available.
+LISA Edge is **not** the AI brain. It's the foundation that keeps the environment connected, recoverable, and locally available.  
+LISA Edge provides the local connectivity, messaging, networking, monitoring, backup, and operational services that allow the broader LISA platform to run reliably.
 
 For a broader overview, see:
 
@@ -251,7 +247,7 @@ Basic flow:
 ```bash
 sudo git clone https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
 cd /opt/lisa-edge
-cp .env.example .env
+cp .env.template .env
 sudo ./bootstrap/bootstrap.sh
 sudo ./scripts/deploy.sh
 sudo ./scripts/healthcheck.sh

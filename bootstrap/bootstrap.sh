@@ -6,7 +6,7 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 log() { echo "[lisa-edge bootstrap] $*"; }
 
-log "Fixing script permissions..."
+log "Ensure script permissions..."
 
 chmod +x "$REPO_ROOT"/bootstrap/*.sh
 chmod +x "$REPO_ROOT"/bootstrap/phases/*.sh

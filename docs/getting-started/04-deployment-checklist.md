@@ -203,7 +203,7 @@ cd lisa-edge
 Configure:
 
 ```bash
-cp .env.example .env
+cp .env.template .env
 ```
 
 Deploy:

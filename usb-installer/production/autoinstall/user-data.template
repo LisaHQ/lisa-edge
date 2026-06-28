@@ -13,18 +13,18 @@ autoinstall:
   timezone: America/Los_Angeles
 
   identity:
-    hostname: lisa-edge
+    hostname: LISA-EDGE
     username: lisa
-    # Temporary console password.
+    # Temporary console password: ChangeMe123!
+    # Replace this hash before production use.
     # SSH password login is disabled below.
-    password: "023156"
+    password: "$6$QWnRj98zWZbExza3$5LAYPxsnYH26jKNur5P3etIjgiHiLIIAj1qPFViSSn.Pbnir.lyXWnplCoaJ9YReVapx.vjawtD1GOjR6I1PD/"
 
   ssh:
     install-server: true
     allow-pw: false
     authorized-keys:
-      # Replace with your public key.
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINjfuH5/II3sPBYVjLj7l8EltcYgrHkKD/8Dq31IQq8G lisa-edge-admin
+      - ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY lisa-edge-admin
 
   packages:
     - ca-certificates
@@ -38,8 +38,7 @@ autoinstall:
         match:
           # Replace with your target disk serial or model.
           # Find it with: lsblk -o NAME,MODEL,SERIAL,SIZE
-          # Comment the above 'size: largest' and uncomment the following line to match by:
-          serial: S2RANX0H6483662
+           serial: REPLACE_WITH_TARGET_DISK_SERIAL
 
         ptable: gpt
         wipe: superblock-recursive

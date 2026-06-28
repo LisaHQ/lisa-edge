@@ -15,7 +15,7 @@ sudo chmod +x bootstrap/bootstrap.sh bootstrap/phases/*.sh scripts/*.sh tools/us
 ## 3. Create Environment File
 
 ```bash
-cp .env.example .env
+cp .env.template .env
 nano .env
 ```
 
