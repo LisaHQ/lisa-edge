@@ -29,7 +29,7 @@ REM   --help          Show this help message.
 REM   -h              Same as --help.
 REM
 REM Examples:
-REM   prepare-ubuntu-usb.bat
+REM   prepare-ubuntu-usb.bat --auto-detect
 REM   prepare-ubuntu-usb.bat E:
 REM   prepare-ubuntu-usb.bat --dry-run
 REM   prepare-ubuntu-usb.bat --dry-run E:
@@ -93,6 +93,7 @@ set "DRY_RUN=0"
 set "DRY_RUN_OR_CONFIG_ONLY=0"
 
 set "USB_DRIVE="
+set "USB_CANDIDATE_COUNT=0"
 set "BACKUP_TS="
 set "EXISTING_TARGET_FILES=0"
 set "BACKUP_FILE_USER_DATA="
@@ -333,7 +334,7 @@ echo   %CLR_YELLOW%prepare-ubuntu-usb.bat %CLR_CYAN%[%CLR_GRAY%OPTIONS%CLR_CYAN%
 echo.
 echo %CLR_WHITE%Options:%CLR_RESET%
 echo   %CLR_GRAY%--auto-detect   %CLR_RESET%Auto detect the USB drive and install files to it.
-echo   %CLR_GRAY%-a              %CLR_RESET%Same as %CLR_GRAY%--auto%CLR_RESET%.
+echo   %CLR_GRAY%-a              %CLR_RESET%Same as %CLR_GRAY%--auto-detect%CLR_RESET%.
 echo   %CLR_GRAY%--yes           %CLR_RESET%Skip confirmation prompt. Should be used with %CLR_GRAY%--auto-detect%CLR_RESET%, or %CLR_GRAY%-a%CLR_RESET%, or %CLR_BLUE%USB_DRIVE%CLR_RESET%.
 echo   %CLR_GRAY%-y              %CLR_RESET%Same as %CLR_GRAY%--yes%CLR_RESET%.
 echo   %CLR_GRAY%--dry-run       %CLR_RESET%Validate and display actions without modifying USB.
@@ -365,19 +366,31 @@ if "%CONFIG_ONLY%"=="1" (
     exit /b 0
 )
 
+set "USB_CANDIDATE_COUNT=0"
+
 for /f "usebackq delims=" %%D in (`powershell -NoProfile -Command "Get-PSDrive -PSProvider FileSystem | ForEach-Object { $root=$_.Root; if ((Test-Path ($root + 'casper')) -and (Test-Path ($root + 'boot\grub'))) { $root.TrimEnd('\') } }"`) do (
     set "CAND=%%D"
     if exist "!CAND!\casper" (
         if exist "!CAND!\boot\grub" (
+            set /a USB_CANDIDATE_COUNT+=1
+            set "USB_CANDIDATE_!USB_CANDIDATE_COUNT!=!CAND!"
             set "USB_DRIVE=!CAND!"
         )
     )
 )
 
-if "%USB_DRIVE%"=="" (
+if "%USB_CANDIDATE_COUNT%"=="0" (
     call :StepFail
     call :Error Could not auto-detect the Ubuntu USB installer.
     call :Usage
+    exit /b 1
+)
+
+if not "%USB_CANDIDATE_COUNT%"=="1" (
+    call :StepFail
+    call :Error Multiple Ubuntu USB installers detected. Specify the USB drive explicitly.
+    echo Candidates:
+    for /L %%I in (1,1,%USB_CANDIDATE_COUNT%) do echo   !USB_CANDIDATE_%%I!
     exit /b 1
 )
 
@@ -388,7 +401,7 @@ REM ------------------------------------------------------------
 REM ValidateUsbDrive()
 REM ------------------------------------------------------------
 :ValidateUsbDrive
-call :BeginStep 2 "Validating USB media %CLR_BLUE%%USB_DRIVE%%CLR_RESET%
+call :BeginStep 2 "Validating USB media %CLR_BLUE%%USB_DRIVE%%CLR_RESET%"
 
 if "%CONFIG_ONLY%"=="1" (
     call :StepSkip
@@ -431,13 +444,21 @@ set "USER_DATA_SOURCE="
 
 if exist "%AUTOINSTALL_DIR%\user-data" (
     set "USER_DATA_SOURCE=%AUTOINSTALL_DIR%\user-data"
-) else if exist "%AUTOINSTALL_DIR%\user-data.template" (
-    set "USER_DATA_SOURCE=%AUTOINSTALL_DIR%\user-data.template"
 )
 
 if "%USER_DATA_SOURCE%"=="" (
     call :StepFail
-    call :Error Missing user-data or user-data.template:
+    if exist "%AUTOINSTALL_DIR%\user-data.template" (
+        call :Error Missing deployable user-data. Found template only.
+        echo.
+        echo Create this file after replacing placeholders:
+        echo   %AUTOINSTALL_DIR%\user-data
+        echo.
+        echo Template:
+        echo   %AUTOINSTALL_DIR%\user-data.template
+    ) else (
+        call :Error Missing user-data:
+    )
     echo   %AUTOINSTALL_DIR%
     exit /b 1
 )
@@ -577,6 +598,11 @@ if "%CONFIG_ONLY%"=="1" (
     exit /b 0
 )
 
+if "%DRY_RUN%"=="1" (
+    call :StepSkip
+    exit /b 0
+)
+
 set "WRITE_TEST_FILE=%USB_DRIVE%\.lisa-edge-write-test.%RANDOM%%RANDOM%"
 
 > "%WRITE_TEST_FILE%" echo test
@@ -706,12 +732,9 @@ if exist "%TARGET_FILE%" (
         echo   -^> %BACKUP_FILE%
     ) else (
         move /Y "%TARGET_FILE%" "%BACKUP_FILE%" >nul
-rem        if errorlevel 1 (
-rem            call :StepFail
-rem            call :Error Could not back up file:
-rem            echo   %TARGET_FILE%
-rem            exit /b 1
-rem        )
+        if errorlevel 1 (
+            exit /b 1
+        )
     )
 ) else (
     call :Info No existing file to back up:
@@ -811,6 +834,7 @@ REM ------------------------------------------------------------
 set "SOURCE_FILE=%~1"
 set "TARGET_FILE=%~2"
 fc /b "%SOURCE_FILE%" "%TARGET_FILE%" >nul
+if errorlevel 1 exit /b 1
 exit /b 0
 
 REM ------------------------------------------------------------
@@ -855,9 +879,15 @@ if "%CONFIG_ONLY%"=="0" (
     echo.
 )
 echo Installation files:
-echo   %CLR_CYAN%%USB_DRIVE%\autoinstall\user-data%CLR_RESET%
-echo   %CLR_CYAN%%USB_DRIVE%\autoinstall\meta-data%CLR_RESET%
-echo   %CLR_CYAN%%USB_DRIVE%\boot\grub\grub.cfg%CLR_RESET%
+if "%CONFIG_ONLY%"=="1" (
+    echo   %CLR_CYAN%%USER_DATA_SOURCE%%CLR_RESET%
+    echo   %CLR_CYAN%%META_DATA_SOURCE%%CLR_RESET%
+    echo   %CLR_CYAN%%GRUB_CFG_SOURCE%%CLR_RESET%
+) else (
+    echo   %CLR_CYAN%%USB_DRIVE%\autoinstall\user-data%CLR_RESET%
+    echo   %CLR_CYAN%%USB_DRIVE%\autoinstall\meta-data%CLR_RESET%
+    echo   %CLR_CYAN%%USB_DRIVE%\boot\grub\grub.cfg%CLR_RESET%
+)
 echo.
 if "%DRY_RUN_OR_CONFIG_ONLY%"=="0" (
     call :PrintRollbackCommands
