@@ -31,6 +31,9 @@ Protect:
 - Zigbee2MQTT keys
 - NUT control access
 
+NUT is planned rather than currently selectable. Its control interface must be
+treated as sensitive when the service is implemented.
+
 ## Network Segmentation
 
 Use VLANs or separate subnets when available.
@@ -43,3 +46,8 @@ At minimum, separate:
 - servers
 - management
 - guests
+
+Use the [Deployment Checklist](../getting-started/04-deployment-checklist.md)
+before exposing a new service and the
+[Deployment Validation](../getting-started/05-deployment-validation.md) after
+changes.

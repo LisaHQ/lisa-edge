@@ -1,18 +1,15 @@
 # This is the root configuration file for the project
 root = true
 
-# Default setting: Apply CRLF line endings to all files unless specified below
+# LISA Edge deploys to Linux hosts: LF is the default for every file.
+# Windows-only helper scripts are the explicit exception below.
 [*]
 charset = utf-8
 indent_style = space
 indent_size = 4
 trim_trailing_whitespace = true
 insert_final_newline = true
+end_of_line = lf
+
+[*.{bat,cmd,ps1}]
 end_of_line = crlf
-
-# Apply LF line endings for all .sh files
-[*.sh]
-end_of_line = lf
-
-[{user-data,meta-data}]
-end_of_line = lf

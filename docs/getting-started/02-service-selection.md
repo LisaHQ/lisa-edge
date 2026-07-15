@@ -1,164 +1,90 @@
-# Service Selection Guide
+# Service Selection
 
-LISA Edge is intentionally modular.
+Deploy only the services this node needs.
 
-Deploy only the services you actually need.
+List the current selection keys:
 
-Run `sudo lisa-edge-provision` and select one service, multiple services, or
-`all`. Each selected service starts its own configuration wizard. Zigbee2MQTT
-automatically adds its MQTT dependency.
-
----
-
-# MQTT
-
-Purpose:
-
-* Messaging
-* Event distribution
-* Automation integration
-
-Recommended for:
-
-* Home Assistant
-* Homey
-* Node-RED
-* LISA AI Brain
-
-Enable if:
-
-```text
-You need a local event bus.
+```bash
+./lisa-edge service list
 ```
 
----
+Select or change services through:
 
-# OTBR
-
-Purpose:
-
-* Thread Border Router
-
-Required for:
-
-* Matter over Thread devices
-
-Examples:
-
-* Eve
-* Nanoleaf
-* Future Matter sensors
-
-Enable if:
-
-```text
-You have Thread devices.
+```bash
+sudo ./lisa-edge setup
 ```
 
----
+Use `sudo ./lisa-edge configure` when you only want to update `.env` and do not
+want to bootstrap or deploy yet.
 
-# NUT (planned, not selectable yet)
+## Selectable services
 
-Purpose:
+| Key | Service | Enable when… |
+| --- | --- | --- |
+| `mqtt` | Eclipse Mosquitto | clients need a local message bus |
+| `uptime-kuma` | Uptime Kuma | you need lightweight availability monitoring |
+| `otbr` | OpenThread Border Router | you have Matter-over-Thread devices and an RCP radio |
+| `vpn-tailscale` | Tailscale | you need VPN-first remote administration |
+| `ha` | Home Assistant | this Edge host is intentionally hosting a small HA deployment |
+| `zigbee2mqtt` | Zigbee2MQTT | you have a supported Zigbee coordinator |
+| `node-red` | Node-RED | you need a lightweight local flow engine |
 
-* UPS monitoring
-* Graceful shutdown
+Selecting Zigbee2MQTT automatically selects MQTT. Hand-written configurations
+that omit this dependency are rejected during deployment validation.
 
-Planned for deployments where:
+Chrony, host hardening, systemd runtime, backup/restore, diagnostics, and rescue
+tooling are host-level capabilities. They do not appear in the selectable
+Compose list.
 
-```text
-You have a UPS.
-```
+## Common profiles
 
----
-
-# Tailscale
-
-Purpose:
-
-* Secure remote access
-
-Enable if:
-
-```text
-You need remote administration.
-```
-
----
-
-# Reverse Proxy (planned, not selectable yet)
-
-Purpose:
-
-* Unified access point
-* TLS termination
-* Service routing
-
-Planned for deployments where:
+### Minimal messaging node
 
 ```text
-Multiple web services are deployed.
+mqtt
 ```
 
----
-
-# Uptime Kuma
-
-Purpose:
-
-* Monitoring
-* Notifications
-
-Enable if:
+### Matter-over-Thread infrastructure
 
 ```text
-You want service health monitoring.
+mqtt otbr uptime-kuma
 ```
 
----
+### Remotely administered edge node
 
-# Common Deployment Profiles
+```text
+mqtt uptime-kuma vpn-tailscale
+```
 
-## Smart Home
+### Local automation bridge
 
-Recommended:
+```text
+mqtt zigbee2mqtt node-red
+```
 
-* MQTT
-* OTBR
-* NUT (when implemented)
+Home Assistant is optional. Keep it on its existing controller or dedicated
+host unless co-location clearly reduces operational complexity.
 
----
+## Planned, not selectable
 
-## Homelab
+These services fit the Edge boundary but are not implemented Compose choices:
 
-Recommended:
+- NUT / UPS integration
+- DNS helpers
+- reverse proxy
 
-* MQTT
-* Tailscale
-* Reverse Proxy (when implemented)
-* Uptime Kuma
+Do not put their names in `LISA_COMPOSE_SERVICES`. Follow the current output of
+`./lisa-edge service list`, not an architecture diagram or roadmap entry.
 
----
+## Before enabling a service
 
-## LISA AI Deployment
+Confirm:
 
-Recommended:
+- the selected image supports the host CPU architecture;
+- bind addresses and firewall rules expose only intended clients;
+- device paths use stable `/dev/serial/by-id/...` names where possible;
+- persistent data is on suitable storage;
+- backup and restore requirements are understood; and
+- any required credential is stored outside Git.
 
-* MQTT
-* NUT (when implemented)
-* Tailscale
-* Reverse Proxy (when implemented)
-
-Optional:
-
-* OTBR
-
-Depending on Matter usage.
-
----
-
-# Start Small
-
-Begin with the minimum required services.
-
-Additional services can be deployed later without rebuilding the host.
+Start small. You can re-run setup later without reinstalling the host.

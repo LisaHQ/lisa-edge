@@ -1,119 +1,56 @@
-# OTBR Disaster Recovery
+# OTBR Dataset Recovery
 
-This guide is only for the OTBR service.
+Use this runbook when the OTBR host or container is lost but the Thread Active
+Operational Dataset is available. A full LISA Edge backup is preferred; this is
+the dataset-only path.
 
-OTBR recovery is separated from general backup documentation because the Thread dataset is uniquely important.
-
-## Goal
-
-Recover a failed OTBR deployment without re-pairing Thread devices.
-
----
-
-## Symptoms
-
-Examples:
-
-* SSD failure
-* OS corruption
-* Hardware replacement
-* Accidental container deletion
-
----
-
-## Required Backup
-
-At minimum:
+Required state:
 
 ```text
 latest.dataset.hex
 ```
 
-This file contains the Thread Active Operational Dataset.
+Treat this file as a secret. It contains the identity and credentials of the
+Thread network.
 
----
+## Fresh-host procedure
 
-## Recovery Procedure
+1. Install Linux and clone LISA Edge.
+2. Configure without deploying; select OTBR and the correct RCP/backbone:
 
-### Step 1
+   ```bash
+   sudo ./lisa-edge configure
+   ```
 
-Install Linux.
+3. Copy the saved dataset to the `OTBR_DATASET_LATEST` path in `.env`. For the
+   default layout:
 
-### Step 2
+   ```bash
+   sudo install -D -m 0600 /path/to/latest.dataset.hex \
+     /srv/lisa-edge/backups/otbr/latest.dataset.hex
+   ```
 
-Clone LISA Edge.
+4. Bootstrap and deploy. OTBR detects the empty runtime state and restores the
+   saved dataset automatically:
 
-```bash
-git clone https://github.com/lisahq/lisa-edge.git
-```
+   ```bash
+   sudo ./lisa-edge bootstrap
+   ```
 
-### Step 3
+5. Verify attachment and dataset identity:
 
-Restore dataset backup.
+   ```bash
+   sudo ./lisa-edge health
+   docker exec lisa-otbr ot-ctl state
+   docker exec lisa-otbr ot-ctl dataset active -x
+   ```
 
-```bash
-latest.dataset.hex
-```
+An attached network normally reports `child`, `router` or `leader`. Confirm
+Thread devices reconnect and Matter automations work before declaring recovery
+complete.
 
-into:
+Keep `OTBR_AUTO_RESTORE_DATASET=1` and `OTBR_AUTO_CREATE_NETWORK=0` in
+production. Without a dataset backup, a new Thread network must be created and
+devices may need factory reset or re-pairing.
 
-```text
-/srv/lisa-edge/backups/otbr/
-```
-
-### Step 4
-
-Deploy OTBR.
-
-```bash
-./scripts/deploy.sh
-```
-
-### Step 5
-
-Verify network state.
-
-```bash
-docker exec lisa-otbr ot-ctl state
-docker exec lisa-otbr ot-ctl dataset active -x
-```
-
-Expected:
-
-```text
-leader
-```
-
-or
-
-```text
-router
-```
-
----
-
-## Verification
-
-Verify:
-
-* Thread devices reconnect
-* Matter devices respond
-* Existing automations continue working
-
-No re-pairing should be required.
-
----
-
-## If No Backup Exists
-
-Recovery becomes significantly harder.
-
-A new Thread network must be created.
-
-Consequences:
-
-* devices may require factory reset
-* Matter devices may require re-pairing
-* network credentials are lost
-
-For this reason, dataset backups are considered critical infrastructure.
+Implementation ownership: [`services/otbr/`](../../../services/otbr/README.md).

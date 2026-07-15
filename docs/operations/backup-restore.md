@@ -1,94 +1,75 @@
 # Backup and Restore
 
-LISA Edge is designed to be rebuildable.
+The public interface is the root command; implementation is owned by
+[`ops/backup-restore/`](../../ops/backup-restore/README.md).
 
-Back up:
-
-- `.env`
-- Docker volumes
-- service configuration
-- secrets
-- OTBR Thread dataset if OTBR is used
-- VPN state if Tailscale is used
-
-## Backup
+## Create a backup
 
 ```bash
-sudo ./scripts/backup.sh
+sudo ./lisa-edge backup
+sudo ./lisa-edge health
 ```
 
-The archive is created with mode `0600`, includes local secrets and the OTBR
-dataset, and retains 14 days by default. Configure `BACKUP_DEST` on external or
-network storage and adjust `BACKUP_RETENTION_DAYS` as needed.
+Backup briefly stops the selected Compose stack for a consistent snapshot,
+creates the archive, then starts the stack again. Format v3 archives use a
+portable logical layout containing `.env`, persistent `data/`, `docker/`,
+`state/`, `secrets/` and an OTBR dataset copy when present. Checked-out code and
+static service definitions remain sourced from Git.
 
-For NAS or removable storage set `BACKUP_REQUIRE_MOUNT=1`. The backup then
-uses `findmnt` and fails closed if `BACKUP_DEST` resolves to the root filesystem.
-Optionally set `BACKUP_EXPECTED_MOUNT_SOURCE` to the exact `findmnt` source
-(for example `nas:/volume/lisa-edge`) so mounting the wrong volume also fails.
+The default destination is `${DATA_ROOT}/backups`, retention is 14 days, and
+each archive receives a required `.sha256` sidecar. When `jq` is available, a
+`.manifest.json` records format, host, Git revision and selected services.
 
-Persistent-data and backup roots must not overlap protected system trees such
-as `/etc`, `/usr`, `/opt`, `/root` or `/tmp`. Prefer `/srv/lisa-edge`, `/data`,
-or a dedicated mount below `/mnt` or `/media`.
+For NAS or removable storage, configure:
 
-Each archive has a `.sha256` checksum sidecar and, when `jq` is available, a
-`.manifest.json` file describing its host, Git revision and selected services.
+```env
+BACKUP_DEST=/mnt/backup/lisa-edge
+BACKUP_REQUIRE_MOUNT=1
+BACKUP_EXPECTED_MOUNT_SOURCE=nas:/volume/lisa-edge
+```
 
-Restore requires the checksum sidecar by default. `--allow-missing-checksum`
-exists only for recovery of a known, trusted legacy backup. A checksum detects
-corruption but does not authenticate who created an archive.
+The mount guard fails closed rather than writing to the root filesystem. Keep
+backups outside the edge host. Archives contain credentials and service state
+and are not encrypted; use encrypted storage or an encrypted backup repository.
 
-The tar archive itself is not encrypted. Use encrypted storage or copy it into
-an encrypted restic repository before it leaves the trusted host.
-
-## Restore
+## Restore to the live host
 
 ```bash
-sudo ./scripts/restore.sh /path/to/lisa-edge-backup.tar.gz
+sudo ./lisa-edge restore /path/to/lisa-edge-backup.tar.gz
+# Review .env and image references, then:
+sudo ./lisa-edge deploy
 ```
 
-Restore validates the archived `.env`, rejects hard links and device nodes,
-restricts members to the repository configuration and configured persistent
-data roots, and extracts into a protected staging directory before copying any
-file into the system. Only restore archives from a trusted host or storage
-location. Clone LISA Edge at the same absolute repository path used by the
-source host (normally `/opt/lisa-edge`) before restoring.
+Restore requires the adjacent checksum by default, validates `.env`, rejects
+unsafe archive members, extracts into protected staging and does not deploy
+unless `--deploy` is explicitly supplied. Format v3 is path-independent; the
+restore command also accepts trusted legacy format-v2 archives.
 
-Restore does not start containers by default. It restores the validated `.env`
-and persistent data, but keeps the checked-out Compose and static configuration
-as the source of truth. Review `.env` and the selected image references, then
-deploy explicitly:
+`--allow-missing-checksum` is only for a known trusted legacy archive. A
+checksum detects corruption but does not authenticate the archive producer.
+
+## Restore into a mounted replacement filesystem
+
+From the Rescue OS, mount the production root below `/mnt`, then use:
 
 ```bash
-sudo ./scripts/deploy.sh
-# Or, for a fully trusted archive:
-sudo ./scripts/restore.sh --deploy /path/to/lisa-edge-backup.tar.gz
+sudo ./lisa-edge restore --target-root /mnt/lisa-production /path/to/backup.tar.gz
 ```
 
-Container image refresh is separate from normal deployment:
+The target must be an exact mounted filesystem. Target-root restore never
+deploys containers. The higher-level rescue entrypoint is
+`sudo ./lisa-edge rescue restore-backup ...`.
+
+## Scheduled backups
+
+`lisa-edge-backup.timer` runs daily at 03:30 with a randomized delay. Inspect or
+trigger it with:
 
 ```bash
-sudo ./scripts/deploy.sh          # pull only images that are missing
-sudo ./scripts/deploy.sh --pull   # explicitly refresh selected images
-sudo ./scripts/deploy.sh --offline
+systemctl list-timers 'lisa-*'
+sudo systemctl start lisa-edge-backup.service
+journalctl -u lisa-edge-backup.service -n 100 --no-pager
 ```
 
-For reproducible production releases, replace the image references in `.env`
-with multi-architecture manifest digests and set
-`LISA_REQUIRE_PINNED_IMAGES=1`. Deployment prints and validates every selected
-image before pull or startup. The provisioning wizard requires explicit trust
-confirmation before it reuses image references restored from a backup.
-
-Test restore regularly on a spare host or isolated VM. A backup is not proven
-until the restored services and OTBR dataset have been validated.
-The repository validation suite also exercises the complete safe-restore path
-against an isolated target root; this complements, but does not replace, a
-periodic restore drill on representative hardware.
-
-## Production Recommendation
-
-Store backups outside the edge host:
-
-- NAS
-- external SSD
-- encrypted restic repository
-- offline archive
+Test restore on representative spare hardware. A backup is not proven until
+the restored services, credentials and OTBR dataset have been verified.

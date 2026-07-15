@@ -15,6 +15,11 @@ Examples of secrets:
 Use `.env.template` only for safe placeholders. Keep the real `.env` at mode
 `0600` and outside Git.
 
+Do not create a repository-managed `secrets/` workflow for production
+credentials. Runtime service secrets belong in the configured
+`${DATA_ROOT}/secrets`, an external secret manager, or another explicitly
+secured host path. A Git ignore rule is not a security boundary.
+
 For production, consider:
 
 - password manager

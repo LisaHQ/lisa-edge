@@ -28,23 +28,27 @@ The LISA ecosystem is divided into logical layers.
 
 Each layer has a specific responsibility.
 
-| Service          | Edge | Brain | Smart Home | NAS | Vision |
-|------------------|------|-------|------------|-----|--------|
-| MQTT             | ✓    |       |            |     |        |
-| OTBR             | ✓    |       |            |     |        |
-| NUT              | ✓    |       |            |     |        |
-| DNS Helpers      | ✓    |       |            |     |        |
-| Reverse Proxy    | ✓    |       |            |     |        |
-| VPN              | ✓    |       |            |     |        |
-| NTP              | ✓    |       |            |     |        |
-| LLM              |      | ✓     |            |     |        |
-| ASR              |      | ✓     |            |     |        |
-| TTS              |      | ✓     |            |     |        |
-| Homey            |      |       | ✓          |     |        |
-| Home Assistant   |      |       | ✓          |     |        |
-| Frigate          |      |       |            |     | ✓      |
-| Object Detection |      |       |            |     | ✓      |
-| Backups          |      |       |            | ✓   |        |
+This table describes architectural ownership as well as repository status.
+`Planned` means the service fits the Edge boundary but is not selectable today.
+
+| Service | Edge | Brain | Smart Home | NAS | Vision | Repository status |
+| --- | --- | --- | --- | --- | --- | --- |
+| MQTT | ✓ | | | | | Implemented |
+| OTBR | ✓ | | | | | Implemented |
+| Uptime Kuma | ✓ | | | | | Implemented |
+| Tailscale | ✓ | | | | | Implemented |
+| Zigbee2MQTT | ✓ | | ✓ | | | Implemented |
+| Node-RED | ✓ | | ✓ | | | Implemented |
+| Home Assistant | optional | | ✓ | | | Implemented, optional co-location |
+| NUT | ✓ | | | | | Planned |
+| DNS helpers | ✓ | | | | | Planned |
+| Reverse proxy | ✓ | | | | | Planned |
+| NTP / Chrony | ✓ | | | | | Implemented on host |
+| LLM | | ✓ | | | | Outside this repository |
+| ASR / TTS | | ✓ | | | | Outside this repository |
+| Homey | | | ✓ | | | External platform |
+| Frigate / object detection | | | | | ✓ | Outside this repository |
+| Backup destination | | | | ✓ | | External storage recommended |
 
 ---
 
@@ -64,18 +68,24 @@ Typical hardware:
 * Mini PC
 * Virtual Machine
 
-Recommended services:
+Implemented services and capabilities:
 
 * OTBR
 * MQTT
-* NUT
-* DNS helpers
-* NTP
-* Reverse Proxy
 * Tailscale
 * Uptime Kuma
+* Home Assistant
+* Zigbee2MQTT
+* Node-RED
+* Chrony
 * Health checks
 * Backup jobs
+
+Planned:
+
+* NUT
+* DNS helpers
+* Reverse proxy
 
 Characteristics:
 
@@ -192,17 +202,22 @@ Recommended:
 ```text
 ✓ OTBR
 ✓ MQTT
-✓ NUT
 ✓ Tailscale
-✓ Reverse Proxy
 ✓ Uptime Kuma
-✓ DNS Helpers
-✓ NTP
+✓ Chrony
 ✓ Backup Automation
 ✓ Health Monitoring
 ```
 
-These services support the ecosystem.
+Planned Edge services:
+
+```text
+◇ NUT
+◇ DNS Helpers
+◇ Reverse Proxy
+```
+
+Run `./lisa-edge service list` before treating any service as deployable.
 
 ---
 

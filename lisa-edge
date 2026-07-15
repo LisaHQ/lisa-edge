@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROGRAM_NAME="$(basename "$0")"
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+  LINK_TARGET="$(readlink "$SCRIPT_PATH")"
+  case "$LINK_TARGET" in
+    /*) SCRIPT_PATH="$LINK_TARGET" ;;
+    *) SCRIPT_PATH="$SCRIPT_DIR/$LINK_TARGET" ;;
+  esac
+done
+EDGE_REPO="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
+
+usage() {
+  cat <<'USAGE'
+LISA Edge operator command
+
+Usage:
+  lisa-edge <command> [arguments]
+
+Setup and installation:
+  setup                         Run the interactive first-boot workflow
+  configure [wizard options]    Write or update configuration only
+  bootstrap [arguments]         Prepare the host and deploy configured services
+  usb production <mount-path>   Prepare a production installer USB
+  usb rescue <mount-path>       Prepare a rescue installer USB
+
+Runtime operations:
+  deploy [--pull|--offline]      Start or refresh selected services
+  stop                           Stop selected services
+  update                         Fast-forward the repository and refresh images
+  health                         Run readiness checks
+  status                         Show selected services and runtime state
+  diagnostics [output-dir]       Create a diagnostics bundle
+  service list                  List available service selection keys
+
+Data protection:
+  backup                         Create a production backup
+  restore [options] <archive>    Validate and restore a backup archive
+
+Rescue layer:
+  rescue bootstrap              Install rescue tools
+  rescue doctor                 Collect rescue-host diagnostics
+  rescue disks                  Inspect disks and installation candidates
+  rescue mount [arguments]      Mount the production filesystem
+  rescue restore-backup <file>  Safely restore a LISA Edge backup archive
+  rescue restore-snapshot ...   Restore a raw filesystem snapshot
+  rescue reinstall              Show the production reinstall procedure
+  rescue update                 Refresh installed rescue scripts
+
+General:
+  help                           Show this help
+
+Run `lisa-edge <command> --help` for command-specific options when supported.
+USAGE
+}
+
+die() {
+  echo "ERROR: $*" >&2
+  exit 2
+}
+
+run_script() {
+  local label="$1"
+  local relative="$2"
+  shift 2
+  [ -f "$EDGE_REPO/$relative" ] || die "$label is unavailable; missing $relative"
+  exec bash "$EDGE_REPO/$relative" "$@"
+}
+
+run_rescue() {
+  local action="${1:-}"
+  [ -n "$action" ] || die "rescue requires a subcommand; run 'lisa-edge help'"
+  shift
+
+  case "$action" in
+    bootstrap)
+      run_script "rescue bootstrap" "rescue/scripts/bootstrap.sh" "$@" ;;
+    doctor|diagnostics)
+      run_script "rescue diagnostics" "rescue/scripts/diagnostics.sh" "$@" ;;
+    disks)
+      run_script "rescue disk detection" "rescue/scripts/detect-disks.sh" "$@" ;;
+    mount)
+      run_script "production filesystem mount" "rescue/scripts/mount-production.sh" "$@" ;;
+    restore-backup)
+      run_script "rescue backup restore" "rescue/scripts/restore-edge-backup.sh" "$@" ;;
+    restore-snapshot)
+      run_script "rescue filesystem snapshot restore" "rescue/scripts/restore-filesystem-snapshot.sh" "$@" ;;
+    restore)
+      die "ambiguous subcommand: use 'rescue restore-backup <archive>' or 'rescue restore-snapshot <snapshot-dir>'" ;;
+    reinstall)
+      run_script "production reinstall helper" "rescue/scripts/reinstall-guide.sh" "$@" ;;
+    update)
+      run_script "rescue script update" "rescue/scripts/update-rescue-scripts.sh" "$@" ;;
+    *) die "unknown rescue subcommand: $action" ;;
+  esac
+}
+
+run_usb() {
+  local target="${1:-}"
+  [ -n "$target" ] || die "usb requires 'production' or 'rescue'"
+  shift
+
+  case "$target" in
+    production)
+      run_script "production USB preparation" \
+        "install/usb/production/scripts/prepare-ubuntu-usb.sh" "$@" ;;
+    rescue)
+      run_script "rescue USB preparation" \
+        "install/usb/rescue/prepare-ubuntu-rescue-usb.sh" "$@" ;;
+    *) die "unknown USB target: $target" ;;
+  esac
+}
+
+run_service() {
+  local action="${1:-}"
+  [ -n "$action" ] || die "service requires a subcommand; currently supported: list"
+  shift
+
+  case "$action" in
+    list)
+      run_script "service catalog listing" "services/list.sh" "$@" ;;
+    *) die "unknown service subcommand: $action" ;;
+  esac
+}
+
+if [ "$#" -eq 0 ] && [ "$PROGRAM_NAME" = "lisa-edge-provision" ]; then
+  set -- setup
+fi
+
+if [ "$#" -eq 0 ]; then
+  usage
+  exit 0
+fi
+
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+  help|-h|--help) usage ;;
+  setup) run_script "provisioning workflow" "install/provisioning/lisa-first-boot.sh" "$@" ;;
+  configure) run_script "provisioning workflow" "install/provisioning/lisa-first-boot.sh" --mode config-only "$@" ;;
+  bootstrap) run_script "host bootstrap" "install/bootstrap/bootstrap.sh" "$@" ;;
+  deploy) run_script "deployment" "ops/deploy/deploy.sh" "$@" ;;
+  stop) run_script "stop workflow" "ops/deploy/stop.sh" "$@" ;;
+  update) run_script "update workflow" "ops/deploy/update.sh" "$@" ;;
+  health) run_script "health check" "ops/deploy/healthcheck.sh" "$@" ;;
+  status) run_script "status" "ops/deploy/status.sh" "$@" ;;
+  diagnostics|diag) run_script "diagnostics" "ops/diagnostics/collect-diag.sh" "$@" ;;
+  backup) run_script "backup" "ops/backup-restore/backup.sh" "$@" ;;
+  restore) run_script "restore" "ops/backup-restore/restore.sh" "$@" ;;
+  usb) run_usb "$@" ;;
+  rescue) run_rescue "$@" ;;
+  service) run_service "$@" ;;
+  *)
+    echo "Unknown command: $COMMAND" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

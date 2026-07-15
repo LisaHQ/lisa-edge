@@ -1,0 +1,105 @@
+#cloud-config
+# LISA Edge Ubuntu autoinstall template.
+#
+# WARNING:
+# This file can wipe disks. Review the storage section before use.
+# Replace placeholders for hostname, SSH key, disk serial/model, and repo URL.
+
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  timezone: America/Los_Angeles
+
+  identity:
+    hostname: LISA-EDGE
+    username: lisa
+    # Password login is locked. Use the authorized SSH key below.
+    # Set a console password after installation with: sudo passwd lisa
+    password: "!"
+
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY lisa-edge-admin
+
+  packages:
+    - ca-certificates
+    - curl
+    - git
+
+  storage:
+    config:
+      - type: disk
+        id: install_disk
+        match:
+          # Prefer the target disk serial. The wizard can also use model or size: largest.
+          # Find it with: lsblk -o NAME,MODEL,SERIAL,SIZE
+          serial: REPLACE_WITH_TARGET_DISK_SERIAL
+
+        ptable: gpt
+        wipe: superblock-recursive
+        preserve: false
+        grub_device: true
+
+      - type: partition
+        id: efi_partition
+        device: install_disk
+        size: 1G
+        flag: boot
+        wipe: superblock
+        preserve: false
+
+      - type: partition
+        id: root_partition
+        device: install_disk
+        size: -1
+        wipe: superblock
+        preserve: false
+
+      - type: format
+        id: efi_format
+        volume: efi_partition
+        fstype: fat32
+
+      - type: format
+        id: root_format
+        volume: root_partition
+        fstype: ext4
+
+      - type: mount
+        id: efi_mount
+        path: /boot/efi
+        device: efi_format
+
+      - type: mount
+        id: root_mount
+        path: /
+        device: root_format
+
+  user-data:
+    disable_root: true
+    package_update: true
+    package_upgrade: false
+    write_files:
+      - path: /etc/sudoers.d/90-lisa-admin
+        owner: root:root
+        permissions: '0440'
+        content: |
+          lisa ALL=(ALL) NOPASSWD:ALL
+    users:
+      - default
+    ssh_pwauth: false
+
+  late-commands:
+    - curtin in-target --target=/target -- git clone --branch REPLACE_WITH_LISA_EDGE_GIT_REF --depth 1 https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
+    - curtin in-target --target=/target -- find /opt/lisa-edge -type f -name "*.sh" -exec chmod +x {} \;
+    - curtin in-target --target=/target -- chmod +x /opt/lisa-edge/lisa-edge
+    - curtin in-target --target=/target -- install -m 0644 /opt/lisa-edge/install/provisioning/systemd/lisa-first-boot.service /etc/systemd/system/lisa-first-boot.service
+    - curtin in-target --target=/target -- ln -sfn /opt/lisa-edge/lisa-edge /usr/local/sbin/lisa-edge-provision
+    - curtin in-target --target=/target -- systemctl enable lisa-first-boot.service
+
+  updates: security
+  shutdown: reboot

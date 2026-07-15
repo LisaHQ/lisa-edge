@@ -106,6 +106,10 @@ Each layer has a dedicated responsibility.
 
 Keeping those responsibilities separate helps maintain reliability, security, and operational simplicity.
 
+The diagram describes architectural placement, not current implementation
+status. MQTT, OTBR, Tailscale, Uptime Kuma, Chrony, backup/restore, and health
+tooling are implemented today. NUT, DNS helpers, and reverse proxy are planned.
+
 ---
 
 # Network Infrastructure
@@ -150,17 +154,19 @@ LISA Edge focuses on:
 * Secure remote access
 * Infrastructure resilience
 
-Examples of services commonly associated with LISA Edge include:
+Implemented examples include:
 
 * Thread Border Router
 * MQTT
-* VPN services
-* Reverse Proxy
-* NTP
-* DNS helpers
+* Tailscale VPN
+* Chrony time synchronization
 * Monitoring
 * Health checks
 * Backup automation
+
+Planned Edge services include NUT, DNS helpers, and reverse proxy. Architectural
+fit does not make a service selectable; check `./lisa-edge service list` for the
+current implementation.
 
 LISA Edge should continue operating even if cloud services become unavailable.
 
@@ -271,6 +277,10 @@ Services should remain portable across:
 * Virtual Machines
 * Cloud instances
 
+Automated host bootstrap currently supports Ubuntu and Debian. Other Linux
+targets require manual host preparation even when their Docker runtime is
+otherwise suitable.
+
 ## Local Autonomy
 
 The ecosystem should continue providing core functionality during Internet outages whenever possible.
@@ -294,9 +304,8 @@ If the answer is mostly yes, it likely belongs on LISA Edge.
 
 If the service performs heavy AI inference, large-scale storage, video analytics, or compute-intensive processing, it likely belongs elsewhere.
 
-For detailed placement guidance, see:
-
-* service-boundaries.md
+For detailed placement guidance, see
+[Service Boundaries](02-service-boundaries.md).
 
 ---
 

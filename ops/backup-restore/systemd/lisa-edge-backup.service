@@ -1,0 +1,12 @@
+[Unit]
+Description=Create LISA Edge backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/lisa-edge
+ExecStart=/opt/lisa-edge/lisa-edge backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

@@ -16,3 +16,6 @@ secrets/*
 
 user-data
 !user-data.template
+
+# Local staging area for files awaiting manual deletion (bridge cannot delete)
+_to_delete/

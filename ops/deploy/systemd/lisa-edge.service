@@ -1,0 +1,16 @@
+[Unit]
+Description=LISA Edge Docker Compose Stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/lisa-edge
+ExecStart=/opt/lisa-edge/lisa-edge deploy
+ExecStop=/opt/lisa-edge/lisa-edge stop
+RemainAfterExit=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

@@ -1,93 +1,61 @@
 # Service Catalog
 
-LISA Edge is a collection of lightweight infrastructure services.
+LISA Edge runs lightweight infrastructure services. The canonical list of
+deployable selection keys is generated from `services/registry.sh`:
 
-No single service should dominate the project. OTBR is important for Matter-over-Thread, but it is only one part of the stack.
+```bash
+./lisa-edge service list
+```
 
-The purpose of this catalog is to clarify which services belong on LISA Edge and which services should usually run elsewhere.
+Configure the complete service selection with `sudo ./lisa-edge setup` or edit
+`LISA_COMPOSE_SERVICES` in `.env`, then apply it with:
 
----
+```bash
+sudo ./lisa-edge deploy
+sudo ./lisa-edge health
+```
 
-## LISA Edge Services
+`LISA_COMPOSE_SERVICES` is the whole selection, not an additive command. Keep
+existing keys when adding a service.
 
-These services are good fits for LISA Edge.
+## Implemented container services
 
-### Infrastructure Services
-| Service         | Default  | Role                                   |
-|-----------------|:--------:|----------------------------------------|
-| DNS helpers     | Planned  | Local resolution and service discovery |
-| NTP / Chrony    |   Yes    | Local time synchronization             |
-| MQTT            |   Yes    | Local event and messaging backbone     |
-| VPN / Tailscale | Optional | Secure remote administration           |
-| Reverse proxy   | Planned  | Internal HTTPS and service routing     |
-| NUT             | Planned  | UPS monitoring and graceful shutdown   |
-| Uptime Kuma     |   Yes    | Lightweight health monitoring          |
-| Backup timer    |   Yes    | Host-level backup workflow             |
+| Service | Selection key | Default | Dependency | Reference |
+|---|---|:---:|---|---|
+| MQTT / Mosquitto | `mqtt` | Yes | — | [MQTT](mqtt.md) |
+| Uptime Kuma | `uptime-kuma` | Yes | — | [Uptime Kuma](uptime-kuma.md) |
+| OpenThread Border Router | `otbr` | No | Thread RCP hardware | [OTBR](otbr.md) |
+| Tailscale | `vpn-tailscale` | No | `/dev/net/tun` | [Tailscale](vpn-tailscale.md) |
+| Home Assistant | `ha` | No | — | [Home Assistant](home-assistant.md) |
+| Zigbee2MQTT | `zigbee2mqtt` | No | `mqtt`, Zigbee coordinator | [Zigbee2MQTT](zigbee2mqtt.md) |
+| Node-RED | `node-red` | No | — | [Node-RED](node-red.md) |
 
-### Connectivity Services
-| Service        | Default  | Role                                     |
-|----------------|:--------:|------------------------------------------|
-| OTBR           | Optional | Thread Border Router                     |
-| Zigbee2MQTT    | Optional | Zigbee-to-MQTT bridge                    |
-| Matter bridges | Optional | Connects non-Matter ecosystems to Matter |
-| mDNS           | Optional | Local multicast service discovery        |
+The implementation for each service is a vertical slice under `services/`
+containing its Compose fragment, provisioning logic, source configuration and
+service-specific recovery tools.
 
----
+Home Assistant and Node-RED are supported for compact installations, but large
+automation workloads normally belong on LISA Brain or another automation host.
 
-## Conditional Edge Services
+## Implemented host capabilities
 
-These may run on LISA Edge in small deployments but should be evaluated carefully.
+- [Chrony / NTP](ntp.md) is installed by host bootstrap and is not a Compose
+  selection key.
+- Avahi and IPv6 forwarding are prepared when OTBR is selected.
+- Runtime and backup timers are operational infrastructure documented under
+  [Operations](../operations/backup-restore.md), not selectable services.
 
-| Service          | When Acceptable                      | Notes                               |
-|------------------|--------------------------------------|-------------------------------------|
-| Small PostgreSQL | Small metadata/config workloads only | Avoid large or high-write databases |
-| Small MariaDB    | Small local service dependency only  | Avoid heavy writes to eMMC          |
-| Lightweight APIs | Infrastructure support only          | Keep resource usage low             |
-| Small dashboards | Operational dashboards only          | Avoid large observability stacks    |
+## Planned capabilities
 
----
+DNS helpers, NUT/UPS integration and a reverse proxy are design ideas only. See
+[Planned Capabilities](../planned/README.md). Do not put their names in
+`LISA_COMPOSE_SERVICES`.
 
-## Smart Home / Automation Services
+## Usually external
 
-These services may be related to the LISA ecosystem, but they are not core LISA Edge infrastructure.
+Keep heavy compute, video analytics, large databases, long-term storage and
+large observability stacks on dedicated systems. Examples include LLM/ASR/TTS
+inference, Frigate, NAS workloads and high-write monitoring platforms.
 
-They should usually run on LISA Brain, a home automation host, or a separate automation layer.
-
-| Service        | Preferred Placement                     | Reason                                           |
-|----------------|-----------------------------------------|--------------------------------------------------|
-| Homey          | Dedicated controller / automation layer | Device orchestration, not edge infrastructure    |
-| Home Assistant | LISA Brain / automation host            | Automation logic and integrations can grow heavy |
-| Node-RED       | LISA Brain / automation host            | Workflow logic belongs above Edge                |
-
----
-
-## External / Dedicated Services
-
-These should generally not run on LISA Edge.
-
-| Service                 | Preferred Placement       |
-|-------------------------|---------------------------|
-| LLM inference           | LISA Brain / AI compute   |
-| ASR / TTS               | LISA Brain / AI compute   |
-| Frigate                 | Vision server             |
-| Object detection        | Vision server             |
-| NAS workloads           | NAS                       |
-| Media storage           | NAS                       |
-| Large databases         | Database server           |
-| Heavy monitoring stacks | Dedicated monitoring host |
-
----
-
-## Service Placement Rule
-
-Run lightweight infrastructure services on LISA Edge.
-
-Move heavy compute, large databases, video analytics, long-term storage, and complex automation logic to dedicated systems.
-
-Every service should answer:
-
-- Does this improve local availability?
-- Does this improve reliability?
-- Does this improve security?
-- Is the complexity justified?
-- Can it be backed up and restored cleanly?
+Before adding any service, ask whether it improves local availability,
+reliability or security enough to justify its resource use and recovery burden.

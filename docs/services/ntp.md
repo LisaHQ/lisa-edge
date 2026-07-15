@@ -1,17 +1,20 @@
 # NTP / Chrony
 
-Reliable time sync is important for logs, certificates, VPN, authentication, and distributed services.
+Chrony is a host capability installed during `sudo ./lisa-edge bootstrap`; it is
+not a container and has no `LISA_COMPOSE_SERVICES` key.
 
-LISA Edge installs Chrony during bootstrap.
+Reliable time is required for logs, certificates, VPN and authentication. The
+default configuration acts as an NTP client. If the edge host should also serve
+trusted LAN clients, configure Chrony and firewall policy explicitly for the
+site instead of exposing NTP broadly.
 
-## Purpose
+Verify host time with:
 
-Chrony can be used as:
+```bash
+chronyc tracking
+chronyc sources -v
+systemctl status chrony --no-pager
+```
 
-- a local time client
-- a LAN time helper
-- an infrastructure dependency for other services
-
-## Recommendation
-
-Keep time sync simple. Use upstream NTP sources and optionally allow trusted internal networks to query the edge host.
+Host preparation is owned by `install/bootstrap/`; service configuration is a
+site responsibility and is not overwritten by Compose deployment.

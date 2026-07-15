@@ -5,6 +5,10 @@ This document describes the reference deployment used to validate LISA Edge.
 The reference deployment is not a hard requirement.  
 LISA Edge is hardware-independent and should remain portable across Linux hosts, virtual machines, and future hardware.
 
+The automated host bootstrap currently supports Ubuntu and Debian. Portability
+to other Linux distributions refers to the architecture and Compose model, not
+an automated installation guarantee.
+
 ---
 
 ## Purpose
@@ -28,7 +32,7 @@ The current primary reference target is:
 - ZimaBoard 2 1664
 - 16 GB RAM
 - 64 GB eMMC
-- Samsung SATA SSD for Docker data and persistent volumes
+- Samsung SATA SSD for the production OS, Docker data, and persistent volumes
 - UPS available
 - Mellanox MCX312A-XCBT for future 10GbE networking
 
@@ -65,18 +69,19 @@ High-write workloads should use SSD or external storage.
 
 ## Service Placement
 
-LISA Edge should run lightweight, infrastructure-critical services:
+Implemented lightweight services and capabilities include:
 
 - OTBR
 - MQTT
-- NUT
-- DNS helpers
 - NTP / Chrony
-- reverse proxy
-- VPN endpoint
+- Tailscale VPN
 - Uptime Kuma
+- optional Home Assistant, Zigbee2MQTT, and Node-RED service slices
 - backup and restore helpers
 - health checks
+
+Architecturally suitable but planned services include NUT, DNS helpers, and a
+reverse proxy. They are not current selectable deployment targets.
 
 Heavy workloads should run elsewhere:
 

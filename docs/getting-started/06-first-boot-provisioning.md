@@ -1,84 +1,125 @@
-# First-Boot Provisioning Wizard
+# First-Boot Provisioning
 
-The provisioning wizard is the preferred way to create or update `.env` after
-an autoinstall. It can also be run on a manually installed host:
+Production autoinstall creates this convenience command:
 
 ```bash
 sudo lisa-edge-provision
 ```
 
-From a repository checkout, use:
+With no arguments, the alias dispatches to the canonical setup workflow:
 
 ```bash
-sudo ./provisioning/lisa-first-boot.sh
+sudo /opt/lisa-edge/lisa-edge setup
 ```
+
+From any repository checkout, use the root `lisa-edge` command directly for
+mode-specific options.
 
 ## Provisioning modes
 
-- **Fresh deployment** creates a new configuration and deploys it.
-- **Restore from USB** discovers archives on a volume labeled `LISA_BACKUP` or
-  under common removable-media mount paths.
-- **Restore from path** accepts a backup archive or a mounted NAS directory.
-- **Configure only** writes `.env` without installing or starting services.
+| Mode | Purpose |
+| --- | --- |
+| Fresh | Create configuration, then bootstrap and deploy after confirmation |
+| Restore from USB | Discover a backup on `LISA_BACKUP` or common removable-media paths |
+| Restore from path | Use a selected archive or mounted NAS/local directory |
+| Configure only | Write `.env` without changing the host or starting services |
 
-Restore is never started merely because an archive exists. The operator must
-select the archive, a matching `.sha256` sidecar is required and verified, and
-restored values become defaults that can be reviewed before deployment. The
-archive is also restricted to LISA Edge configuration and persistent-data
-paths before any privileged restore is performed.
+Interactive selection:
 
-The global wizard also asks whether backups must stay on a mounted filesystem,
-whether selected container images must use immutable digests, and whether the
-temporary autoinstall passwordless-sudo grant may remain. Production defaults
-remove passwordless sudo after bootstrap.
+```bash
+sudo ./lisa-edge setup
+```
 
-## Service selection
+Explicit fresh mode:
 
-The wizard accepts service numbers, service names, multiple values separated
-by commas/spaces, or `all`.
+```bash
+sudo ./lisa-edge setup --mode fresh
+```
 
-| ID | Service | Configuration wizard |
-|---|---|---|
-| `mqtt` | Eclipse Mosquitto | username, password, bind IP and ports |
-| `uptime-kuma` | Uptime Kuma | bind IP and port |
-| `otbr` | OpenThread Border Router | RCP device, interfaces and dataset policy |
-| `vpn-tailscale` | Tailscale | auth key and additional arguments |
-| `ha` | Home Assistant | host-networking notice and data placement |
-| `zigbee2mqtt` | Zigbee2MQTT | coordinator device, bind IP and port |
-| `node-red` | Node-RED | bind IP and port |
+Configuration only:
 
-Selecting Zigbee2MQTT automatically selects MQTT. Deployment validation also
-rejects a hand-written configuration that violates this dependency.
+```bash
+sudo ./lisa-edge configure
+sudo ./lisa-edge bootstrap
+```
 
-## NAS restore
+## Restore from USB
 
-Mount the NAS before running the wizard, then select **Restore from a mounted
-NAS/local path** and provide either the directory or archive path. For example:
+Attach the backup volume, then run:
+
+```bash
+sudo ./lisa-edge setup --mode restore-usb
+```
+
+The wizard can mount a volume labeled `LISA_BACKUP` read-only or discover
+archives beneath common removable-media mount locations. An archive is never
+restored merely because it exists; the operator must select it.
+
+## Restore from NAS or local path
+
+Mount network storage first:
 
 ```bash
 sudo mount -t nfs nas.example:/volume/lisa-edge /mnt/lisa-backup
-sudo lisa-edge-provision --mode restore-path --backup /mnt/lisa-backup
+sudo ./lisa-edge setup \
+  --mode restore-path \
+  --backup /mnt/lisa-backup
 ```
 
-NAS credentials are not stored in USB autoinstall `user-data` by the wizard.
-When this path will also receive scheduled backups, enable the mount requirement
-and record the expected mount source offered by the wizard.
+The backup path may be a directory or a specific archive.
 
-## Image and admin-access review
+## Restore safety
 
-Before writing `.env`, the wizard lists each selected service and its image
-reference as `floating` or `pinned`. Restored references require a separate
-operator confirmation. Enabling immutable-image enforcement rejects every
-selected image that does not end in an `@sha256` digest.
+Before privileged extraction, provisioning:
 
-Autoinstall uses `/etc/sudoers.d/90-lisa-admin` only as a bootstrap grant. At
-the end of bootstrap, LISA verifies that the configured admin account has a usable local
-password (prompting interactively if needed) and then removes that grant. Set
-`LISA_KEEP_PASSWORDLESS_SUDO=1` only as a deliberate lab/emergency exception.
+1. requires and verifies the matching `.sha256` sidecar;
+2. validates archive member types and paths;
+3. restricts extraction to LISA Edge configuration and persistent-data roots;
+4. restores without deploying;
+5. reloads restored values as editable wizard defaults; and
+6. requires review of restored container image references.
 
-## Re-running
+After review, setup writes a fresh `.env` and offers to bootstrap and deploy.
 
-The wizard backs up an existing `.env` before replacing it. It can be run again
-to add or remove services. `docker compose --remove-orphans` removes containers
-that are no longer selected without deleting their persistent bind-mounted
-data.
+## What the wizard asks
+
+Global settings include:
+
+- hostname and timezone;
+- `DATA_ROOT` and `BACKUP_DEST`;
+- backup mount enforcement and retention;
+- selected service list;
+- bind addresses and ports;
+- immutable-image policy;
+- administrator account; and
+- whether temporary passwordless sudo may remain.
+
+Each selected service then runs its own configuration prompts. Zigbee2MQTT
+automatically adds MQTT.
+
+Review current keys with:
+
+```bash
+./lisa-edge service list
+```
+
+## Images and administrator access
+
+The wizard labels selected images as floating or digest-pinned. Enabling
+immutable-image enforcement rejects any selected image without an `@sha256`
+digest.
+
+Autoinstall creates `/etc/sudoers.d/90-lisa-admin` only to make unattended
+first bootstrap possible. Bootstrap confirms that the configured administrator
+has a usable local password and removes the temporary grant unless the operator
+explicitly keeps the emergency/lab override.
+
+## Re-running setup
+
+```bash
+sudo ./lisa-edge setup
+```
+
+Existing values become defaults. The current `.env` is backed up before
+replacement. Deselected containers are removed as orphans, but their
+bind-mounted persistent data is retained for deliberate cleanup or later reuse.

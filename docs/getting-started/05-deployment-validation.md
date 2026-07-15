@@ -1,110 +1,117 @@
 # Deployment Validation
 
-This checklist helps confirm that a LISA Edge deployment is ready for normal operation.
+Use this after a fresh install, restore, service change, software update, or
+hardware replacement.
 
-Use it after a fresh install, restore, major configuration change, or hardware replacement.
+Start with the stable operator checks:
 
----
+```bash
+sudo ./lisa-edge status
+sudo ./lisa-edge health
+```
 
-## Host Validation
+Both commands must complete without hiding failed or unhealthy selected
+services.
 
-- [ ] Host boots without keyboard, monitor, or manual BIOS interaction
-- [ ] Correct OS is installed
-- [ ] Hostname is correct
-- [ ] Time synchronization works
+## Host
+
+- [ ] host boots without keyboard, monitor, or manual firmware interaction
+- [ ] expected Ubuntu or Debian release is installed
+- [ ] hostname and timezone are correct
+- [ ] Chrony reports working time synchronization
 - [ ] SSH key authentication works
-- [ ] Password login is disabled if required
-- [ ] Required packages are installed
-- [ ] Docker is installed
-- [ ] Docker Compose works
-- [ ] Host survives reboot cleanly
+- [ ] password SSH is disabled when required
+- [ ] temporary autoinstall passwordless sudo was removed unless explicitly kept
+- [ ] Docker and the Compose plugin work after reboot
+- [ ] `lisa-edge.service` starts the selected stack after reboot
 
----
+## Storage
 
-## Storage Validation
+- [ ] production OS is on the intended disk
+- [ ] active service data is not writing heavily to eMMC
+- [ ] `DATA_ROOT` resolves to intended persistent storage
+- [ ] storage mounts survive reboot
+- [ ] backup destination is reachable
+- [ ] mount enforcement prevents silent backup fallback to the root filesystem
+- [ ] free space and log growth are acceptable
 
-- [ ] OS is on intended boot storage
-- [ ] Docker data is not writing heavily to eMMC
-- [ ] SSD or external storage is mounted correctly
-- [ ] Mounts survive reboot
-- [ ] Backup destination is reachable
-- [ ] A missing NAS/removable mount causes backup to fail without local fallback
-- [ ] Logs are not growing uncontrollably
+## Network and exposure
 
----
+- [ ] host is on the intended VLAN or subnet
+- [ ] DNS resolution and local service discovery behave as designed
+- [ ] only required service ports are reachable from each network
+- [ ] sensitive VLAN boundaries remain intact
+- [ ] Tailscale is authenticated if selected
+- [ ] dashboards are not publicly exposed
 
-## Network Validation
+## Selected services
 
-- [ ] Correct VLAN or subnet is used
-- [ ] Static IP or DHCP reservation is configured
-- [ ] DNS resolution works
-- [ ] Local service discovery works as expected
-- [ ] Firewall rules allow only required traffic
-- [ ] Sensitive networks remain isolated
-- [ ] VPN access works
-- [ ] Admin dashboards are not publicly exposed
+Use runtime status to identify the selected services:
 
----
+```bash
+sudo ./lisa-edge status
+```
 
-## Service Validation
+`./lisa-edge service list` shows all available selection keys, not the active
+selection.
 
-- [ ] Docker services start successfully
-- [ ] Health checks pass
-- [ ] Containers with Docker health checks report `healthy`
-- [ ] MQTT is reachable by intended clients
-- [ ] OTBR is healthy if enabled
-- [ ] OTBR reports `child`, `router`, or `leader` if enabled
-- [ ] NUT detects UPS if enabled
-- [ ] reverse proxy routes only intended services
-- [ ] monitoring detects service failure
-- [ ] restart policies work after reboot
+- [ ] MQTT accepts intended authenticated clients when selected
+- [ ] Uptime Kuma is reachable only on its configured bind address when selected
+- [ ] OTBR reports `child`, `router`, or `leader` when selected
+- [ ] Home Assistant responds locally when selected
+- [ ] Zigbee2MQTT detects its coordinator and reaches MQTT when selected
+- [ ] Node-RED responds on its configured endpoint when selected
+- [ ] all selected containers recover after a host reboot
 
----
+NUT, DNS helpers, and reverse proxy are planned capabilities, not current
+validation targets.
 
-## Thread / Matter Validation
+## Thread and Matter
 
-If OTBR or Matter-over-Thread is enabled:
+When OTBR is selected:
 
-- [ ] Thread adapter is detected
-- [ ] OTBR service starts cleanly
-- [ ] Thread network is visible
-- [ ] Thread Dataset backup exists
-- [ ] Dataset restore procedure is documented
-- [ ] adapter replacement procedure is documented
-- [ ] Matter devices remain functional after service restart
+- [ ] the RCP device uses a stable device path
+- [ ] the expected Thread network is visible
+- [ ] a current Thread Dataset backup exists outside ephemeral container state
+- [ ] dataset restore has been tested or rehearsed
+- [ ] Matter devices remain functional after an OTBR restart
 
----
+## Backup and restore
 
-## Backup Validation
+Create a real backup:
 
-- [ ] Backup job runs successfully
-- [ ] Backup includes Compose files
-- [ ] Backup includes `.env` or documented secret restoration path
-- [ ] Backup includes persistent service data
-- [ ] Backup includes Thread Dataset if applicable
-- [ ] Backup destination is outside the LISA Edge host
-- [ ] Restore has been tested at least once
-- [ ] Selected production images are pinned and pass image-policy validation
+```bash
+sudo ./lisa-edge backup
+```
 
----
+- [ ] archive, `.sha256`, and manifest are present
+- [ ] archive is stored outside the production SSD failure domain
+- [ ] backup includes `.env`, selected configuration, and persistent data
+- [ ] retention behaves as configured
+- [ ] containers return to healthy state after backup
+- [ ] a restore has been tested on a safe target or replacement host
 
-## Recovery Validation
+Backup creation alone does not prove recoverability.
 
-- [ ] Host reinstall procedure is documented
-- [ ] Docker redeploy procedure is documented
-- [ ] Service restore procedure is documented
-- [ ] OTBR restore procedure is documented if applicable
-- [ ] Recovery does not depend on undocumented manual steps
+## Diagnostics and recovery
 
----
+```bash
+sudo ./lisa-edge diagnostics
+```
 
-## Production Readiness Decision
+- [ ] the bundle is created successfully
+- [ ] secret values are redacted before sharing
+- [ ] production reinstall and restore paths do not depend on undocumented memory
+- [ ] Rescue OS boots independently if it is part of the deployment model
+- [ ] `./lisa-edge help` is available during recovery
 
-A deployment should not be considered production-ready until:
+## Production-ready decision
 
-- backups exist
-- restore has been tested
-- VPN access works
-- firewall boundaries are preserved
-- monitoring is active
-- critical services restart after reboot
+A node is not production-ready until:
+
+- selected services pass health checks;
+- remote administration preserves firewall boundaries;
+- backups exist outside the node;
+- restore has been exercised;
+- critical services recover after reboot; and
+- the operator knows which Git release and configuration produced the node.

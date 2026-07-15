@@ -1,0 +1,9 @@
+[Unit]
+Description=LISA OTBR dataset backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/lisa-edge
+ExecStart=/opt/lisa-edge/services/otbr/dataset/backup.sh

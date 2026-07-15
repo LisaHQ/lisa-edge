@@ -4,7 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-COMPOSE_DIR="${COMPOSE_DIR:-$REPO_ROOT/compose}"
 if [[ -n "${ENV_FILE:-}" ]]; then
     ENV_FILE="$ENV_FILE"
 elif [[ -f "$REPO_ROOT/.env" ]]; then
@@ -20,7 +19,7 @@ Usage:
 
 Examples:
   tools/validate-compose.sh
-  tools/validate-compose.sh compose/mqtt/compose.yml
+  tools/validate-compose.sh services/mqtt/compose.yml
 EOF
 }
 
@@ -58,10 +57,19 @@ validate_stack() {
     return 1
 }
 
+compose_paths_for_selection() {
+    local index
+    LISA_COMPOSE_PATHS=()
+    lisa_build_compose_files "$REPO_ROOT"
+    for ((index = 1; index < ${#LISA_COMPOSE_FILES[@]}; index += 2)); do
+        LISA_COMPOSE_PATHS+=("${LISA_COMPOSE_FILES[$index]}")
+    done
+}
+
 main() {
     local target="${1:-}"
     local failed=0
-    local found=0
+    local service dependencies
 
     if [[ "$target" == "-h" || "$target" == "--help" ]]; then
         usage
@@ -76,45 +84,33 @@ main() {
         exit $?
     fi
 
-    [[ -d "$COMPOSE_DIR" ]] || die "compose directory not found: $COMPOSE_DIR"
+    # shellcheck disable=SC1091
+    . "$REPO_ROOT/lib/compose.sh"
 
-    local core="$COMPOSE_DIR/docker-compose.yml"
-    local overlays=()
-    local file
-
-    [[ -f "$core" ]] || die "core compose file not found: $core"
-    found=1
-
-    if ! validate_stack "core" "$core"; then
+    if ! validate_stack "canonical base" "$REPO_ROOT/ops/deploy/compose.yml"; then
         failed=1
     fi
 
-    while IFS= read -r file; do
-        overlays+=("$file")
-        if [[ "$(basename "$file")" == "zigbee2mqtt.yml" ]]; then
-            if ! validate_stack "core + mqtt.yml + zigbee2mqtt.yml" \
-                "$core" "$COMPOSE_DIR/services/mqtt.yml" "$file"; then
-                failed=1
-            fi
-        elif ! validate_stack "core + $(basename "$file")" "$core" "$file"; then
+    for service in $LISA_ALL_SERVICES; do
+        dependencies="$(lisa_service_dependencies "$service")"
+        LISA_COMPOSE_SERVICES="${dependencies:+$dependencies }$service"
+        compose_paths_for_selection
+        if ! validate_stack "$service" "${LISA_COMPOSE_PATHS[@]}"; then
             failed=1
         fi
-    done < <(find "$COMPOSE_DIR/services" -maxdepth 1 -type f -name '*.yml' | sort)
+    done
 
-    if [[ "${#overlays[@]}" -gt 0 ]]; then
-        if ! validate_stack "core + all optional services" "$core" "${overlays[@]}"; then
-            failed=1
-        fi
+    LISA_COMPOSE_SERVICES=all
+    compose_paths_for_selection
+    if ! validate_stack "all registered services" "${LISA_COMPOSE_PATHS[@]}"; then
+        failed=1
     fi
 
     echo
-
-    [[ "$found" -eq 1 ]] || die "no compose files found in $COMPOSE_DIR"
-
     if [[ "$failed" -eq 0 ]]; then
-        echo "All compose files validated successfully."
+        echo "All canonical Compose files validated successfully."
     else
-        echo "One or more compose files failed validation."
+        echo "One or more Compose configurations failed validation."
         exit 1
     fi
 }

@@ -14,6 +14,10 @@ The purpose of this document is to illustrate how LISA Edge can be deployed whil
 * Recovery-focused architecture
 * Hardware independence
 
+These are placement patterns, not a promise that every pictured service is
+implemented. Current selectable services are listed by
+`./lisa-edge service list`; NUT, DNS helpers, and reverse proxy remain planned.
+
 ---
 
 # Pattern 1: Single Host Smart Home
@@ -76,7 +80,7 @@ Recommended long-term architecture.
       ┌──────────┬───────┼───────┬──────────┐
       │          │       │       │          │
       ▼          ▼       ▼       ▼          ▼
-    MQTT       OTBR     NUT     VPN     Monitoring
+    MQTT       OTBR   Chrony    VPN     Monitoring
       │
       ▼
 Matter / Thread Devices
@@ -164,7 +168,7 @@ Current validation environment for LISA Edge.
              ┌─────┬──────┬──────┬───────┐
              │     │      │      │       │
              ▼     ▼      ▼      ▼       ▼
-            OTBR  MQTT   NUT    VPN  Monitoring
+            OTBR  MQTT  Chrony  VPN  Monitoring
              │
              ▼
       Thread Network
@@ -210,7 +214,7 @@ For users operating a larger self-hosted environment.
           ┌─────────┬─────────┬─────────┐
           │         │         │         │
           ▼         ▼         ▼         ▼
-         VPN     Reverse   Monitoring  OTBR
+         VPN     Reverse*  Monitoring  OTBR
                   Proxy
 ```
 
@@ -222,6 +226,9 @@ Additional services may exist elsewhere:
 * Vision Server
 
 LISA Edge should remain focused on infrastructure responsibilities.
+
+`Reverse*` is an architectural placement example; the repository does not yet
+provide a selectable reverse-proxy service.
 
 ---
 

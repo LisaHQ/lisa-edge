@@ -1,225 +1,107 @@
 # Deployment Checklist
 
-This checklist helps ensure a successful and repeatable LISA Edge deployment.
+Use this checklist before a fresh setup, restore, major service change, or host
+replacement.
 
----
+## Choose exactly one workflow
 
-# Host Preparation
+- [ ] Manual fresh setup on an existing Ubuntu or Debian host
+- [ ] Production USB autoinstall to the reviewed SSD
+- [ ] Restore from a verified LISA Edge backup
+- [ ] Rescue OS install to explicitly identified eMMC
 
-## Operating System
+Do not mix manual bootstrap steps into a full `setup` run. The setup wizard
+offers to bootstrap and deploy after it writes configuration.
 
-* [ ] Ubuntu Server LTS installed
-* [ ] Debian installed
-* [ ] System fully updated
-* [ ] Hostname configured
-* [ ] Timezone configured
+## Host and access
 
-Verify:
+- [ ] Ubuntu Server or Debian is installed for the automated bootstrap path
+- [ ] hostname and timezone are decided
+- [ ] SSH public-key access works
+- [ ] the administrator has a usable local password before temporary
+      passwordless sudo is removed
+- [ ] the intended Git tag or commit has been reviewed
+- [ ] no public admin dashboard is required
 
-```bash
-hostnamectl
-timedatectl
-```
+Architecture may support other Linux hosts, but their host setup is currently a
+manual, unsupported workflow.
 
----
+## Disk and storage safety
 
-## SSH Access
+- [ ] installation target is identified by serial or an explicitly reviewed model
+- [ ] unrelated disks are disconnected when practical
+- [ ] production OS and active data are on SSD or suitable persistent storage
+- [ ] Rescue OS targets eMMC explicitly and never uses `size: largest`
+- [ ] `DATA_ROOT` is an absolute, dedicated persistent path
+- [ ] `BACKUP_DEST` is outside the failure domain of the production SSD
+- [ ] a required NAS/removable destination is mounted before setup
 
-* [ ] SSH server installed
-* [ ] SSH key authentication working
-* [ ] Password authentication disabled (recommended)
-
-Verify:
-
-```bash
-ssh user@host
-```
-
----
-
-# Storage
-
-## Data Storage
-
-* [ ] DATA_ROOT selected
-* [ ] Persistent storage available
-* [ ] Sufficient free space
-
-Recommended:
-
-```text
-/srv/lisa-edge
-```
-
-Avoid:
-
-```text
-/root
-/tmp
-```
-
----
-
-## Backup Storage
-
-* [ ] Backup location configured
-* [ ] External SSD or NAS available
-* [ ] Backup retention strategy defined
-
-Examples:
-
-```text
-NAS
-External SSD
-Encrypted USB Drive
-```
-
----
-
-# Networking
-
-## Host Networking
-
-* [ ] Static IP assigned
-* [ ] DNS working
-* [ ] Internet access verified
-
-Verify:
+Inspect disks:
 
 ```bash
-ping 1.1.1.1
-ping google.com
+lsblk -o NAME,PATH,SIZE,MODEL,SERIAL,TYPE,TRAN,MOUNTPOINTS
 ```
 
----
+## Network and security
 
-## VLAN Planning
+- [ ] static address or DHCP reservation is ready
+- [ ] DNS and time synchronization can work
+- [ ] firewall rules expose only selected service ports
+- [ ] VPN-first administration is planned when remote access is needed
+- [ ] management, IoT, camera, guest, and sensitive networks remain isolated
+- [ ] `.env`, auth keys, passwords, datasets, and private keys remain outside Git
 
-Recommended:
+## Service selection
 
-* Management VLAN
-* Services VLAN
-* IoT VLAN
-* Camera VLAN
-* Guest VLAN
-
-Review firewall rules before deployment.
-
----
-
-# Docker
-
-* [ ] Docker installed
-* [ ] Docker Compose available
-
-Verify:
+Review the current service keys:
 
 ```bash
-docker version
-docker compose version
+./lisa-edge service list
 ```
 
----
+- [ ] every selected service has an operational purpose
+- [ ] Zigbee2MQTT includes its MQTT dependency
+- [ ] serial devices use stable `/dev/serial/by-id/...` paths when available
+- [ ] bind addresses and ports do not conflict
+- [ ] container images support the host architecture
+- [ ] production image pinning policy has been decided
+- [ ] planned services such as NUT, DNS helpers, and reverse proxy are not placed
+      in `LISA_COMPOSE_SERVICES`
 
-# Service Selection
+## Backup or restore readiness
 
-Choose only the services required.
+- [ ] backup destination and retention are defined
+- [ ] mount enforcement is enabled when local fallback would be unsafe
+- [ ] restore archive has its matching `.sha256` sidecar
+- [ ] backup storage is trusted because archives may contain secrets
+- [ ] restored image references will be reviewed before deployment
+- [ ] OTBR dataset recovery is planned when Thread is selected
 
-## MQTT
+## Preview configuration
 
-Required if:
-
-* Home Assistant
-* Homey
-* Custom automation
-* LISA event bus
-
----
-
-## OTBR
-
-Required if:
-
-* Matter over Thread devices exist
-
-Additional requirements:
-
-* Thread RCP radio
-* Dataset backup configured
-
----
-
-## NUT
-
-Required if:
-
-* UPS is present
-
----
-
-## Tailscale
-
-Required if:
-
-* Remote access is desired
-
----
-
-## Uptime Kuma
-
-Required if:
-
-* Service monitoring is desired
-
----
-
-# Security Review
-
-* [ ] SSH keys configured
-* [ ] Default passwords removed
-* [ ] Secrets reviewed
-* [ ] Firewall reviewed
-* [ ] VPN configured if required
-
----
-
-# Backup Review
-
-* [ ] Backup destination configured
-* [ ] Restore procedure documented
-* [ ] Test restore performed
-
----
-
-# Deployment
-
-Clone repository:
+Run a non-writing wizard pass:
 
 ```bash
-git clone https://github.com/lisahq/lisa-edge.git
-cd lisa-edge
+./lisa-edge configure --dry-run
 ```
 
-Configure:
+Resolve unsafe paths, endpoint conflicts, missing dependencies, or image-policy
+errors before changing the host.
+
+## Apply
+
+Fresh or interactive restore:
 
 ```bash
-cp .env.template .env
+sudo ./lisa-edge setup
 ```
 
-Deploy:
+Configuration only:
 
 ```bash
-./scripts/deploy.sh
+sudo ./lisa-edge configure
+sudo ./lisa-edge bootstrap
 ```
 
----
-
-# Post Deployment Validation
-
-* [ ] Containers healthy
-* [ ] Logs reviewed
-* [ ] Services reachable
-* [ ] Backups functioning
-* [ ] Monitoring operational
-
-Deployment complete.
+After setup, continue with the
+[Deployment Validation](05-deployment-validation.md).

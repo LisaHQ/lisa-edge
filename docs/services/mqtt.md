@@ -1,55 +1,30 @@
-# MQTT
+# MQTT / Mosquitto
 
-MQTT is the messaging backbone for LISA Edge.
+MQTT is the default local messaging backbone. Its selection key is `mqtt`; the
+canonical owner is [`services/mqtt/`](../../services/mqtt/README.md).
 
-Current implementation uses Eclipse Mosquitto.
+Configure through the wizard:
 
-## Purpose
-
-MQTT can be used by:
-
-- LISA Brain
-- Home Assistant
-- Zigbee2MQTT
-- sensors and automations
-- local integrations
-
-## Configuration
-
-Main files:
-
-```text
-compose/services/mqtt.yml
-config/mqtt/mosquitto.conf
-.env
+```bash
+sudo ./lisa-edge setup
 ```
 
-Important environment values:
+Important `.env` values are `MQTT_USERNAME`, `MQTT_PASSWORD`,
+`MQTT_BIND_ADDR`, `MQTT_PORT` and `MQTT_WS_PORT`. The wizard generates a random
+password when the template value is unchanged. Bind to localhost or a trusted
+service-network address; never expose MQTT directly to the public internet.
 
-```env
-MQTT_BIND_ADDR=192.168.20.10
-MQTT_PORT=1883
-MQTT_WS_PORT=9001
-MQTT_USERNAME=lisa
-MQTT_PASSWORD=change-this-password
+Deploy and verify:
+
+```bash
+sudo ./lisa-edge deploy
+sudo ./lisa-edge health
 ```
 
-The provisioning wizard generates a random password when the template value is
-still present.
+Persistent configuration, password database, retained data and logs live below
+`${DATA_ROOT}/docker/volumes/mosquitto/`. Version-controlled source
+configuration is at `services/mqtt/config/mosquitto.conf`; deployment copies it
+into persistent storage before starting Mosquitto.
 
-## Data
-
-Mosquitto data is stored under:
-
-```text
-${DATA_ROOT}/docker/volumes/mosquitto
-```
-
-## Security
-
-Recommended:
-
-- Bind to service VLAN / infrastructure subnet IP when possible
-- Do not expose MQTT to the public internet
-- Use strong credentials
-- Restrict cross-VLAN access by firewall rules
+Full backups include the persistent MQTT tree. Back up before changing broker
+credentials because clients must be updated to match.

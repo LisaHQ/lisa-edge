@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-INSTALLER_DIR="${INSTALLER_DIR:-$REPO_ROOT/usb-installer}"
+INSTALLER_DIR="${INSTALLER_DIR:-$REPO_ROOT/install/usb}"
 BUILD_DIR="${BUILD_DIR:-$REPO_ROOT/build/usb}"
 
 usage() {
@@ -18,7 +18,7 @@ Examples:
   tools/build-usb.sh production /tmp/lisa-edge-usb
 
 Expected layout:
-  usb-installer/
+  install/usb/
   ├── production/
   │   └── autoinstall
   │       ├── user-data

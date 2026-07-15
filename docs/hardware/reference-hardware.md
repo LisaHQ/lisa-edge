@@ -1,8 +1,10 @@
 # Hardware Model
 
-LISA Edge is hardware-agnostic.
+LISA Edge is hardware-independent at the architecture and Compose layers.
 
-Any Linux host capable of running Docker can be used.
+Automated host bootstrap currently supports Ubuntu and Debian. Other Linux
+hosts may be usable after manual preparation, but that path is not currently
+automated or supported by the bootstrap workflow.
 
 ## Recommended Requirements
 
@@ -14,6 +16,7 @@ Minimum practical baseline:
 - Stable storage
 - Reliable network connection
 - Docker support
+- CPU architecture supported by every selected container image
 
 Recommended baseline:
 

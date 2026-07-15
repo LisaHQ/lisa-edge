@@ -24,7 +24,6 @@ check_fail() {
 exists_file() {
     local path="$1"
     local label="$2"
-
     if [[ -f "$REPO_ROOT/$path" ]]; then
         check_ok "$label exists: $path"
     else
@@ -35,7 +34,6 @@ exists_file() {
 exists_dir() {
     local path="$1"
     local label="$2"
-
     if [[ -d "$REPO_ROOT/$path" ]]; then
         check_ok "$label exists: $path"
     else
@@ -47,7 +45,6 @@ grep_file() {
     local pattern="$1"
     local path="$2"
     local label="$3"
-
     if [[ -f "$REPO_ROOT/$path" ]] && grep -Eq "$pattern" "$REPO_ROOT/$path"; then
         check_ok "$label"
     else
@@ -62,32 +59,48 @@ echo "========================================"
 echo
 
 exists_file "README.md" "README"
-exists_dir "docs" "Documentation directory"
-exists_dir "bootstrap" "Bootstrap directory"
-exists_dir "scripts" "Scripts directory"
-exists_dir "systemd" "Systemd directory"
+exists_file "lisa-edge" "Stable operator command"
+for directory in docs install services ops rescue lib tests; do
+    exists_dir "$directory" "Canonical $directory directory"
+done
 
 exists_file "docs/operations/backup-restore.md" "Backup/restore documentation"
 exists_file "docs/operations/disaster-recovery.md" "Disaster recovery documentation"
 exists_file "docs/operations/service-recovery/otbr.md" "OTBR recovery documentation"
 exists_file "docs/getting-started/05-deployment-validation.md" "Deployment validation checklist"
 
-exists_file "scripts/backup.sh" "Backup script"
-exists_file "scripts/restore.sh" "Restore script"
-exists_file "scripts/healthcheck.sh" "Healthcheck script"
-exists_file "scripts/deploy.sh" "Deploy script"
+exists_file "ops/backup-restore/backup.sh" "Canonical backup command"
+exists_file "ops/backup-restore/restore.sh" "Canonical restore command"
+exists_file "ops/backup-restore/lib/validate_backup.py" "Privileged archive validator"
+exists_file "ops/deploy/healthcheck.sh" "Canonical health check"
+exists_file "services/otbr/dataset/backup.sh" "OTBR dataset backup"
+exists_file "services/otbr/dataset/restore.sh" "OTBR dataset restore"
+exists_file "rescue/scripts/restore-edge-backup.sh" "Rescue archive restore wrapper"
+exists_file "rescue/scripts/restore-filesystem-snapshot.sh" "Rescue filesystem restore"
 
-if [[ -d "$REPO_ROOT/rescue" || -d "$REPO_ROOT/recovery" ]]; then
-    check_ok "Rescue/recovery folder exists"
+grep_file "Thread Dataset|dataset" "docs/operations/service-recovery/otbr.md" \
+    "OTBR recovery mentions Thread Dataset"
+grep_file "restore" "docs/operations/backup-restore.md" \
+    "Backup documentation mentions restore"
+grep_file "VPN|SSH" "README.md" \
+    "README mentions remote administration or secure access"
+grep_file "eMMC|Rescue" "README.md" \
+    "README mentions rescue/eMMC layer"
+grep_file "SSD|Production" "README.md" \
+    "README mentions production/SSD layer"
+
+echo
+echo "-- Layout contract --"
+if bash "$REPO_ROOT/tests/structure/test-layout.sh"; then
+    check_ok "Canonical layout contract passed"
 else
-    check_warn "No rescue/ or recovery/ folder found"
+    check_fail "Canonical layout contract failed"
 fi
-
-grep_file "Thread Dataset|dataset" "docs/operations/service-recovery/otbr.md" "OTBR recovery mentions Thread Dataset"
-grep_file "restore" "docs/operations/backup-restore.md" "Backup documentation mentions restore"
-grep_file "VPN|SSH" "README.md" "README mentions remote administration or secure access"
-grep_file "eMMC|Rescue" "README.md" "README mentions rescue/eMMC layer"
-grep_file "SSD|Production" "README.md" "README mentions production/SSD layer"
+if bash "$REPO_ROOT/tests/structure/test-repo-root-resolution.sh"; then
+    check_ok "Canonical repository-root resolution passed"
+else
+    check_fail "Canonical repository-root resolution failed"
+fi
 
 echo
 echo "-- Executable script check --"
@@ -99,11 +112,15 @@ while IFS= read -r script; do
         check_warn "Not executable: $rel"
     fi
 done < <(
-    find "$REPO_ROOT" \
-        -type f \
-        -name "*.sh" \
-        -not -path "$REPO_ROOT/.git/*" \
-        | sort
+    find \
+        "$REPO_ROOT/install" \
+        "$REPO_ROOT/services" \
+        "$REPO_ROOT/ops" \
+        "$REPO_ROOT/rescue" \
+        "$REPO_ROOT/tools" \
+        "$REPO_ROOT/tests" \
+        -type f -name '*.sh' |
+        sort
 )
 
 echo
@@ -127,7 +144,6 @@ if [[ "$FAILED" -ne 0 ]]; then
     echo "Result: FAIL"
     exit 1
 fi
-
 if [[ "$WARNED" -ne 0 ]]; then
     echo "Result: PASS WITH WARNINGS"
     exit 0

@@ -1,20 +1,17 @@
 # Monitoring
 
-LISA Edge currently includes Uptime Kuma as a lightweight monitoring service.
+LISA Edge includes Uptime Kuma by default for lightweight continuous monitoring.
+See [Uptime Kuma](uptime-kuma.md) for deployment and storage details.
 
-## Purpose
+Operator checks remain separate from dashboards:
 
-Monitor:
+```bash
+sudo ./lisa-edge status
+sudo ./lisa-edge health
+sudo ./lisa-edge diagnostics
+```
 
-- MQTT
-- OTBR
-- VPN
-- DNS/NTP helpers
-- LISA Brain endpoints
-- local dashboards
-
-## Recommendation
-
-Keep monitoring lightweight on the edge host.
-
-Avoid large high-write observability stacks unless data is stored on external storage or a dedicated monitoring server.
+Use Uptime Kuma for service availability and the CLI for deployment readiness
+and evidence collection. Monitor MQTT, OTBR, VPN, LISA Brain endpoints and any
+site-critical dashboards. Avoid high-write observability stacks on edge storage;
+send long-term metrics and logs to a dedicated system.
