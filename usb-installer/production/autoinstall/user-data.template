@@ -36,9 +36,9 @@ autoinstall:
       - type: disk
         id: install_disk
         match:
-          # Replace with your target disk serial or model.
+          # Prefer the target disk serial. The wizard can also use model or size: largest.
           # Find it with: lsblk -o NAME,MODEL,SERIAL,SIZE
-           serial: REPLACE_WITH_TARGET_DISK_SERIAL
+          serial: REPLACE_WITH_TARGET_DISK_SERIAL
 
         ptable: gpt
         wipe: superblock-recursive

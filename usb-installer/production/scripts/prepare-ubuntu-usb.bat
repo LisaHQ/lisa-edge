@@ -15,6 +15,7 @@ REM   - Refuses to use user-data when common placeholders remain.
 REM   - Validates USB write access before modifying files.
 REM   - Backs up existing target files before replacing them.
 REM   - Verifies copied files after installation.
+REM   - Can generate user-data from user-data.template interactively.
 REM   - Supports dry-run, config-only, and non-interactive execution.
 REM
 REM Usage:
@@ -338,7 +339,7 @@ echo   %CLR_GRAY%-a              %CLR_RESET%Same as %CLR_GRAY%--auto-detect%CLR_
 echo   %CLR_GRAY%--yes           %CLR_RESET%Skip confirmation prompt. Should be used with %CLR_GRAY%--auto-detect%CLR_RESET%, or %CLR_GRAY%-a%CLR_RESET%, or %CLR_BLUE%USB_DRIVE%CLR_RESET%.
 echo   %CLR_GRAY%-y              %CLR_RESET%Same as %CLR_GRAY%--yes%CLR_RESET%.
 echo   %CLR_GRAY%--dry-run       %CLR_RESET%Validate and display actions without modifying USB.
-echo   %CLR_GRAY%--config-only   %CLR_RESET%Validate source configuration only. No USB required.
+echo   %CLR_GRAY%--config-only   %CLR_RESET%Validate or generate source configuration only. No USB required.
 echo   %CLR_GRAY%--help          %CLR_RESET%Show this help message.
 echo   %CLR_GRAY%-h              %CLR_RESET%Same as %CLR_GRAY%--help%CLR_RESET%.
 echo.
@@ -447,20 +448,18 @@ if exist "%AUTOINSTALL_DIR%\user-data" (
 )
 
 if "%USER_DATA_SOURCE%"=="" (
-    call :StepFail
     if exist "%AUTOINSTALL_DIR%\user-data.template" (
-        call :Error Missing deployable user-data. Found template only.
-        echo.
-        echo Create this file after replacing placeholders:
-        echo   %AUTOINSTALL_DIR%\user-data
-        echo.
-        echo Template:
-        echo   %AUTOINSTALL_DIR%\user-data.template
+        call :StepSkip
+        call :GenerateUserDataFromTemplate
+        if errorlevel 1 exit /b 1
+        call :BeginStep 3 "Validating generated user-data"
+        set "USER_DATA_SOURCE=%AUTOINSTALL_DIR%\user-data"
     ) else (
+        call :StepFail
         call :Error Missing user-data:
+        echo   %AUTOINSTALL_DIR%
+        exit /b 1
     )
-    echo   %AUTOINSTALL_DIR%
-    exit /b 1
 )
 
 findstr /C:"REPLACE_WITH_" /C:"YOUR_" /C:"CHANGEME" "%USER_DATA_SOURCE%" >nul 2>nul
@@ -497,6 +496,193 @@ if not exist "%GRUB_CFG_SOURCE%" (
 
 call :StepPass
 exit /b 0
+
+REM ------------------------------------------------------------
+REM GenerateUserDataFromTemplate()
+REM ------------------------------------------------------------
+:GenerateUserDataFromTemplate
+if "%DRY_RUN%"=="1" (
+    call :Error Missing deployable user-data. Dry-run will not generate files.
+    echo.
+    echo Run without %CLR_GRAY%--dry-run%CLR_RESET% to launch the config wizard, or create:
+    echo   %AUTOINSTALL_DIR%\user-data
+    exit /b 1
+)
+
+if "%ASSUME_YES%"=="1" (
+    call :Error Missing deployable user-data. The config wizard needs interactive input.
+    echo.
+    echo Create this file before using %CLR_GRAY%--yes%CLR_RESET%:
+    echo   %AUTOINSTALL_DIR%\user-data
+    exit /b 1
+)
+
+echo.
+echo ------------------------------------------------------------
+echo %CLR_YELLOW%Config Wizard%CLR_RESET%
+echo ------------------------------------------------------------
+echo.
+echo No deployable user-data was found.
+echo This wizard will create:
+echo   %CLR_CYAN%%AUTOINSTALL_DIR%\user-data%CLR_RESET%
+echo.
+echo Template:
+echo   %CLR_CYAN_DARK%%AUTOINSTALL_DIR%\user-data.template%CLR_RESET%
+echo.
+
+call :PromptSshPublicKey
+if errorlevel 1 exit /b 1
+
+call :PromptDiskMatch
+if errorlevel 1 exit /b 1
+
+set "LISA_TEMPLATE=%AUTOINSTALL_DIR%\user-data.template"
+set "LISA_OUT=%AUTOINSTALL_DIR%\user-data"
+set "LISA_SSH_PUBLIC_KEY=%SSH_PUBLIC_KEY%"
+set "LISA_DISK_MATCH_KEY=%DISK_MATCH_KEY%"
+set "LISA_DISK_MATCH_VALUE=%DISK_MATCH_VALUE%"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%generate-user-data.ps1"
+if errorlevel 1 (
+    call :Error Could not generate user-data from template.
+    exit /b 1
+)
+
+echo.
+echo Created:
+echo   %CLR_CYAN%%AUTOINSTALL_DIR%\user-data%CLR_RESET%
+echo.
+exit /b 0
+
+REM ------------------------------------------------------------
+REM PromptSshPublicKey()
+REM ------------------------------------------------------------
+:PromptSshPublicKey
+set "SSH_PUBLIC_KEY="
+set "DEFAULT_SSH_PUBLIC_KEY="
+
+if exist "%USERPROFILE%\.ssh\id_ed25519.pub" (
+    set /p DEFAULT_SSH_PUBLIC_KEY=<"%USERPROFILE%\.ssh\id_ed25519.pub"
+)
+
+if not "!DEFAULT_SSH_PUBLIC_KEY!"=="" (
+    echo SSH public key:
+    echo   Found local key:
+    echo   !DEFAULT_SSH_PUBLIC_KEY!
+    echo.
+    set "USE_DEFAULT_SSH_KEY="
+    set /p USE_DEFAULT_SSH_KEY=Use this key? [Y/n]: 
+    if /I not "!USE_DEFAULT_SSH_KEY!"=="N" (
+        set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
+    )
+)
+
+if "!SSH_PUBLIC_KEY!"=="" (
+    echo SSH public key:
+    echo   Paste the full public key, for example:
+    echo   ssh-ed25519 AAAAC3... lisa-edge-admin
+    echo.
+    echo   If you do not have one yet, create it first:
+    echo   ssh-keygen -t ed25519 -C lisa-edge-admin
+    echo.
+    set /p SSH_PUBLIC_KEY=Public key: 
+)
+
+if "!SSH_PUBLIC_KEY!"=="" (
+    call :Error SSH public key is required.
+    exit /b 1
+)
+
+echo !SSH_PUBLIC_KEY! | findstr /R /C:"^ssh-ed25519 " /C:"^ssh-rsa " /C:"^ecdsa-sha2-" /C:"^sk-ssh-" /C:"^sk-ecdsa-" >nul 2>nul
+if errorlevel 1 (
+    call :Error SSH public key should start with ssh-ed25519, ssh-rsa, ecdsa-sha2-, sk-ssh-, or sk-ecdsa-.
+    exit /b 1
+)
+
+exit /b 0
+
+REM ------------------------------------------------------------
+REM PromptDiskMatch()
+REM ------------------------------------------------------------
+:PromptDiskMatch
+set "DISK_MATCH_KEY="
+set "DISK_MATCH_VALUE="
+
+:PromptDiskMatchMenu
+echo.
+echo Target disk selection:
+echo   %CLR_WHITE%1%CLR_RESET% - Disk serial number %CLR_GREEN_DARK%(recommended)%CLR_RESET%
+echo   %CLR_WHITE%2%CLR_RESET% - Largest disk %CLR_YELLOW_DARK%(fallback; only safe on single-disk targets)%CLR_RESET%
+echo   %CLR_WHITE%3%CLR_RESET% - Disk model name %CLR_YELLOW_DARK%(less specific than serial)%CLR_RESET%
+echo   %CLR_WHITE%4%CLR_RESET% - Show commands to find disk serial and stop
+echo.
+set "DISK_MATCH_CHOICE="
+set /p DISK_MATCH_CHOICE=Choose [1]: 
+if "%DISK_MATCH_CHOICE%"=="" set "DISK_MATCH_CHOICE=1"
+
+if "%DISK_MATCH_CHOICE%"=="1" goto :PromptDiskSerial
+if "%DISK_MATCH_CHOICE%"=="2" goto :PromptDiskLargest
+if "%DISK_MATCH_CHOICE%"=="3" goto :PromptDiskModel
+if "%DISK_MATCH_CHOICE%"=="4" goto :PrintDiskDiscoveryHelp
+
+call :Error Invalid disk selection.
+goto :PromptDiskMatchMenu
+
+:PromptDiskSerial
+echo.
+echo On the target machine, disk serial can be found with:
+echo   Linux:   lsblk -o NAME,MODEL,SERIAL,SIZE
+echo   Windows: Get-CimInstance Win32_DiskDrive ^| Select Model,SerialNumber,Size
+echo.
+set "DISK_SERIAL="
+set /p DISK_SERIAL=Target disk serial: 
+if "%DISK_SERIAL%"=="" (
+    call :Error Disk serial is required for this option.
+    goto :PromptDiskMatchMenu
+)
+set "DISK_MATCH_KEY=serial"
+set "DISK_MATCH_VALUE=%DISK_SERIAL%"
+exit /b 0
+
+:PromptDiskLargest
+echo.
+echo %CLR_YELLOW_DARK%WARNING:%CLR_RESET% This will install to the largest matching disk.
+echo Use this only when the target hardware has one intended install disk.
+echo.
+set "CONFIRM_LARGEST="
+set /p CONFIRM_LARGEST=Type LARGEST to continue: 
+if /I not "%CONFIRM_LARGEST%"=="LARGEST" (
+    echo Aborted largest-disk selection.
+    goto :PromptDiskMatchMenu
+)
+set "DISK_MATCH_KEY=size"
+set "DISK_MATCH_VALUE=largest"
+exit /b 0
+
+:PromptDiskModel
+echo.
+echo Model matching is useful when serial is unavailable, but it can match multiple disks.
+set "DISK_MODEL="
+set /p DISK_MODEL=Target disk model: 
+if "%DISK_MODEL%"=="" (
+    call :Error Disk model is required for this option.
+    goto :PromptDiskMatchMenu
+)
+set "DISK_MATCH_KEY=model"
+set "DISK_MATCH_VALUE=%DISK_MODEL%"
+exit /b 0
+
+:PrintDiskDiscoveryHelp
+echo.
+echo To find the target disk serial:
+echo   Linux installer shell:
+echo     lsblk -o NAME,MODEL,SERIAL,SIZE
+echo.
+echo   Windows PowerShell on the target:
+echo     Get-CimInstance Win32_DiskDrive ^| Select Model,SerialNumber,Size
+echo.
+echo Re-run this script when you have the value.
+exit /b 1
 
 REM ------------------------------------------------------------
 REM GenerateTimestamp()
