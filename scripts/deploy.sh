@@ -41,7 +41,12 @@ export LISA_EFFECTIVE_PULL_POLICY="$PULL_POLICY"
 
 # shellcheck disable=SC1091
 . "$EDGE_REPO/scripts/lib/compose.sh"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/images.sh"
 lisa_build_compose_files "$EDGE_REPO"
+lisa_validate_selected_images
+echo "[LISA] Selected container images:"
+lisa_print_selected_images
 FILES=("${LISA_COMPOSE_FILES[@]}")
 UP_ARGS=(-d --remove-orphans)
 
@@ -57,8 +62,9 @@ if lisa_has_service mqtt; then
   docker compose --env-file .env "${FILES[@]}" up "${UP_ARGS[@]}" --force-recreate mosquitto
 fi
 docker compose --env-file .env "${FILES[@]}" up "${UP_ARGS[@]}"
-"$EDGE_REPO/scripts/healthcheck.sh"
 
 if lisa_has_service otbr; then
   "$EDGE_REPO/scripts/otbr-init-or-restore.sh"
 fi
+
+"$EDGE_REPO/scripts/healthcheck.sh"

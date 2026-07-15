@@ -21,6 +21,11 @@ The archive is created with mode `0600`, includes local secrets and the OTBR
 dataset, and retains 14 days by default. Configure `BACKUP_DEST` on external or
 network storage and adjust `BACKUP_RETENTION_DAYS` as needed.
 
+For NAS or removable storage set `BACKUP_REQUIRE_MOUNT=1`. The backup then
+uses `findmnt` and fails closed if `BACKUP_DEST` resolves to the root filesystem.
+Optionally set `BACKUP_EXPECTED_MOUNT_SOURCE` to the exact `findmnt` source
+(for example `nas:/volume/lisa-edge`) so mounting the wrong volume also fails.
+
 Persistent-data and backup roots must not overlap protected system trees such
 as `/etc`, `/usr`, `/opt`, `/root` or `/tmp`. Prefer `/srv/lisa-edge`, `/data`,
 or a dedicated mount below `/mnt` or `/media`.
@@ -68,10 +73,16 @@ sudo ./scripts/deploy.sh --offline
 ```
 
 For reproducible production releases, replace the image references in `.env`
-with release tags or multi-architecture manifest digests.
+with multi-architecture manifest digests and set
+`LISA_REQUIRE_PINNED_IMAGES=1`. Deployment prints and validates every selected
+image before pull or startup. The provisioning wizard requires explicit trust
+confirmation before it reuses image references restored from a backup.
 
 Test restore regularly on a spare host or isolated VM. A backup is not proven
 until the restored services and OTBR dataset have been validated.
+The repository validation suite also exercises the complete safe-restore path
+against an isolated target root; this complements, but does not replace, a
+periodic restore drill on representative hardware.
 
 ## Production Recommendation
 

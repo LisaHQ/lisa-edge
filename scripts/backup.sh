@@ -29,9 +29,17 @@ RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
 lisa_validate_persistent_path DATA_ROOT "$DATA_ROOT"
 lisa_validate_persistent_path BACKUP_DEST "$BACKUP_DIR"
 
+BACKUP_REQUIRE_MOUNT="${BACKUP_REQUIRE_MOUNT:-0}"
+case "$BACKUP_REQUIRE_MOUNT" in 0|1) ;; *) echo "BACKUP_REQUIRE_MOUNT must be 0 or 1." >&2; exit 1 ;; esac
+if [ "$BACKUP_REQUIRE_MOUNT" = "1" ]; then
+  echo "[LISA] Verifying mounted backup destination..."
+  lisa_verify_mounted_destination "$BACKUP_DIR" "${BACKUP_EXPECTED_MOUNT_SOURCE:-}"
+else
+  mkdir -p "$BACKUP_DIR"
+fi
+
 FILES=("${LISA_COMPOSE_FILES[@]}")
 
-mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
 
 BACKUP_PATHS=(

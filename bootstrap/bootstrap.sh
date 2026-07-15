@@ -54,5 +54,6 @@ done
 log "Deploying services"
 "$REPO_DIR/scripts/deploy.sh"
 "$REPO_DIR/scripts/install-systemd.sh"
+bash "$REPO_DIR/scripts/finalize-admin-access.sh"
 
 log "Bootstrap completed successfully"

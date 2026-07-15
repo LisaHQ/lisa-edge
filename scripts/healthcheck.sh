@@ -48,12 +48,48 @@ healthcheck_host() {
   fi
 }
 
-check_container() {
+wait_for_container() {
   local name="$1"
-  local running
-  running="$(docker inspect -f '{{.State.Running}}' "$name" 2>/dev/null || true)"
-  if [ "$running" != "true" ]; then
-    echo "[LISA] Container is not running: $name" >&2
+  local state health
+  for _ in $(seq 1 30); do
+    state="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || true)"
+    health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$name" 2>/dev/null || true)"
+    if [ "$state" = "running" ] && { [ -z "$health" ] || [ "$health" = "healthy" ]; }; then
+      echo "[LISA] Container ready: $name${health:+ ($health)}"
+      return 0
+    fi
+    if [ "$state" = "exited" ] || [ "$state" = "dead" ] || [ "$health" = "unhealthy" ]; then
+      echo "[LISA] Container failed readiness: $name (state=${state:-missing}, health=${health:-none})" >&2
+      docker logs --tail 50 "$name" >&2 2>/dev/null || true
+      return 1
+    fi
+    sleep 2
+  done
+  echo "[LISA] Container readiness timed out: $name" >&2
+  return 1
+}
+
+wait_for_otbr() {
+  local state
+  for _ in $(seq 1 30); do
+    state="$(docker exec lisa-otbr ot-ctl state 2>/dev/null | head -n 1 | tr -d '\r' || true)"
+    case "$state" in
+      child|router|leader)
+        echo "[LISA] OTBR is attached with Thread state: $state"
+        return 0
+        ;;
+    esac
+    sleep 2
+  done
+  echo "[LISA] OTBR did not attach to a Thread network (last state: ${state:-unknown})." >&2
+  return 1
+}
+
+check_tailscale() {
+  if docker exec lisa-tailscale tailscale status --peers=false >/dev/null 2>&1; then
+    echo "[LISA] Tailscale is authenticated and responding."
+  else
+    echo "[LISA] Tailscale is not authenticated or ready. Configure TS_AUTHKEY or authenticate it, then rerun healthcheck." >&2
     return 1
   fi
 }
@@ -62,20 +98,20 @@ echo "[LISA] Checking containers..."
 docker compose --env-file .env "${FILES[@]}" ps
 
 if lisa_has_service mqtt; then
-  check_container lisa-mqtt
+  wait_for_container lisa-mqtt
 fi
 
 if lisa_has_service uptime-kuma; then
-  check_container lisa-uptime
+  wait_for_container lisa-uptime
 fi
 
 for service in $(lisa_selected_services); do
   case "$service" in
-    otbr) check_container lisa-otbr ;;
-    ha) check_container lisa-ha ;;
-    zigbee2mqtt) check_container lisa-zigbee2mqtt ;;
-    node-red) check_container lisa-node-red ;;
-    vpn-tailscale) check_container lisa-tailscale ;;
+    otbr) wait_for_container lisa-otbr ;;
+    ha) wait_for_container lisa-ha ;;
+    zigbee2mqtt) wait_for_container lisa-zigbee2mqtt ;;
+    node-red) wait_for_container lisa-node-red ;;
+    vpn-tailscale) wait_for_container lisa-tailscale ;;
   esac
 done
 
@@ -97,4 +133,16 @@ if lisa_has_service node-red; then
   wait_for_tcp "Node-RED" "$(healthcheck_host "${NODE_RED_BIND_ADDR:-127.0.0.1}")" "${NODE_RED_PORT:-1880}"
 fi
 
-echo "[LISA] Selected LISA Edge services are healthy."
+if lisa_has_service ha; then
+  wait_for_tcp "Home Assistant" 127.0.0.1 "${HOME_ASSISTANT_PORT:-8123}"
+fi
+
+if lisa_has_service otbr; then
+  wait_for_otbr
+fi
+
+if lisa_has_service vpn-tailscale; then
+  check_tailscale
+fi
+
+echo "[LISA] Selected LISA Edge services passed readiness checks."

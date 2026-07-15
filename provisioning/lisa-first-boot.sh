@@ -7,11 +7,16 @@ ENV_OUTPUT="$EDGE_REPO/.env"
 MODE=""
 BACKUP_ARCHIVE=""
 DRY_RUN=0
+RESTORED_FROM_BACKUP=0
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/lib/ui.sh"
 # shellcheck disable=SC1091
 . "$EDGE_REPO/scripts/lib/backup.sh"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/compose.sh"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/images.sh"
 for wizard in "$SCRIPT_DIR"/services/*.sh; do
   # shellcheck disable=SC1090
   . "$wizard"
@@ -151,6 +156,7 @@ select_services() {
 }
 
 configure_global() {
+  local answer mount_default expected_source detected_source detected_target pin_default sudo_default
   echo
   echo "--- Host and storage wizard ---"
   ask_value LISA_EDGE_HOSTNAME "Hostname" "${LISA_EDGE_HOSTNAME:-lisa-edge-01}"
@@ -160,10 +166,52 @@ configure_global() {
   require_persistent_data_path "DATA_ROOT" "$DATA_ROOT"
   ask_value BACKUP_DEST "Backup destination (local path or mounted NAS path)" "${BACKUP_DEST:-$DATA_ROOT/backups}"
   require_persistent_data_path "BACKUP_DEST" "$BACKUP_DEST"
+  mount_default=no
+  case "$BACKUP_DEST" in /mnt/*|/media/*|/run/media/*) mount_default=yes ;; esac
+  [ "${BACKUP_REQUIRE_MOUNT:-0}" = "1" ] && mount_default=yes
+  ask_yes_no answer "Require BACKUP_DEST to remain on a mounted filesystem" "$mount_default"
+  if [ "$answer" = "yes" ]; then
+    BACKUP_REQUIRE_MOUNT=1
+    expected_source="${BACKUP_EXPECTED_MOUNT_SOURCE:-}"
+    if [ -d "$BACKUP_DEST" ] && command -v findmnt >/dev/null 2>&1; then
+      detected_target="$(findmnt -rn -T "$BACKUP_DEST" -o TARGET 2>/dev/null || true)"
+      detected_source="$(findmnt -rn -T "$BACKUP_DEST" -o SOURCE 2>/dev/null || true)"
+      if [ -n "$detected_target" ] && [ "$detected_target" != "/" ]; then
+        expected_source="$detected_source"
+      fi
+    fi
+    ask_value BACKUP_EXPECTED_MOUNT_SOURCE "Expected mount source (empty accepts any non-root mount)" "$expected_source"
+  else
+    BACKUP_REQUIRE_MOUNT=0
+    BACKUP_EXPECTED_MOUNT_SOURCE=""
+  fi
   ask_value BACKUP_RETENTION_DAYS "Backup retention in days" "${BACKUP_RETENTION_DAYS:-14}"
   [[ "$BACKUP_RETENTION_DAYS" =~ ^[0-9]+$ ]] || die "Retention must be numeric."
   ask_value HEALTHCHECK_BIND_ADDR "Healthcheck target IP or auto" "${HEALTHCHECK_BIND_ADDR:-auto}"
   [ "$HEALTHCHECK_BIND_ADDR" = "auto" ] || require_bind_address "HEALTHCHECK_BIND_ADDR" "$HEALTHCHECK_BIND_ADDR"
+  pin_default=no
+  [ "${LISA_REQUIRE_PINNED_IMAGES:-0}" = "1" ] && pin_default=yes
+  ask_yes_no answer "Require immutable container image digests" "$pin_default"
+  [ "$answer" = "yes" ] && LISA_REQUIRE_PINNED_IMAGES=1 || LISA_REQUIRE_PINNED_IMAGES=0
+  ask_value LISA_ADMIN_USER "Administrative account" "${LISA_ADMIN_USER:-lisa}"
+  [ "$LISA_ADMIN_USER" != "root" ] || die "LISA_ADMIN_USER cannot be root."
+  [[ "$LISA_ADMIN_USER" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || die "Invalid LISA_ADMIN_USER."
+  sudo_default=no
+  [ "${LISA_KEEP_PASSWORDLESS_SUDO:-0}" = "1" ] && sudo_default=yes
+  ask_yes_no answer "Keep passwordless sudo after bootstrap (not recommended)" "$sudo_default"
+  [ "$answer" = "yes" ] && LISA_KEEP_PASSWORDLESS_SUDO=1 || LISA_KEEP_PASSWORDLESS_SUDO=0
+}
+
+review_image_references() {
+  local confirmed
+  echo
+  echo "--- Selected container images ---"
+  lisa_validate_selected_images || die "Container image policy validation failed."
+  lisa_print_selected_images
+  if [ "$RESTORED_FROM_BACKUP" -eq 1 ]; then
+    ask_yes_no confirmed "Trust and use the container image references restored from backup" "no"
+    [ "$confirmed" = "yes" ] || die "Restored image references were not approved. Edit them and rerun provisioning."
+  fi
 }
 
 run_service_wizards() {
@@ -295,6 +343,7 @@ prepare_restore() {
   esac
 
   info "Selected backup: $BACKUP_ARCHIVE"
+  RESTORED_FROM_BACKUP=1
   verify_backup_archive
   if [ "$DRY_RUN" -eq 1 ]; then
     info "Dry run: restore skipped."
@@ -324,7 +373,12 @@ write_environment() {
     echo "  hostname: $LISA_EDGE_HOSTNAME"
     echo "  data root: $DATA_ROOT"
     echo "  backup destination: $BACKUP_DEST"
+    echo "  backup requires mount: $BACKUP_REQUIRE_MOUNT"
+    [ -n "${BACKUP_EXPECTED_MOUNT_SOURCE:-}" ] && echo "  expected mount source: $BACKUP_EXPECTED_MOUNT_SOURCE"
     echo "  services: $LISA_COMPOSE_SERVICES"
+    echo "  immutable images required: $LISA_REQUIRE_PINNED_IMAGES"
+    echo "  keep passwordless sudo: $LISA_KEEP_PASSWORDLESS_SUDO"
+    lisa_print_selected_images
     return 0
   fi
 
@@ -341,8 +395,11 @@ write_environment() {
     env_line DATA_ROOT "$DATA_ROOT"
     env_line BACKUP_DEST "$BACKUP_DEST"
     env_line BACKUP_RETENTION_DAYS "$BACKUP_RETENTION_DAYS"
+    env_line BACKUP_REQUIRE_MOUNT "$BACKUP_REQUIRE_MOUNT"
+    env_line BACKUP_EXPECTED_MOUNT_SOURCE "${BACKUP_EXPECTED_MOUNT_SOURCE:-}"
     env_line COMPOSE_PROJECT_NAME "${COMPOSE_PROJECT_NAME:-lisa-edge}"
     env_line LISA_PULL_POLICY "${LISA_PULL_POLICY:-missing}"
+    env_line LISA_REQUIRE_PINNED_IMAGES "$LISA_REQUIRE_PINNED_IMAGES"
     env_line MQTT_IMAGE "${MQTT_IMAGE:-eclipse-mosquitto:2}"
     env_line UPTIME_KUMA_IMAGE "${UPTIME_KUMA_IMAGE:-louislam/uptime-kuma:1}"
     env_line OTBR_IMAGE "${OTBR_IMAGE:-openthread/border-router:latest}"
@@ -375,9 +432,12 @@ write_environment() {
     env_line ZIGBEE2MQTT_PORT "${ZIGBEE2MQTT_PORT:-8080}"
     env_line NODE_RED_BIND_ADDR "${NODE_RED_BIND_ADDR:-127.0.0.1}"
     env_line NODE_RED_PORT "${NODE_RED_PORT:-1880}"
+    env_line HOME_ASSISTANT_PORT "${HOME_ASSISTANT_PORT:-8123}"
     env_line TS_AUTHKEY "${TS_AUTHKEY:-}"
     env_line TS_EXTRA_ARGS "${TS_EXTRA_ARGS:-}"
     env_line TS_USERSPACE "${TS_USERSPACE:-false}"
+    env_line LISA_ADMIN_USER "$LISA_ADMIN_USER"
+    env_line LISA_KEEP_PASSWORDLESS_SUDO "$LISA_KEEP_PASSWORDLESS_SUDO"
   } > "$temp_file"
   chmod 0600 "$temp_file"
   mv "$temp_file" "$ENV_OUTPUT"
@@ -422,6 +482,7 @@ main() {
   select_services
   run_service_wizards
   validate_service_endpoints
+  review_image_references
   write_environment
   apply_provisioning
 

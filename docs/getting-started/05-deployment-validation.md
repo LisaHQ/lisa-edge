@@ -28,6 +28,7 @@ Use it after a fresh install, restore, major configuration change, or hardware r
 - [ ] SSD or external storage is mounted correctly
 - [ ] Mounts survive reboot
 - [ ] Backup destination is reachable
+- [ ] A missing NAS/removable mount causes backup to fail without local fallback
 - [ ] Logs are not growing uncontrollably
 
 ---
@@ -49,8 +50,10 @@ Use it after a fresh install, restore, major configuration change, or hardware r
 
 - [ ] Docker services start successfully
 - [ ] Health checks pass
+- [ ] Containers with Docker health checks report `healthy`
 - [ ] MQTT is reachable by intended clients
 - [ ] OTBR is healthy if enabled
+- [ ] OTBR reports `child`, `router`, or `leader` if enabled
 - [ ] NUT detects UPS if enabled
 - [ ] reverse proxy routes only intended services
 - [ ] monitoring detects service failure
@@ -81,6 +84,7 @@ If OTBR or Matter-over-Thread is enabled:
 - [ ] Backup includes Thread Dataset if applicable
 - [ ] Backup destination is outside the LISA Edge host
 - [ ] Restore has been tested at least once
+- [ ] Selected production images are pinned and pass image-policy validation
 
 ---
 

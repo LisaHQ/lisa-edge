@@ -12,6 +12,13 @@ LISA Edge should be treated as infrastructure.
 - Firewall allowlists
 - Secrets outside Git
 - Encrypted backups for sensitive data
+- Temporary bootstrap-only passwordless sudo
+- Immutable container image digests for production releases
+
+The Ubuntu autoinstall account receives passwordless sudo only so unattended
+bootstrap can start. Bootstrap removes `/etc/sudoers.d/90-lisa-admin` after a
+usable local password is confirmed, unless the operator explicitly enables the
+documented emergency override.
 
 ## Sensitive Services
 

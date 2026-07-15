@@ -27,6 +27,11 @@ restored values become defaults that can be reviewed before deployment. The
 archive is also restricted to LISA Edge configuration and persistent-data
 paths before any privileged restore is performed.
 
+The global wizard also asks whether backups must stay on a mounted filesystem,
+whether selected container images must use immutable digests, and whether the
+temporary autoinstall passwordless-sudo grant may remain. Production defaults
+remove passwordless sudo after bootstrap.
+
 ## Service selection
 
 The wizard accepts service numbers, service names, multiple values separated
@@ -56,6 +61,20 @@ sudo lisa-edge-provision --mode restore-path --backup /mnt/lisa-backup
 ```
 
 NAS credentials are not stored in USB autoinstall `user-data` by the wizard.
+When this path will also receive scheduled backups, enable the mount requirement
+and record the expected mount source offered by the wizard.
+
+## Image and admin-access review
+
+Before writing `.env`, the wizard lists each selected service and its image
+reference as `floating` or `pinned`. Restored references require a separate
+operator confirmation. Enabling immutable-image enforcement rejects every
+selected image that does not end in an `@sha256` digest.
+
+Autoinstall uses `/etc/sudoers.d/90-lisa-admin` only as a bootstrap grant. At
+the end of bootstrap, LISA verifies that the configured admin account has a usable local
+password (prompting interactively if needed) and then removes that grant. Set
+`LISA_KEEP_PASSWORDLESS_SUDO=1` only as a deliberate lab/emergency exception.
 
 ## Re-running
 

@@ -24,6 +24,7 @@ ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env.template}" bash "$REPO_ROOT/tools/validate
 
 echo "Checking service selection..."
 bash "$REPO_ROOT/tools/test-service-selection.sh"
+bash "$REPO_ROOT/tools/test-image-policy.sh"
 
 echo "Checking provisioning wizard..."
 bash "$REPO_ROOT/tools/test-provisioning-wizard.sh"
@@ -31,6 +32,8 @@ bash "$REPO_ROOT/tools/test-provisioning-wizard.sh"
 echo "Checking backup archive validation..."
 "$PYTHON_BIN" "$REPO_ROOT/tools/test-backup-validation.py"
 bash "$REPO_ROOT/tools/test-backup-checksum.sh"
+bash "$REPO_ROOT/tools/test-backup-mount-guard.sh"
+bash "$REPO_ROOT/tools/test-restore-integration.sh"
 
 echo "Checking recovery path guardrails..."
 bash "$REPO_ROOT/tools/test-recovery-safety.sh"
