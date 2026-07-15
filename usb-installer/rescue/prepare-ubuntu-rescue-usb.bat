@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 set SCRIPT_DIR=%~dp0
-set AUTOINSTALL_DIR=%SCRIPT_DIR%rescue\autoinstall
+set AUTOINSTALL_DIR=%SCRIPT_DIR%autoinstall
 
 if "%~1"=="" goto usage
 if "%~1"=="-h" goto usage

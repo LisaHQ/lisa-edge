@@ -11,7 +11,7 @@ import tarfile
 import tempfile
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATOR = REPO_ROOT / "scripts" / "lib" / "validate_backup.py"
 ENV_TEMPLATE = REPO_ROOT / ".env.template"
 ENV_MEMBER = "opt/lisa-edge/.env"

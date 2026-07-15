@@ -229,6 +229,29 @@ See:
 
 ---
 
+## Repository Layout
+
+The repository is organized by deployment lifecycle rather than programming
+language:
+
+| Path | Responsibility |
+| --- | --- |
+| [`bootstrap/`](bootstrap/README.md) | Host packages, hardening, Docker, storage, and initial deployment |
+| [`compose/`](compose/README.md) | Base Compose model and service fragments |
+| [`config/`](config/README.md) | Version-controlled source configuration copied into runtime storage |
+| [`provisioning/`](provisioning/README.md) | First-boot wizard and service-specific configuration |
+| [`scripts/`](scripts/README.md) | Production runtime, backup, restore, health, and maintenance commands |
+| [`tools/`](tools/README.md) | Developer, build, and repository-validation utilities |
+| [`test/`](test/README.md) | Unit, security, and integration tests |
+| [`systemd/`](systemd/README.md) | Production runtime and backup units |
+| [`recovery/`](recovery/README.md) | Independent rescue environment and recovery workflows |
+| [`usb-installer/`](usb-installer/README.md) | Production and rescue USB installation assets |
+| [`docs/`](docs/README.md) | Architecture, deployment, security, and operations documentation |
+
+Runtime secrets and generated `.env` files are intentionally excluded from Git.
+
+---
+
 ## Getting Started
 
 New users should begin with the Documentation Index before attempting deployment.  
