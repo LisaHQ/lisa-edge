@@ -14,27 +14,19 @@ set -a
 . ./.env
 set +a
 
-FILES=(-f compose/docker-compose.yml)
-for profile in ${LISA_COMPOSE_SERVICES:-}; do
-  case "$profile" in
-    otbr|ha|zigbee2mqtt|node-red|vpn-tailscale)
-      FILES+=(-f "compose/services/$profile.yml")
-      ;;
-    "") ;;
-    *)
-      echo "Unknown LISA_COMPOSE_SERVICES entry: $profile" >&2
-      echo "Allowed: otbr ha zigbee2mqtt node-red vpn-tailscale" >&2
-      exit 1
-      ;;
-  esac
-done
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/compose.sh"
+lisa_build_compose_files "$EDGE_REPO"
+FILES=("${LISA_COMPOSE_FILES[@]}")
 
 docker compose --env-file .env "${FILES[@]}" pull || true
-"$EDGE_REPO/scripts/prepare-mqtt.sh"
-docker compose --env-file .env "${FILES[@]}" up -d --remove-orphans --force-recreate mosquitto
+if lisa_has_service mqtt; then
+  "$EDGE_REPO/scripts/prepare-mqtt.sh"
+  docker compose --env-file .env "${FILES[@]}" up -d --remove-orphans --force-recreate mosquitto
+fi
 docker compose --env-file .env "${FILES[@]}" up -d --remove-orphans
 "$EDGE_REPO/scripts/healthcheck.sh"
 
-if echo "${LISA_COMPOSE_SERVICES:-}" | grep -qw otbr; then
+if lisa_has_service otbr; then
   "$EDGE_REPO/scripts/otbr-init-or-restore.sh"
 fi

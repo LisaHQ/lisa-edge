@@ -44,10 +44,22 @@ Ubuntu installs automatically
   ↓
 Repository is cloned
   ↓
-Bootstrap script runs
+First-boot provisioning notice is installed
   ↓
-LISA Edge services start
+Connect by SSH or console
+  ↓
+Run sudo lisa-edge-provision
+  ↓
+Select fresh/restore mode and services
+  ↓
+Selected service wizards run
+  ↓
+Bootstrap and selected services start
 ```
+
+Autoinstall intentionally does not deploy services in `late-commands`. This
+keeps hardware-dependent settings, service selection, NAS access and restore
+confirmation in the first-boot wizard where failures can be diagnosed safely.
 
 ## Files
 

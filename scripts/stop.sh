@@ -13,9 +13,9 @@ set -a
 . ./.env
 set +a
 
-FILES=(-f compose/docker-compose.yml)
-for profile in ${LISA_COMPOSE_SERVICES:-}; do
-  [ -f "compose/services/$profile.yml" ] && FILES+=(-f "compose/services/$profile.yml")
-done
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/compose.sh"
+lisa_build_compose_files "$EDGE_REPO"
+FILES=("${LISA_COMPOSE_FILES[@]}")
 
 docker compose --env-file .env "${FILES[@]}" down --remove-orphans

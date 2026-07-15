@@ -91,7 +91,12 @@ main() {
 
     while IFS= read -r file; do
         overlays+=("$file")
-        if ! validate_stack "core + $(basename "$file")" "$core" "$file"; then
+        if [[ "$(basename "$file")" == "zigbee2mqtt.yml" ]]; then
+            if ! validate_stack "core + mqtt.yml + zigbee2mqtt.yml" \
+                "$core" "$COMPOSE_DIR/services/mqtt.yml" "$file"; then
+                failed=1
+            fi
+        elif ! validate_stack "core + $(basename "$file")" "$core" "$file"; then
             failed=1
         fi
     done < <(find "$COMPOSE_DIR/services" -maxdepth 1 -type f -name '*.yml' | sort)

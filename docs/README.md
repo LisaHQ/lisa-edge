@@ -42,6 +42,7 @@ If you are new to LISA Edge, read the documentation in the following order:
 3. [USB Autoinstall Flow](getting-started/03-autoinstall-flow.md)
 4. [Deployment Checklist](getting-started/04-deployment-checklist.md)
 5. [Deployment Validation](getting-started/05-deployment-validation.md)
+6. [First-Boot Provisioning](getting-started/06-first-boot-provisioning.md)
 
 ---
 

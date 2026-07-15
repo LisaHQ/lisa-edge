@@ -239,15 +239,15 @@ Start here:
 4. [USB Autoinstall Flow](docs/getting-started/03-autoinstall-flow.md)
 5. [Deployment Checklist](docs/getting-started/04-deployment-checklist.md)
 6. [Deployment Validation](docs/getting-started/05-deployment-validation.md)
+7. [First-Boot Provisioning](docs/getting-started/06-first-boot-provisioning.md)
 
 Basic flow:
 
 ```bash
 sudo git clone https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
 cd /opt/lisa-edge
-cp .env.template .env
+sudo ./provisioning/lisa-first-boot.sh --mode config-only
 sudo ./bootstrap/bootstrap.sh
-sudo ./scripts/deploy.sh
 sudo ./scripts/healthcheck.sh
 ```
 

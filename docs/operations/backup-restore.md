@@ -21,6 +21,9 @@ The archive is created with mode `0600`, includes local secrets and the OTBR
 dataset, and retains 14 days by default. Configure `BACKUP_DEST` on external or
 network storage and adjust `BACKUP_RETENTION_DAYS` as needed.
 
+Each archive has a `.sha256` checksum sidecar and, when `jq` is available, a
+`.manifest.json` file describing its host, Git revision and selected services.
+
 The tar archive itself is not encrypted. Use encrypted storage or copy it into
 an encrypted restic repository before it leaves the trusted host.
 

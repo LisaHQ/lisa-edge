@@ -1,0 +1,20 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: lisa-mqtt
+    restart: unless-stopped
+    ports:
+      - "${MQTT_BIND_ADDR:-127.0.0.1}:${MQTT_PORT:-1883}:1883"
+      - "${MQTT_BIND_ADDR:-127.0.0.1}:${MQTT_WS_PORT:-9001}:9001"
+    volumes:
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/config:/mosquitto/config
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/data:/mosquitto/data
+      - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/mosquitto/log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -u \"$${MQTT_USERNAME:-lisa}\" -P \"$${MQTT_PASSWORD:-changeme}\" -t '$$SYS/#' -C 1 -W 5 >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      - MQTT_USERNAME=${MQTT_USERNAME:-lisa}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-changeme}

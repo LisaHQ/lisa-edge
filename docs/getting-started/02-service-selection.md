@@ -4,6 +4,10 @@ LISA Edge is intentionally modular.
 
 Deploy only the services you actually need.
 
+Run `sudo lisa-edge-provision` and select one service, multiple services, or
+`all`. Each selected service starts its own configuration wizard. Zigbee2MQTT
+automatically adds its MQTT dependency.
+
 ---
 
 # MQTT

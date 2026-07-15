@@ -9,10 +9,10 @@ set -a
 . ./.env
 set +a
 
-FILES=(-f compose/docker-compose.yml)
-for service in ${LISA_COMPOSE_SERVICES:-}; do
-  [ -f "compose/services/$service.yml" ] && FILES+=(-f "compose/services/$service.yml")
-done
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/compose.sh"
+lisa_build_compose_files "$EDGE_REPO"
+FILES=("${LISA_COMPOSE_FILES[@]}")
 
 check_tcp() {
   local host="$1"
@@ -50,10 +50,15 @@ check_container() {
 echo "[LISA] Checking containers..."
 docker compose --env-file .env "${FILES[@]}" ps
 
-check_container lisa-mqtt
-check_container lisa-uptime
+if lisa_has_service mqtt; then
+  check_container lisa-mqtt
+fi
 
-for service in ${LISA_COMPOSE_SERVICES:-}; do
+if lisa_has_service uptime-kuma; then
+  check_container lisa-uptime
+fi
+
+for service in $(lisa_selected_services); do
   case "$service" in
     otbr) check_container lisa-otbr ;;
     ha) check_container lisa-ha ;;
@@ -63,18 +68,22 @@ for service in ${LISA_COMPOSE_SERVICES:-}; do
   esac
 done
 
-echo "[LISA] Checking MQTT port..."
-wait_for_tcp "MQTT" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${MQTT_PORT:-1883}"
+if lisa_has_service mqtt; then
+  echo "[LISA] Checking MQTT port..."
+  wait_for_tcp "MQTT" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${MQTT_PORT:-1883}"
+fi
 
-echo "[LISA] Checking Uptime Kuma port..."
-wait_for_tcp "Uptime Kuma" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${UPTIME_KUMA_PORT:-3001}"
+if lisa_has_service uptime-kuma; then
+  echo "[LISA] Checking Uptime Kuma port..."
+  wait_for_tcp "Uptime Kuma" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${UPTIME_KUMA_PORT:-3001}"
+fi
 
-if echo "${LISA_COMPOSE_SERVICES:-}" | grep -qw zigbee2mqtt; then
+if lisa_has_service zigbee2mqtt; then
   wait_for_tcp "Zigbee2MQTT" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${ZIGBEE2MQTT_PORT:-8080}"
 fi
 
-if echo "${LISA_COMPOSE_SERVICES:-}" | grep -qw node-red; then
+if lisa_has_service node-red; then
   wait_for_tcp "Node-RED" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${NODE_RED_PORT:-1880}"
 fi
 
-echo "[LISA] Edge core stack healthy."
+echo "[LISA] Selected LISA Edge services are healthy."

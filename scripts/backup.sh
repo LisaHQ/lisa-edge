@@ -14,6 +14,10 @@ set -a
 . ./.env
 set +a
 
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/compose.sh"
+lisa_build_compose_files "$EDGE_REPO"
+
 DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 BACKUP_DIR="${BACKUP_DEST:-$DATA_ROOT/backups}"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
@@ -32,10 +36,7 @@ case "$BACKUP_DIR" in
     ;;
 esac
 
-FILES=(-f compose/docker-compose.yml)
-for profile in ${LISA_COMPOSE_SERVICES:-}; do
-  [ -f "compose/services/$profile.yml" ] && FILES+=(-f "compose/services/$profile.yml")
-done
+FILES=("${LISA_COMPOSE_FILES[@]}")
 
 mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
@@ -90,9 +91,32 @@ STACK_STOPPED=0
 trap - EXIT
 chmod 0600 "$ARCHIVE"
 
+(
+  cd "$BACKUP_DIR"
+  sha256sum "$(basename "$ARCHIVE")" > "$(basename "$ARCHIVE").sha256"
+)
+chmod 0600 "$ARCHIVE.sha256"
+
+if command -v jq >/dev/null 2>&1; then
+  ARCHIVE_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
+  GIT_REF="$(git -C "$EDGE_REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  jq -n \
+    --arg format_version "1" \
+    --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg hostname "$(hostname)" \
+    --arg git_ref "$GIT_REF" \
+    --arg services "$(lisa_selected_services)" \
+    --arg sha256 "$ARCHIVE_SHA256" \
+    '{format_version: ($format_version | tonumber), created_at: $created_at, hostname: $hostname, git_ref: $git_ref, services: ($services | split(" ")), contains_secrets: true, sha256: $sha256}' \
+    > "$ARCHIVE.manifest.json"
+  chmod 0600 "$ARCHIVE.manifest.json"
+fi
+
 if [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] && [ "$RETENTION_DAYS" -gt 0 ]; then
-  find "$BACKUP_DIR" -maxdepth 1 -type f -name 'lisa-edge-backup-*.tar.gz' \
-    -mtime "+$RETENTION_DAYS" -delete
+  while IFS= read -r -d '' old_archive; do
+    rm -f "$old_archive" "$old_archive.sha256" "$old_archive.manifest.json"
+  done < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'lisa-edge-backup-*.tar.gz' \
+    -mtime "+$RETENTION_DAYS" -print0)
 fi
 
 echo "[LISA] Backup completed: $ARCHIVE"

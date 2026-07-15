@@ -19,7 +19,7 @@ MQTT can be used by:
 Main files:
 
 ```text
-compose/docker-compose.yml
+compose/services/mqtt.yml
 config/mqtt/mosquitto.conf
 .env
 ```
@@ -34,7 +34,8 @@ MQTT_USERNAME=lisa
 MQTT_PASSWORD=change-this-password
 ```
 
-Change `MQTT_PASSWORD` before production use.
+The provisioning wizard generates a random password when the template value is
+still present.
 
 ## Data
 

@@ -20,6 +20,12 @@ install_unit "$EDGE_REPO/systemd/lisa-edge.service" /etc/systemd/system/lisa-edg
 install_unit "$EDGE_REPO/systemd/lisa-edge-backup.service" /etc/systemd/system/lisa-edge-backup.service
 install_unit "$EDGE_REPO/systemd/lisa-edge-backup.timer" /etc/systemd/system/lisa-edge-backup.timer
 
+if [ -f "$EDGE_REPO/provisioning/systemd/lisa-first-boot.service" ]; then
+  install_unit "$EDGE_REPO/provisioning/systemd/lisa-first-boot.service" /etc/systemd/system/lisa-first-boot.service
+fi
+
+ln -sfn "$EDGE_REPO/provisioning/lisa-first-boot.sh" /usr/local/sbin/lisa-edge-provision
+
 if [ -f "$EDGE_REPO/systemd/lisa-otbr-dataset-backup.service" ]; then
   install_unit "$EDGE_REPO/systemd/lisa-otbr-dataset-backup.service" /etc/systemd/system/lisa-otbr-dataset-backup.service
 fi

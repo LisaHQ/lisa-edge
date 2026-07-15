@@ -32,7 +32,17 @@ if [ -f .env ]; then
   sed -i -E 's/(PASSWORD|TOKEN|AUTHKEY|SECRET)=.*/\1=REDACTED/g' "$OUT_DIR/env.redacted"
 fi
 
-docker compose --env-file .env -f compose/docker-compose.yml ps > "$OUT_DIR/docker-compose-ps.txt" 2>&1 || true
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env
+  set +a
+  # shellcheck disable=SC1091
+  . "$EDGE_DIR/scripts/lib/compose.sh"
+  if lisa_build_compose_files "$EDGE_DIR"; then
+    docker compose --env-file .env "${LISA_COMPOSE_FILES[@]}" ps > "$OUT_DIR/docker-compose-ps.txt" 2>&1 || true
+  fi
+fi
 journalctl -u lisa-edge.service -n 300 --no-pager > "$OUT_DIR/lisa-edge-journal.txt" 2>&1 || true
 journalctl -u docker.service -n 300 --no-pager > "$OUT_DIR/docker-journal.txt" 2>&1 || true
 

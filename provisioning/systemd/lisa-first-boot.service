@@ -1,0 +1,12 @@
+[Unit]
+Description=LISA Edge first-boot provisioning notice
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/lisa-edge/provisioned
+
+[Service]
+Type=oneshot
+ExecStart=/opt/lisa-edge/provisioning/notify-first-boot.sh
+
+[Install]
+WantedBy=multi-user.target

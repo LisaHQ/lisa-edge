@@ -34,10 +34,10 @@ if [ "$answer" != "RESET" ]; then
   exit 1
 fi
 
-FILES=(-f compose/docker-compose.yml)
-for profile in ${LISA_COMPOSE_SERVICES:-}; do
-  [ -f "compose/services/$profile.yml" ] && FILES+=(-f "compose/services/$profile.yml")
-done
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/compose.sh"
+lisa_build_compose_files "$EDGE_REPO"
+FILES=("${LISA_COMPOSE_FILES[@]}")
 
 docker compose --env-file .env "${FILES[@]}" down -v --remove-orphans || true
 rm -rf "$DATA_ROOT/docker/volumes" "$DATA_ROOT/data" "$DATA_ROOT/state" "$DATA_ROOT/logs"

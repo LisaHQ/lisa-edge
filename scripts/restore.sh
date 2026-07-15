@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+NO_DEPLOY=0
+if [ "${1:-}" = "--no-deploy" ]; then
+  NO_DEPLOY=1
+  shift
+fi
+
 if [ $# -ne 1 ]; then
-  echo "Usage: sudo $0 /path/to/lisa-edge-backup.tar.gz" >&2
+  echo "Usage: sudo $0 [--no-deploy] /path/to/lisa-edge-backup.tar.gz" >&2
   exit 1
 fi
 
@@ -25,6 +31,11 @@ if ! tar -tzf "$ARCHIVE" >/dev/null; then
   exit 1
 fi
 
+if [ -f "$ARCHIVE.sha256" ]; then
+  echo "[LISA] Verifying backup checksum..."
+  (cd "$(dirname "$ARCHIVE")" && sha256sum -c "$(basename "$ARCHIVE.sha256")")
+fi
+
 if tar -tzf "$ARCHIVE" | awk '
   /^\// { unsafe=1 }
   /(^|\/)\.\.($|\/)/ { unsafe=1 }
@@ -45,15 +56,19 @@ DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 mkdir -p "$DATA_ROOT"
 
 if [ -f .env ]; then
-  FILES=(-f compose/docker-compose.yml)
-  for profile in ${LISA_COMPOSE_SERVICES:-}; do
-    [ -f "compose/services/$profile.yml" ] && FILES+=(-f "compose/services/$profile.yml")
-  done
+  # shellcheck disable=SC1091
+  . "$EDGE_REPO/scripts/lib/compose.sh"
+  lisa_build_compose_files "$EDGE_REPO"
+  FILES=("${LISA_COMPOSE_FILES[@]}")
   docker compose --env-file .env "${FILES[@]}" down --remove-orphans || true
 fi
 
 echo "[LISA] Restoring $ARCHIVE into /"
 tar -xzf "$ARCHIVE" -C /
 
-echo "[LISA] Restore finished. Deploying stack..."
-"$EDGE_REPO/scripts/deploy.sh"
+if [ "$NO_DEPLOY" -eq 1 ]; then
+  echo "[LISA] Restore finished. Deployment was intentionally skipped."
+else
+  echo "[LISA] Restore finished. Deploying stack..."
+  "$EDGE_REPO/scripts/deploy.sh"
+fi
