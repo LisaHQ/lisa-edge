@@ -27,7 +27,7 @@ config/mqtt/mosquitto.conf
 Important environment values:
 
 ```env
-MQTT_BIND_ADDR=0.0.0.0
+MQTT_BIND_ADDR=192.168.20.10
 MQTT_PORT=1883
 MQTT_WS_PORT=9001
 MQTT_USERNAME=lisa

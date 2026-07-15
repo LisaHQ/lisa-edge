@@ -70,7 +70,7 @@ exists_dir "systemd" "Systemd directory"
 exists_file "docs/operations/backup-restore.md" "Backup/restore documentation"
 exists_file "docs/operations/disaster-recovery.md" "Disaster recovery documentation"
 exists_file "docs/operations/service-recovery/otbr.md" "OTBR recovery documentation"
-exists_file "docs/getting-started/deployment-validation.md" "Deployment validation checklist"
+exists_file "docs/getting-started/05-deployment-validation.md" "Deployment validation checklist"
 
 exists_file "scripts/backup.sh" "Backup script"
 exists_file "scripts/restore.sh" "Restore script"

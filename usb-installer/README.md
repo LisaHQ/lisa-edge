@@ -10,13 +10,13 @@ usb-installer/
 │   └── autoinstall/
 │       ├── grub.cfg
 │       ├── meta-data
-│       └── user-data
+│       └── user-data.template
 │
 └── rescue/
     └── autoinstall/
         ├── grub.cfg
         ├── meta-data
-        └── user-data
+        └── user-data.template
 ```
 
 ---

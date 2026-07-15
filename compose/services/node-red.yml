@@ -6,6 +6,6 @@ services:
     container_name: lisa-node-red
     restart: unless-stopped
     ports:
-      - "${NODE_RED_BIND_ADDR:-0.0.0.0}:${NODE_RED_PORT:-1880}:1880"
+      - "${NODE_RED_BIND_ADDR:-127.0.0.1}:${NODE_RED_PORT:-1880}:1880"
     volumes:
       - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/node-red:/data

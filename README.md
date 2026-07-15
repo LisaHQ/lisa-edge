@@ -190,7 +190,7 @@ See:
 |----------------|---------------------------------------------|
 | MQTT           | Local event messaging                       |
 | Uptime Kuma    | Lightweight monitoring                      |
-| Backup helper  | Backup and restore workflow support         |
+| Backup timer   | Host-level backup and restore workflow      |
 | OTBR           | Thread Border Router                        |
 | NUT            | UPS monitoring and graceful shutdown        |
 | VPN            | Secure remote administration                |
@@ -231,8 +231,6 @@ See:
 ## Getting Started
 
 New users should begin with the Documentation Index before attempting deployment.  
-Start here:
-
 Start here:
 
 1. [Documentation Index](docs/README.md)

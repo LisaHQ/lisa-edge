@@ -15,10 +15,9 @@ autoinstall:
   identity:
     hostname: LISA-EDGE
     username: lisa
-    # Temporary console password: ChangeMe123!
-    # Replace this hash before production use.
-    # SSH password login is disabled below.
-    password: "$6$QWnRj98zWZbExza3$5LAYPxsnYH26jKNur5P3etIjgiHiLIIAj1qPFViSSn.Pbnir.lyXWnplCoaJ9YReVapx.vjawtD1GOjR6I1PD/"
+    # Password login is locked. Use the authorized SSH key below.
+    # Set a console password after installation with: sudo passwd lisa
+    password: "!"
 
   ssh:
     install-server: true
@@ -84,6 +83,12 @@ autoinstall:
     disable_root: true
     package_update: true
     package_upgrade: false
+    write_files:
+      - path: /etc/sudoers.d/90-lisa-admin
+        owner: root:root
+        permissions: '0440'
+        content: |
+          lisa ALL=(ALL) NOPASSWD:ALL
     users:
       - default
     ssh_pwauth: false

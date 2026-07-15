@@ -8,6 +8,7 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/lisa-edge
 ExecStart=/opt/lisa-edge/scripts/deploy.sh
+ExecStop=/opt/lisa-edge/scripts/stop.sh
 RemainAfterExit=yes
 TimeoutStartSec=0
 

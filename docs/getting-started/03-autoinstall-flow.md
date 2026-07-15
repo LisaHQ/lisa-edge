@@ -6,7 +6,8 @@ They are useful when you want to rebuild an edge host without manually connectin
 
 ## Important
 
-The included `user-data` file is a template.
+The repository includes `user-data.template`. A generated `user-data` is a
+machine-specific local artifact and must not be committed.
 
 Before using it, change:
 
@@ -15,6 +16,12 @@ Before using it, change:
 - SSH public key
 - disk match rule
 - Git repository URL if needed
+
+The production template locks password login and expects SSH-key access. After
+installation, set a console password explicitly with `sudo passwd lisa` if one
+is required. The installer grants the `lisa` administration account
+passwordless sudo because the account itself has no usable password; protect
+the corresponding SSH private key accordingly.
 
 ## Disk Safety
 
@@ -45,7 +52,7 @@ LISA Edge services start
 ## Files
 
 ```text
-tools/usb/autoinstall/user-data
-tools/usb/autoinstall/meta-data
-tools/usb/autoinstall/grub.cfg
+usb-installer/production/autoinstall/user-data.template
+usb-installer/production/autoinstall/meta-data
+usb-installer/production/autoinstall/grub.cfg
 ```

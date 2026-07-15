@@ -473,7 +473,6 @@ if "%ERRORLEVEL%"=="0" (
     echo Check values such as:
     echo   - SSD serial
     echo   - SSH public key
-    echo   - Password hash
     echo   - Hostname
     exit /b 1
 )

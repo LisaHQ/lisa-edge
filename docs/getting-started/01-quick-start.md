@@ -9,13 +9,13 @@ Use Ubuntu Server or Debian.
 ```bash
 sudo git clone https://github.com/LisaHQ/lisa-edge.git /opt/lisa-edge
 cd /opt/lisa-edge
-sudo chmod +x bootstrap/bootstrap.sh bootstrap/phases/*.sh scripts/*.sh tools/usb/*.sh
 ```
 
 ## 3. Create Environment File
 
 ```bash
 cp .env.template .env
+chmod 0600 .env
 nano .env
 ```
 

@@ -15,6 +15,7 @@ chmod 0700 "$BACKUP_DIR"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="$BACKUP_DIR/thread-dataset-$TS.hex"
 LATEST="$BACKUP_DIR/latest.dataset.hex"
+RETENTION_DAYS="${OTBR_DATASET_RETENTION_DAYS:-30}"
 
 DATASET="$(docker exec lisa-otbr ot-ctl dataset active -x | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
 
@@ -25,6 +26,11 @@ fi
 
 printf '%s\n' "$DATASET" > "$OUT"
 chmod 0600 "$OUT"
-ln -sfn "$OUT" "$LATEST"
+ln -sfn "$(basename "$OUT")" "$LATEST"
+
+if [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] && [ "$RETENTION_DAYS" -gt 0 ]; then
+  find "$BACKUP_DIR" -maxdepth 1 -type f -name 'thread-dataset-*.hex' \
+    -mtime "+$RETENTION_DAYS" -delete
+fi
 
 echo "OTBR dataset backed up to: $OUT"

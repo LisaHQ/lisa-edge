@@ -15,6 +15,25 @@ ARCHIVE="$1"
 EDGE_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$EDGE_REPO"
 
+if [ ! -f "$ARCHIVE" ]; then
+  echo "Backup archive not found: $ARCHIVE" >&2
+  exit 1
+fi
+
+if ! tar -tzf "$ARCHIVE" >/dev/null; then
+  echo "Backup archive is not a readable tar.gz file: $ARCHIVE" >&2
+  exit 1
+fi
+
+if tar -tzf "$ARCHIVE" | awk '
+  /^\// { unsafe=1 }
+  /(^|\/)\.\.($|\/)/ { unsafe=1 }
+  END { exit unsafe ? 0 : 1 }
+'; then
+  echo "Backup archive contains an unsafe absolute or parent path." >&2
+  exit 1
+fi
+
 if [ -f .env ]; then
   set -a
   # shellcheck disable=SC1091
@@ -26,7 +45,11 @@ DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 mkdir -p "$DATA_ROOT"
 
 if [ -f .env ]; then
-  docker compose --env-file .env -f compose/docker-compose.yml down || true
+  FILES=(-f compose/docker-compose.yml)
+  for profile in ${LISA_COMPOSE_SERVICES:-}; do
+    [ -f "compose/services/$profile.yml" ] && FILES+=(-f "compose/services/$profile.yml")
+  done
+  docker compose --env-file .env "${FILES[@]}" down --remove-orphans || true
 fi
 
 echo "[LISA] Restoring $ARCHIVE into /"

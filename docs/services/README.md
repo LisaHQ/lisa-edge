@@ -22,7 +22,7 @@ These services are good fits for LISA Edge.
 | Reverse proxy   | Optional | Internal HTTPS and service routing     |
 | NUT             | Optional | UPS monitoring and graceful shutdown   |
 | Uptime Kuma     |   Yes    | Lightweight health monitoring          |
-| Backup helper   |   Yes    | Backup workflow support                |
+| Backup timer    |   Yes    | Host-level backup workflow             |
 
 ### Connectivity Services
 | Service        | Default  | Role                                     |

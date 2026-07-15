@@ -5,7 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 COMPOSE_DIR="${COMPOSE_DIR:-$REPO_ROOT/compose}"
-ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env}"
+if [[ -n "${ENV_FILE:-}" ]]; then
+    ENV_FILE="$ENV_FILE"
+elif [[ -f "$REPO_ROOT/.env" ]]; then
+    ENV_FILE="$REPO_ROOT/.env"
+else
+    ENV_FILE="$REPO_ROOT/.env.template"
+fi
 
 usage() {
     cat <<'EOF'
@@ -23,11 +29,17 @@ die() {
     exit 1
 }
 
-validate_file() {
-    local file="$1"
+validate_stack() {
+    local label="$1"
+    shift
     local env_args=()
+    local compose_args=()
+    local file
 
-    [[ -f "$file" ]] || die "compose file not found: $file"
+    for file in "$@"; do
+        [[ -f "$file" ]] || die "compose file not found: $file"
+        compose_args+=(-f "$file")
+    done
 
     if [[ -f "$ENV_FILE" ]]; then
         env_args=(--env-file "$ENV_FILE")
@@ -35,9 +47,9 @@ validate_file() {
 
     echo
     echo "Checking:"
-    echo "  $file"
+    echo "  $label"
 
-    if docker compose "${env_args[@]}" -f "$file" config >/dev/null; then
+    if docker compose "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
         echo "  OK"
         return 0
     fi
@@ -60,23 +72,35 @@ main() {
     docker compose version >/dev/null 2>&1 || die "docker compose is not available"
 
     if [[ -n "$target" ]]; then
-        validate_file "$target"
+        validate_stack "$target" "$target"
         exit $?
     fi
 
     [[ -d "$COMPOSE_DIR" ]] || die "compose directory not found: $COMPOSE_DIR"
 
+    local core="$COMPOSE_DIR/docker-compose.yml"
+    local overlays=()
+    local file
+
+    [[ -f "$core" ]] || die "core compose file not found: $core"
+    found=1
+
+    if ! validate_stack "core" "$core"; then
+        failed=1
+    fi
+
     while IFS= read -r file; do
-        found=1
-        if ! validate_file "$file"; then
+        overlays+=("$file")
+        if ! validate_stack "core + $(basename "$file")" "$core" "$file"; then
             failed=1
         fi
-    done < <(
-        find "$COMPOSE_DIR" \
-            -type f \
-            \( -name "compose.yml" -o -name "compose.yaml" -o -name "docker-compose.yml" -o -name "docker-compose.yaml" \) \
-            | sort
-    )
+    done < <(find "$COMPOSE_DIR/services" -maxdepth 1 -type f -name '*.yml' | sort)
+
+    if [[ "${#overlays[@]}" -gt 0 ]]; then
+        if ! validate_stack "core + all optional services" "$core" "${overlays[@]}"; then
+            failed=1
+        fi
+    fi
 
     echo
 

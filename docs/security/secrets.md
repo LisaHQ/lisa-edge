@@ -12,7 +12,8 @@ Examples of secrets:
 - certificates
 - backup encryption keys
 
-Use `.env.example` only for safe placeholders.
+Use `.env.template` only for safe placeholders. Keep the real `.env` at mode
+`0600` and outside Git.
 
 For production, consider:
 

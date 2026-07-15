@@ -1,16 +1,18 @@
 .env
 *.env
 !.env.template
-secrets/*
-!secrets/README.md
 *.key
 *.pem
 *.crt
 *.log
 .DS_Store
 .idea
+
 XOA
 XOA/*.*
+
+secrets/*
+!secrets/README.md
 
 user-data
 !user-data.template

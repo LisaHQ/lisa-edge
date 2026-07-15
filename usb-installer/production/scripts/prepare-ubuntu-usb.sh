@@ -44,7 +44,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-AUTOINSTALL_DIR="${PROJECT_ROOT}/production/autoinstall"
+AUTOINSTALL_DIR="${PROJECT_ROOT}/autoinstall"
 
 USB_MOUNT=""
 BACKUP_TS=""
@@ -231,7 +231,6 @@ validate_source_files() {
         echo "Check values such as:"
         echo "  - SSD serial"
         echo "  - SSH public key"
-        echo "  - Password hash"
         echo "  - Hostname"
         return 1
     fi

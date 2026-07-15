@@ -6,7 +6,7 @@ services:
     depends_on:
       - mosquitto
     ports:
-      - "${ZIGBEE2MQTT_BIND_ADDR:-0.0.0.0}:${ZIGBEE2MQTT_PORT:-8080}:8080"
+      - "${ZIGBEE2MQTT_BIND_ADDR:-127.0.0.1}:${ZIGBEE2MQTT_PORT:-8080}:8080"
     volumes:
       - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/zigbee2mqtt:/app/data
       - /run/udev:/run/udev:ro
