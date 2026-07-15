@@ -21,3 +21,7 @@ For production, consider:
 - SOPS + age
 - encrypted restic repository
 - offline encrypted backup copy
+
+Treat backup archives as privileged input: restore runs as root. Keep archives
+on trusted storage, require their checksum sidecars, and use signed manifests
+when backups cross an administrative trust boundary.

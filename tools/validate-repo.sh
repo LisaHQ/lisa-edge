@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 echo "Checking Bash syntax..."
 while IFS= read -r -d '' script; do
@@ -26,5 +27,12 @@ bash "$REPO_ROOT/tools/test-service-selection.sh"
 
 echo "Checking provisioning wizard..."
 bash "$REPO_ROOT/tools/test-provisioning-wizard.sh"
+
+echo "Checking backup archive validation..."
+"$PYTHON_BIN" "$REPO_ROOT/tools/test-backup-validation.py"
+bash "$REPO_ROOT/tools/test-backup-checksum.sh"
+
+echo "Checking recovery path guardrails..."
+bash "$REPO_ROOT/tools/test-recovery-safety.sh"
 
 echo "Repository validation passed."

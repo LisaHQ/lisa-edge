@@ -9,6 +9,9 @@ source ./.env
 set +a
 
 BACKUP_DIR="${OTBR_DATASET_BACKUP_DIR:-/srv/lisa-edge/backups/otbr}"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/paths.sh"
+lisa_validate_persistent_path OTBR_DATASET_BACKUP_DIR "$BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
 

@@ -1,6 +1,6 @@
 services:
   node-red:
-    image: nodered/node-red:latest
+    image: ${NODE_RED_IMAGE:-nodered/node-red:latest}
     environment:
       - TZ=${TZ:-America/Los_Angeles}
     container_name: lisa-node-red

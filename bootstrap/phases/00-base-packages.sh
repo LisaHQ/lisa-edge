@@ -9,6 +9,7 @@ apt-get install -y \
   curl \
   git \
   ca-certificates \
+  python3 \
   htop \
   jq
 

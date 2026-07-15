@@ -57,14 +57,14 @@ You have Thread devices.
 
 ---
 
-# NUT
+# NUT (planned, not selectable yet)
 
 Purpose:
 
 * UPS monitoring
 * Graceful shutdown
 
-Enable if:
+Planned for deployments where:
 
 ```text
 You have a UPS.
@@ -86,7 +86,7 @@ You need remote administration.
 
 ---
 
-# Reverse Proxy
+# Reverse Proxy (planned, not selectable yet)
 
 Purpose:
 
@@ -94,7 +94,7 @@ Purpose:
 * TLS termination
 * Service routing
 
-Enable if:
+Planned for deployments where:
 
 ```text
 Multiple web services are deployed.
@@ -125,7 +125,7 @@ Recommended:
 
 * MQTT
 * OTBR
-* NUT
+* NUT (when implemented)
 
 ---
 
@@ -135,7 +135,7 @@ Recommended:
 
 * MQTT
 * Tailscale
-* Reverse Proxy
+* Reverse Proxy (when implemented)
 * Uptime Kuma
 
 ---
@@ -145,9 +145,9 @@ Recommended:
 Recommended:
 
 * MQTT
-* NUT
+* NUT (when implemented)
 * Tailscale
-* Reverse Proxy
+* Reverse Proxy (when implemented)
 
 Optional:
 

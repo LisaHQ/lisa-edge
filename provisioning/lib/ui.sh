@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+UI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "$UI_DIR/../../scripts/lib/paths.sh"
+
 info() { printf '[LISA] %s\n' "$*"; }
 warn() { printf '[LISA] WARNING: %s\n' "$*" >&2; }
 die() { printf '[LISA] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -65,11 +69,30 @@ require_absolute_path() {
   [ "$value" != "/" ] || die "$label cannot be /."
 }
 
+require_persistent_data_path() {
+  local label="$1"
+  local value="$2"
+  lisa_validate_persistent_path "$label" "$value" || die "Unsafe persistent-data path."
+}
+
 require_port() {
   local label="$1"
   local value="$2"
   [[ "$value" =~ ^[0-9]+$ ]] || die "$label must be numeric."
   [ "$value" -ge 1 ] && [ "$value" -le 65535 ] || die "$label must be between 1 and 65535."
+}
+
+require_bind_address() {
+  local label="$1"
+  local value="$2"
+  local octet
+  local octets=()
+
+  [[ "$value" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || die "$label must be an IPv4 bind address."
+  IFS=. read -r -a octets <<< "$value"
+  for octet in "${octets[@]}"; do
+    [ "$octet" -le 255 ] || die "$label contains an invalid IPv4 octet."
+  done
 }
 
 generate_hex_secret() {

@@ -286,11 +286,13 @@ generate_user_data() {
     local ssh_key="$1"
     local disk_mode="$2"
     local disk_value="$3"
-    local ssh_count disk_count temp_file line indent escaped replacement
+    local git_ref="$4"
+    local ssh_count disk_count git_count temp_file line indent escaped replacement
 
     ssh_count="$(grep -Ec '^[[:space:]]*-[[:space:]]*ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY lisa-edge-admin[[:space:]]*$' "$USER_DATA_TEMPLATE" || true)"
     disk_count="$(grep -Ec '^[[:space:]]*serial:[[:space:]]*REPLACE_WITH_TARGET_DISK_SERIAL[[:space:]]*$' "$USER_DATA_TEMPLATE" || true)"
-    if [[ "$ssh_count" != "1" || "$disk_count" != "1" ]]; then
+    git_count="$(grep -c 'REPLACE_WITH_LISA_EDGE_GIT_REF' "$USER_DATA_TEMPLATE" || true)"
+    if [[ "$ssh_count" != "1" || "$disk_count" != "1" || "$git_count" != "1" ]]; then
         error_message "Template placeholders are missing or duplicated."
         return 1
     fi
@@ -319,6 +321,8 @@ generate_user_data() {
         elif [[ "$line" =~ ^([[:space:]]*)serial:[[:space:]]*REPLACE_WITH_TARGET_DISK_SERIAL[[:space:]]*$ ]]; then
             indent="${BASH_REMATCH[1]}"
             printf '%s%s\n' "$indent" "$replacement" >>"$temp_file"
+        elif [[ "$line" == *REPLACE_WITH_LISA_EDGE_GIT_REF* ]]; then
+            printf '%s\n' "${line/REPLACE_WITH_LISA_EDGE_GIT_REF/$git_ref}" >>"$temp_file"
         else
             printf '%s\n' "$line" >>"$temp_file"
         fi
@@ -345,6 +349,7 @@ config_wizard() {
     local disk_choice=""
     local disk_mode=""
     local disk_value=""
+    local git_ref=""
 
     printf '\n%s%s-------------------------- Config Wizard --------------------------%s\n' "$BOLD" "$CYAN" "$RESET"
     printf 'This creates: %s\n\n' "$USER_DATA"
@@ -423,7 +428,15 @@ EOF
         esac
     done
 
-    if ! generate_user_data "$ssh_key" "$disk_mode" "$disk_value"; then
+    printf '\nGit branch or release tag [main]: '
+    IFS= read -r git_ref || git_ref=""
+    git_ref="${git_ref:-main}"
+    if [[ ! "$git_ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ || "$git_ref" == *..* ]]; then
+        error_message "Git ref contains unsupported characters."
+        return 1
+    fi
+
+    if ! generate_user_data "$ssh_key" "$disk_mode" "$disk_value" "$git_ref"; then
         return 1
     fi
     printf '%sCreated:%s %s\n\n' "$GREEN" "$RESET" "$USER_DATA"

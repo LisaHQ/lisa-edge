@@ -37,6 +37,17 @@ wait_for_tcp() {
   return 1
 }
 
+healthcheck_host() {
+  local bind_address="$1"
+  if [ "${HEALTHCHECK_BIND_ADDR:-auto}" != "auto" ]; then
+    printf '%s\n' "$HEALTHCHECK_BIND_ADDR"
+  elif [ "$bind_address" = "0.0.0.0" ]; then
+    printf '127.0.0.1\n'
+  else
+    printf '%s\n' "$bind_address"
+  fi
+}
+
 check_container() {
   local name="$1"
   local running
@@ -70,20 +81,20 @@ done
 
 if lisa_has_service mqtt; then
   echo "[LISA] Checking MQTT port..."
-  wait_for_tcp "MQTT" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${MQTT_PORT:-1883}"
+  wait_for_tcp "MQTT" "$(healthcheck_host "${MQTT_BIND_ADDR:-127.0.0.1}")" "${MQTT_PORT:-1883}"
 fi
 
 if lisa_has_service uptime-kuma; then
   echo "[LISA] Checking Uptime Kuma port..."
-  wait_for_tcp "Uptime Kuma" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${UPTIME_KUMA_PORT:-3001}"
+  wait_for_tcp "Uptime Kuma" "$(healthcheck_host "${UPTIME_KUMA_BIND_ADDR:-127.0.0.1}")" "${UPTIME_KUMA_PORT:-3001}"
 fi
 
 if lisa_has_service zigbee2mqtt; then
-  wait_for_tcp "Zigbee2MQTT" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${ZIGBEE2MQTT_PORT:-8080}"
+  wait_for_tcp "Zigbee2MQTT" "$(healthcheck_host "${ZIGBEE2MQTT_BIND_ADDR:-127.0.0.1}")" "${ZIGBEE2MQTT_PORT:-8080}"
 fi
 
 if lisa_has_service node-red; then
-  wait_for_tcp "Node-RED" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}" "${NODE_RED_PORT:-1880}"
+  wait_for_tcp "Node-RED" "$(healthcheck_host "${NODE_RED_BIND_ADDR:-127.0.0.1}")" "${NODE_RED_PORT:-1880}"
 fi
 
 echo "[LISA] Selected LISA Edge services are healthy."

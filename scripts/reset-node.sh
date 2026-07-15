@@ -16,17 +16,9 @@ set +a
 
 DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
 
-case "$DATA_ROOT" in
-  ""|/)
-    echo "Refusing to reset an unsafe DATA_ROOT: '$DATA_ROOT'" >&2
-    exit 1
-    ;;
-  /*) ;;
-  *)
-    echo "DATA_ROOT must be an absolute path: '$DATA_ROOT'" >&2
-    exit 1
-    ;;
-esac
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/paths.sh"
+lisa_validate_persistent_path DATA_ROOT "$DATA_ROOT"
 
 read -r -p "This will stop containers and delete LISA Edge data under $DATA_ROOT. Type RESET to continue: " answer
 if [ "$answer" != "RESET" ]; then

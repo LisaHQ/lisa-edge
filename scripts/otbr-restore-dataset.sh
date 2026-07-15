@@ -10,6 +10,10 @@ set +a
 
 DATASET_FILE="${1:-${OTBR_DATASET_LATEST:-/srv/lisa-edge/backups/otbr/latest.dataset.hex}}"
 
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/paths.sh"
+lisa_validate_persistent_path OTBR_DATASET_PATH "$(dirname "$DATASET_FILE")"
+
 if [ ! -f "$DATASET_FILE" ]; then
   echo "ERROR: Dataset file not found: $DATASET_FILE" >&2
   exit 1

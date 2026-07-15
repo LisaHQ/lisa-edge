@@ -1,6 +1,6 @@
 services:
   otbr:
-    image: openthread/border-router:latest
+    image: ${OTBR_IMAGE:-openthread/border-router:latest}
     container_name: lisa-otbr
     restart: unless-stopped
     network_mode: host

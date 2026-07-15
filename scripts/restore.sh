@@ -1,61 +1,110 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NO_DEPLOY=0
-if [ "${1:-}" = "--no-deploy" ]; then
-  NO_DEPLOY=1
-  shift
-fi
+NO_DEPLOY=1
+ALLOW_MISSING_CHECKSUM=0
+ARCHIVE=""
 
-if [ $# -ne 1 ]; then
-  echo "Usage: sudo $0 [--no-deploy] /path/to/lisa-edge-backup.tar.gz" >&2
-  exit 1
-fi
+usage() {
+  echo "Usage: sudo $0 [--deploy|--no-deploy] [--allow-missing-checksum] /path/to/lisa-edge-backup.tar.gz" >&2
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --no-deploy) NO_DEPLOY=1 ;;
+    --deploy) NO_DEPLOY=0 ;;
+    --allow-missing-checksum) ALLOW_MISSING_CHECKSUM=1 ;;
+    -h|--help) usage; exit 0 ;;
+    -*) echo "Unknown option: $1" >&2; usage; exit 1 ;;
+    *)
+      [ -z "$ARCHIVE" ] || { echo "Only one backup archive may be specified." >&2; exit 1; }
+      ARCHIVE="$1"
+      ;;
+  esac
+  shift
+done
+
+[ -n "$ARCHIVE" ] || { usage; exit 1; }
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run as root: sudo $0 /path/to/backup.tar.gz" >&2
   exit 1
 fi
 
-ARCHIVE="$1"
+ARCHIVE="$(readlink -f "$ARCHIVE")"
+[ -f "$ARCHIVE" ] || { echo "Backup archive not found: $ARCHIVE" >&2; exit 1; }
+
 EDGE_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$EDGE_REPO"
 
-if [ ! -f "$ARCHIVE" ]; then
-  echo "Backup archive not found: $ARCHIVE" >&2
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/backup.sh"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/paths.sh"
+
+command -v python3 >/dev/null 2>&1 || {
+  echo "python3 is required for safe backup validation." >&2
   exit 1
-fi
+}
 
-if ! tar -tzf "$ARCHIVE" >/dev/null; then
-  echo "Backup archive is not a readable tar.gz file: $ARCHIVE" >&2
-  exit 1
-fi
+lisa_verify_backup_checksum "$ARCHIVE" "$ALLOW_MISSING_CHECKSUM"
 
-if [ -f "$ARCHIVE.sha256" ]; then
-  echo "[LISA] Verifying backup checksum..."
-  (cd "$(dirname "$ARCHIVE")" && sha256sum -c "$(basename "$ARCHIVE.sha256")")
-fi
+STAGING_ROOT="$(mktemp -d /tmp/lisa-edge-restore.XXXXXX)"
+ARCHIVED_ENV="$STAGING_ROOT/validated.env"
+EXTRACT_ROOT="$STAGING_ROOT/root"
+cleanup() { rm -rf "$STAGING_ROOT"; }
+trap cleanup EXIT
 
-if tar -tzf "$ARCHIVE" | awk '
-  /^\// { unsafe=1 }
-  /(^|\/)\.\.($|\/)/ { unsafe=1 }
-  END { exit unsafe ? 0 : 1 }
-'; then
-  echo "Backup archive contains an unsafe absolute or parent path." >&2
-  exit 1
-fi
+REPO_MEMBER="${EDGE_REPO#/}"
+ENV_MEMBER="$REPO_MEMBER/.env"
+VALIDATOR="$EDGE_REPO/scripts/lib/validate_backup.py"
 
+echo "[LISA] Inspecting archive structure and environment..."
+python3 "$VALIDATOR" \
+  --archive "$ARCHIVE" \
+  --env-member "$ENV_MEMBER" \
+  --env-output "$ARCHIVED_ENV" \
+  --env-template "$EDGE_REPO/.env.template"
+
+RESTORED_DATA_ROOT="$(lisa_read_validated_env_value "$ARCHIVED_ENV" DATA_ROOT /srv/lisa-edge)"
+RESTORED_OTBR_DIR="$(lisa_read_validated_env_value \
+  "$ARCHIVED_ENV" OTBR_DATASET_BACKUP_DIR "$RESTORED_DATA_ROOT/backups/otbr")"
+
+validate_restore_root() {
+  local path="$1"
+  lisa_validate_persistent_path "Archived persistent-data path" "$path"
+}
+
+for safe_path in "$RESTORED_DATA_ROOT" "$RESTORED_OTBR_DIR"; do
+  validate_restore_root "$safe_path"
+done
+
+ALLOW_ARGS=(
+  --allow "$REPO_MEMBER/.env"
+  --allow "$REPO_MEMBER/compose"
+  --allow "$REPO_MEMBER/config"
+  --allow "${RESTORED_DATA_ROOT#/}/data"
+  --allow "${RESTORED_DATA_ROOT#/}/docker"
+  --allow "${RESTORED_DATA_ROOT#/}/state"
+  --allow "${RESTORED_DATA_ROOT#/}/secrets"
+  --allow "${RESTORED_OTBR_DIR#/}"
+)
+
+echo "[LISA] Validating restore allowlist and extracting into protected staging..."
+python3 "$VALIDATOR" \
+  --archive "$ARCHIVE" \
+  --env-member "$ENV_MEMBER" \
+  --env-output "$ARCHIVED_ENV" \
+  --env-template "$EDGE_REPO/.env.template" \
+  --extract-root "$EXTRACT_ROOT" \
+  "${ALLOW_ARGS[@]}"
+
+# Stop the currently configured stack before replacing persistent data.
 if [ -f .env ]; then
   set -a
   # shellcheck disable=SC1091
   . ./.env
   set +a
-fi
-
-DATA_ROOT="${DATA_ROOT:-/srv/lisa-edge}"
-mkdir -p "$DATA_ROOT"
-
-if [ -f .env ]; then
   # shellcheck disable=SC1091
   . "$EDGE_REPO/scripts/lib/compose.sh"
   lisa_build_compose_files "$EDGE_REPO"
@@ -63,11 +112,31 @@ if [ -f .env ]; then
   docker compose --env-file .env "${FILES[@]}" down --remove-orphans || true
 fi
 
-echo "[LISA] Restoring $ARCHIVE into /"
-tar -xzf "$ARCHIVE" -C /
+echo "[LISA] Restoring validated files into /"
+RESTORE_MEMBERS=(
+  "$REPO_MEMBER/.env"
+  "${RESTORED_DATA_ROOT#/}/data"
+  "${RESTORED_DATA_ROOT#/}/docker"
+  "${RESTORED_DATA_ROOT#/}/state"
+  "${RESTORED_DATA_ROOT#/}/secrets"
+  "${RESTORED_OTBR_DIR#/}"
+)
+for member in "${RESTORE_MEMBERS[@]}"; do
+  source_path="$EXTRACT_ROOT/$member"
+  target_path="/$member"
+  [ -e "$source_path" ] || continue
+  if [ -d "$source_path" ]; then
+    mkdir -p "$target_path"
+    cp -a "$source_path/." "$target_path/"
+  else
+    mkdir -p "$(dirname "$target_path")"
+    cp -a "$source_path" "$target_path"
+  fi
+done
 
 if [ "$NO_DEPLOY" -eq 1 ]; then
-  echo "[LISA] Restore finished. Deployment was intentionally skipped."
+  echo "[LISA] Restore finished. Deployment was intentionally skipped by default."
+  echo "[LISA] Review .env, then run scripts/deploy.sh or repeat restore with --deploy."
 else
   echo "[LISA] Restore finished. Deploying stack..."
   "$EDGE_REPO/scripts/deploy.sh"

@@ -6,6 +6,10 @@ if [[ "${EUID}" -ne 0 ]]; then
     exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/recovery-safety.sh"
+
 BACKUP_SOURCE="${BACKUP_SOURCE:-}"
 PRODUCTION_ROOT="${PRODUCTION_ROOT:-/mnt/lisa-production}"
 
@@ -36,10 +40,17 @@ if [[ ! -d "$PRODUCTION_ROOT" ]]; then
     exit 1
 fi
 
+BACKUP_SOURCE="$(readlink -f -- "$BACKUP_SOURCE")"
+PRODUCTION_ROOT="$(recovery_validate_mount_path "$PRODUCTION_ROOT")"
+recovery_require_exact_mount "$PRODUCTION_ROOT"
+recovery_refuse_overlapping_paths "$BACKUP_SOURCE" "$PRODUCTION_ROOT"
+
 echo "[INFO] Restoring from:"
 echo "  $BACKUP_SOURCE"
 echo "[INFO] Restoring to:"
 echo "  $PRODUCTION_ROOT"
+echo "[INFO] Mounted filesystem:"
+findmnt -rn -M "$PRODUCTION_ROOT" -o SOURCE,TARGET,FSTYPE,SIZE,AVAIL
 echo
 
 read -r -p "Type RESTORE to continue: " CONFIRM

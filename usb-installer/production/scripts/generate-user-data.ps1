@@ -6,6 +6,7 @@ $outputPath = $env:LISA_OUT
 $sshPublicKey = $env:LISA_SSH_PUBLIC_KEY
 $diskMatchKey = $env:LISA_DISK_MATCH_KEY
 $diskMatchValue = $env:LISA_DISK_MATCH_VALUE
+$gitRef = $env:LISA_GIT_REF
 
 if ([string]::IsNullOrWhiteSpace($templatePath) -or -not (Test-Path -LiteralPath $templatePath)) {
     throw "Template file not found: $templatePath"
@@ -31,6 +32,14 @@ if ([string]::IsNullOrWhiteSpace($diskMatchValue)) {
     throw "Disk match value is required."
 }
 
+if ([string]::IsNullOrWhiteSpace($gitRef)) {
+    $gitRef = "main"
+}
+
+if ($gitRef -notmatch '^[A-Za-z0-9][A-Za-z0-9._/-]*$' -or $gitRef -match '\.\.') {
+    throw "Git ref contains unsupported characters: $gitRef"
+}
+
 function ConvertTo-YamlSingleQuoted {
     param([Parameter(Mandatory = $true)][string]$Value)
     return "'" + ($Value -replace "'", "''") + "'"
@@ -51,6 +60,12 @@ $content = [regex]::Replace(
         return "{0}- {1}" -f $match.Groups[1].Value, $sshPublicKey.Trim()
     }
 )
+
+$gitRefPlaceholder = 'REPLACE_WITH_LISA_EDGE_GIT_REF'
+if ([regex]::Matches($content, $gitRefPlaceholder).Count -ne 1) {
+    throw "Expected exactly one LISA Edge Git ref placeholder in template."
+}
+$content = $content.Replace($gitRefPlaceholder, $gitRef.Trim())
 
 $diskPattern = '(?m)^(\s*)serial:\s*REPLACE_WITH_TARGET_DISK_SERIAL\s*$'
 if ([regex]::Matches($content, $diskPattern).Count -ne 1) {

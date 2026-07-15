@@ -5,5 +5,6 @@ configure_node_red() {
   echo "--- Node-RED wizard ---"
   ask_value NODE_RED_BIND_ADDR "Node-RED bind IP" "${NODE_RED_BIND_ADDR:-127.0.0.1}"
   ask_value NODE_RED_PORT "Node-RED port" "${NODE_RED_PORT:-1880}"
+  require_bind_address "NODE_RED_BIND_ADDR" "$NODE_RED_BIND_ADDR"
   require_port "NODE_RED_PORT" "$NODE_RED_PORT"
 }

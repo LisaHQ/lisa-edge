@@ -1,6 +1,6 @@
 services:
   mosquitto:
-    image: eclipse-mosquitto:2
+    image: ${MQTT_IMAGE:-eclipse-mosquitto:2}
     container_name: lisa-mqtt
     restart: unless-stopped
     ports:

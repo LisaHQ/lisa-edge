@@ -22,8 +22,10 @@ sudo ./provisioning/lisa-first-boot.sh
 - **Configure only** writes `.env` without installing or starting services.
 
 Restore is never started merely because an archive exists. The operator must
-select the archive, its checksum is verified when a `.sha256` sidecar exists,
-and restored values become defaults that can be reviewed before deployment.
+select the archive, a matching `.sha256` sidecar is required and verified, and
+restored values become defaults that can be reviewed before deployment. The
+archive is also restricted to LISA Edge configuration and persistent-data
+paths before any privileged restore is performed.
 
 ## Service selection
 

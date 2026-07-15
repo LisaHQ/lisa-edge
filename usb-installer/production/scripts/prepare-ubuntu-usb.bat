@@ -535,11 +535,15 @@ if errorlevel 1 exit /b 1
 call :PromptDiskMatch
 if errorlevel 1 exit /b 1
 
+call :PromptGitRef
+if errorlevel 1 exit /b 1
+
 set "LISA_TEMPLATE=%AUTOINSTALL_DIR%\user-data.template"
 set "LISA_OUT=%AUTOINSTALL_DIR%\user-data"
 set "LISA_SSH_PUBLIC_KEY=%SSH_PUBLIC_KEY%"
 set "LISA_DISK_MATCH_KEY=%DISK_MATCH_KEY%"
 set "LISA_DISK_MATCH_VALUE=%DISK_MATCH_VALUE%"
+set "LISA_GIT_REF=%GIT_REF%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%generate-user-data.ps1"
 if errorlevel 1 (
@@ -551,6 +555,30 @@ echo.
 echo Created:
 echo   %CLR_CYAN%%AUTOINSTALL_DIR%\user-data%CLR_RESET%
 echo.
+exit /b 0
+
+REM ------------------------------------------------------------
+REM PromptGitRef()
+REM ------------------------------------------------------------
+:PromptGitRef
+echo.
+echo LISA Edge release:
+echo   Use a release tag for reproducible production installs.
+echo   Use main only for development or when following the current branch is intended.
+echo.
+set "GIT_REF="
+set /p GIT_REF=Git branch or release tag [main]:
+if "%GIT_REF%"=="" set "GIT_REF=main"
+echo %GIT_REF% | findstr /R /C:"^[A-Za-z0-9][A-Za-z0-9._/-]*$" >nul 2>nul
+if errorlevel 1 (
+    call :Error Git ref contains unsupported characters.
+    exit /b 1
+)
+echo %GIT_REF% | findstr /C:".." >nul 2>nul
+if not errorlevel 1 (
+    call :Error Git ref cannot contain two consecutive dots.
+    exit /b 1
+)
 exit /b 0
 
 REM ------------------------------------------------------------

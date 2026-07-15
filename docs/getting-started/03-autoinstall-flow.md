@@ -14,6 +14,7 @@ Before using it, change:
 - hostname
 - username
 - SSH public key
+- LISA Edge release tag or Git branch (`main` is intended for development)
 - disk match rule
 - Git repository URL if needed
 

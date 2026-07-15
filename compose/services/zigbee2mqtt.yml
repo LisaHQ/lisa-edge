@@ -1,6 +1,6 @@
 services:
   zigbee2mqtt:
-    image: koenkk/zigbee2mqtt:latest
+    image: ${ZIGBEE2MQTT_IMAGE:-koenkk/zigbee2mqtt:latest}
     container_name: lisa-zigbee2mqtt
     restart: unless-stopped
     depends_on:

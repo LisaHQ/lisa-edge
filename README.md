@@ -45,19 +45,20 @@ If cloud services become unavailable, LISA Edge should continue supporting criti
 
 ## What LISA Edge Provides
 
-LISA Edge is a lightweight Linux infrastructure stack for:
+The current implementation provides:
 
 - Thread Border Router services
 - Matter-over-Thread support
 - MQTT messaging
-- DNS and local service discovery
-- NTP / local time synchronization
-- reverse proxy and certificate management
+- host time synchronization with Chrony
 - VPN-first remote administration
 - health monitoring
 - backup jobs
 - restore procedures
 - infrastructure automation
+
+DNS helpers, NUT and reverse proxy deployment are planned services. They are
+documented for architecture planning but are not selectable Compose services yet.
 
 ---
 
@@ -186,17 +187,17 @@ See:
 
 ## LISA Edge Services
 
-| Service        | Purpose                                     |
-|----------------|---------------------------------------------|
-| MQTT           | Local event messaging                       |
-| Uptime Kuma    | Lightweight monitoring                      |
-| Backup timer   | Host-level backup and restore workflow      |
-| OTBR           | Thread Border Router                        |
-| NUT            | UPS monitoring and graceful shutdown        |
-| VPN            | Secure remote administration                |
-| DNS helpers    | Local name resolution and service discovery |
-| NTP / Chrony   | Reliable local time sync                    |
-| Reverse Proxy  | Internal service routing                    |
+| Service       | Status      | Purpose                                |
+|---------------|-------------|----------------------------------------|
+| MQTT          | Implemented | Local event messaging                  |
+| Uptime Kuma   | Implemented | Lightweight monitoring                 |
+| Backup timer  | Implemented | Host-level backup and restore workflow |
+| OTBR          | Implemented | Thread Border Router                   |
+| Tailscale     | Implemented | Secure remote administration           |
+| Chrony        | Implemented | Host time synchronization              |
+| NUT           | Planned     | UPS monitoring and graceful shutdown   |
+| DNS helpers   | Planned     | Local name resolution                  |
+| Reverse proxy | Planned     | Internal HTTPS and service routing     |
 
 See:
 

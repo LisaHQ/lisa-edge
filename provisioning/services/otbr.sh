@@ -9,7 +9,7 @@ configure_otbr() {
   ask_value OTBR_THREAD_IF "Thread interface name" "${OTBR_THREAD_IF:-wpan0}"
   ask_value OTBR_LOG_LEVEL "OTBR log level" "${OTBR_LOG_LEVEL:-5}"
   ask_value OTBR_DATASET_BACKUP_DIR "Thread dataset backup directory" "${OTBR_DATASET_BACKUP_DIR:-$DATA_ROOT/backups/otbr}"
-  require_absolute_path "OTBR_DATASET_BACKUP_DIR" "$OTBR_DATASET_BACKUP_DIR"
+  require_persistent_data_path "OTBR_DATASET_BACKUP_DIR" "$OTBR_DATASET_BACKUP_DIR"
   OTBR_DATASET_LATEST="$OTBR_DATASET_BACKUP_DIR/latest.dataset.hex"
   ask_yes_no answer "Automatically restore the latest Thread dataset" "yes"
   [ "$answer" = "yes" ] && OTBR_AUTO_RESTORE_DATASET=1 || OTBR_AUTO_RESTORE_DATASET=0

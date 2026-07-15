@@ -8,4 +8,4 @@ if command -v git >/dev/null 2>&1 && [ -d .git ]; then
   git pull --ff-only
 fi
 
-"$EDGE_REPO/scripts/deploy.sh"
+"$EDGE_REPO/scripts/deploy.sh" --pull

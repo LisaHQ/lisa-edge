@@ -10,6 +10,8 @@ DRY_RUN=0
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/lib/ui.sh"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/backup.sh"
 for wizard in "$SCRIPT_DIR"/services/*.sh; do
   # shellcheck disable=SC1090
   . "$wizard"
@@ -155,12 +157,13 @@ configure_global() {
   [[ "$LISA_EDGE_HOSTNAME" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || die "Invalid hostname."
   ask_value TZ "Timezone" "${TZ:-America/Los_Angeles}"
   ask_value DATA_ROOT "Persistent data root" "${DATA_ROOT:-/srv/lisa-edge}"
-  require_absolute_path "DATA_ROOT" "$DATA_ROOT"
+  require_persistent_data_path "DATA_ROOT" "$DATA_ROOT"
   ask_value BACKUP_DEST "Backup destination (local path or mounted NAS path)" "${BACKUP_DEST:-$DATA_ROOT/backups}"
-  require_absolute_path "BACKUP_DEST" "$BACKUP_DEST"
+  require_persistent_data_path "BACKUP_DEST" "$BACKUP_DEST"
   ask_value BACKUP_RETENTION_DAYS "Backup retention in days" "${BACKUP_RETENTION_DAYS:-14}"
   [[ "$BACKUP_RETENTION_DAYS" =~ ^[0-9]+$ ]] || die "Retention must be numeric."
-  ask_value HEALTHCHECK_BIND_ADDR "Healthcheck target IP" "${HEALTHCHECK_BIND_ADDR:-127.0.0.1}"
+  ask_value HEALTHCHECK_BIND_ADDR "Healthcheck target IP or auto" "${HEALTHCHECK_BIND_ADDR:-auto}"
+  [ "$HEALTHCHECK_BIND_ADDR" = "auto" ] || require_bind_address "HEALTHCHECK_BIND_ADDR" "$HEALTHCHECK_BIND_ADDR"
 }
 
 run_service_wizards() {
@@ -177,6 +180,45 @@ run_service_wizards() {
       node-red) configure_node_red ;;
     esac
   done
+}
+
+validate_service_endpoints() {
+  local addresses=()
+  local ports=()
+  local labels=()
+  local address port label index
+
+  register_endpoint() {
+    address="$1"
+    port="$2"
+    label="$3"
+    for index in "${!ports[@]}"; do
+      if [ "${ports[$index]}" = "$port" ] && {
+        [ "${addresses[$index]}" = "$address" ] ||
+        [ "${addresses[$index]}" = "0.0.0.0" ] ||
+        [ "$address" = "0.0.0.0" ];
+      }; then
+        die "Port conflict: $label and ${labels[$index]} both use $address:$port."
+      fi
+    done
+    addresses+=("$address")
+    ports+=("$port")
+    labels+=("$label")
+  }
+
+  if contains_word "$LISA_COMPOSE_SERVICES" mqtt; then
+    register_endpoint "$MQTT_BIND_ADDR" "$MQTT_PORT" "MQTT TCP"
+    register_endpoint "$MQTT_BIND_ADDR" "$MQTT_WS_PORT" "MQTT WebSocket"
+  fi
+  if contains_word "$LISA_COMPOSE_SERVICES" uptime-kuma; then
+    register_endpoint "$UPTIME_KUMA_BIND_ADDR" "$UPTIME_KUMA_PORT" "Uptime Kuma"
+  fi
+  if contains_word "$LISA_COMPOSE_SERVICES" zigbee2mqtt; then
+    register_endpoint "$ZIGBEE2MQTT_BIND_ADDR" "$ZIGBEE2MQTT_PORT" "Zigbee2MQTT"
+  fi
+  if contains_word "$LISA_COMPOSE_SERVICES" node-red; then
+    register_endpoint "$NODE_RED_BIND_ADDR" "$NODE_RED_PORT" "Node-RED"
+  fi
 }
 
 choose_archive() {
@@ -209,13 +251,8 @@ choose_archive() {
 }
 
 verify_backup_archive() {
-  local checksum_file="$BACKUP_ARCHIVE.sha256"
-  if [ -f "$checksum_file" ]; then
-    info "Verifying backup checksum..."
-    (cd "$(dirname "$BACKUP_ARCHIVE")" && sha256sum -c "$(basename "$checksum_file")")
-  else
-    warn "No checksum sidecar found for this backup."
-  fi
+  info "Verifying backup checksum..."
+  lisa_verify_backup_checksum "$BACKUP_ARCHIVE"
 }
 
 discover_usb_backup() {
@@ -305,6 +342,14 @@ write_environment() {
     env_line BACKUP_DEST "$BACKUP_DEST"
     env_line BACKUP_RETENTION_DAYS "$BACKUP_RETENTION_DAYS"
     env_line COMPOSE_PROJECT_NAME "${COMPOSE_PROJECT_NAME:-lisa-edge}"
+    env_line LISA_PULL_POLICY "${LISA_PULL_POLICY:-missing}"
+    env_line MQTT_IMAGE "${MQTT_IMAGE:-eclipse-mosquitto:2}"
+    env_line UPTIME_KUMA_IMAGE "${UPTIME_KUMA_IMAGE:-louislam/uptime-kuma:1}"
+    env_line OTBR_IMAGE "${OTBR_IMAGE:-openthread/border-router:latest}"
+    env_line TAILSCALE_IMAGE "${TAILSCALE_IMAGE:-tailscale/tailscale:latest}"
+    env_line HOME_ASSISTANT_IMAGE "${HOME_ASSISTANT_IMAGE:-ghcr.io/home-assistant/home-assistant:stable}"
+    env_line ZIGBEE2MQTT_IMAGE "${ZIGBEE2MQTT_IMAGE:-koenkk/zigbee2mqtt:latest}"
+    env_line NODE_RED_IMAGE "${NODE_RED_IMAGE:-nodered/node-red:latest}"
     env_line LISA_COMPOSE_SERVICES "$LISA_COMPOSE_SERVICES"
     env_line HEALTHCHECK_BIND_ADDR "$HEALTHCHECK_BIND_ADDR"
     env_line MQTT_BIND_ADDR "${MQTT_BIND_ADDR:-127.0.0.1}"
@@ -376,6 +421,7 @@ main() {
   configure_global
   select_services
   run_service_wizards
+  validate_service_endpoints
   write_environment
   apply_provisioning
 

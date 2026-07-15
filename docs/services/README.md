@@ -15,12 +15,12 @@ These services are good fits for LISA Edge.
 ### Infrastructure Services
 | Service         | Default  | Role                                   |
 |-----------------|:--------:|----------------------------------------|
-| DNS helpers     | Optional | Local resolution and service discovery |
+| DNS helpers     | Planned  | Local resolution and service discovery |
 | NTP / Chrony    |   Yes    | Local time synchronization             |
 | MQTT            |   Yes    | Local event and messaging backbone     |
 | VPN / Tailscale | Optional | Secure remote administration           |
-| Reverse proxy   | Optional | Internal HTTPS and service routing     |
-| NUT             | Optional | UPS monitoring and graceful shutdown   |
+| Reverse proxy   | Planned  | Internal HTTPS and service routing     |
+| NUT             | Planned  | UPS monitoring and graceful shutdown   |
 | Uptime Kuma     |   Yes    | Lightweight health monitoring          |
 | Backup timer    |   Yes    | Host-level backup workflow             |
 

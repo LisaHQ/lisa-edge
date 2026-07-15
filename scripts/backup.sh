@@ -24,17 +24,10 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 ARCHIVE="$BACKUP_DIR/lisa-edge-backup-$TIMESTAMP.tar.gz"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
 
-case "$BACKUP_DIR" in
-  ""|/)
-    echo "Refusing to use an unsafe BACKUP_DEST: '$BACKUP_DIR'" >&2
-    exit 1
-    ;;
-  /*) ;;
-  *)
-    echo "BACKUP_DEST must be an absolute path: '$BACKUP_DIR'" >&2
-    exit 1
-    ;;
-esac
+# shellcheck disable=SC1091
+. "$EDGE_REPO/scripts/lib/paths.sh"
+lisa_validate_persistent_path DATA_ROOT "$DATA_ROOT"
+lisa_validate_persistent_path BACKUP_DEST "$BACKUP_DIR"
 
 FILES=("${LISA_COMPOSE_FILES[@]}")
 
@@ -101,13 +94,16 @@ if command -v jq >/dev/null 2>&1; then
   ARCHIVE_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
   GIT_REF="$(git -C "$EDGE_REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
   jq -n \
-    --arg format_version "1" \
+    --arg format_version "2" \
     --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg hostname "$(hostname)" \
     --arg git_ref "$GIT_REF" \
     --arg services "$(lisa_selected_services)" \
+    --arg repo_root "$EDGE_REPO" \
+    --arg data_root "$DATA_ROOT" \
+    --arg otbr_backup_dir "$OTBR_BACKUP_DIR" \
     --arg sha256 "$ARCHIVE_SHA256" \
-    '{format_version: ($format_version | tonumber), created_at: $created_at, hostname: $hostname, git_ref: $git_ref, services: ($services | split(" ")), contains_secrets: true, sha256: $sha256}' \
+    '{format_version: ($format_version | tonumber), created_at: $created_at, hostname: $hostname, git_ref: $git_ref, services: ($services | split(" ")), repo_root: $repo_root, data_root: $data_root, otbr_backup_dir: $otbr_backup_dir, contains_secrets: true, sha256: $sha256}' \
     > "$ARCHIVE.manifest.json"
   chmod 0600 "$ARCHIVE.manifest.json"
 fi
