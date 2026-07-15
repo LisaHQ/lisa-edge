@@ -108,6 +108,11 @@ deployment path.
 - [Disaster Recovery](operations/disaster-recovery.md)
 - [OTBR Recovery](operations/service-recovery/otbr.md)
 
+## Reference
+
+- [Repository Map](reference/repository-map.md) — what every folder and file
+  does, and which `lisa-edge` command uses it.
+
 ## Project planning and history
 
 - [Roadmap](roadmap.md)

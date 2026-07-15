@@ -599,9 +599,9 @@ if not "!DEFAULT_SSH_PUBLIC_KEY!"=="" (
     echo.
     set "USE_DEFAULT_SSH_KEY="
     set /p USE_DEFAULT_SSH_KEY=Use this key? [Y/n]: 
-    if /I not "!USE_DEFAULT_SSH_KEY!"=="N" (
-        set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
-    )
+    if /I "!USE_DEFAULT_SSH_KEY!"=="" set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
+    if /I "!USE_DEFAULT_SSH_KEY!"=="Y" set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
+    if /I "!USE_DEFAULT_SSH_KEY!"=="YES" set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
 )
 
 if "!SSH_PUBLIC_KEY!"=="" (

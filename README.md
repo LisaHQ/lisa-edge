@@ -4,10 +4,8 @@
 ![Platform](https://img.shields.io/badge/Automated%20Setup-Ubuntu%20%7C%20Debian-blue)
 ![Runtime](https://img.shields.io/badge/Runtime-Docker%20Compose-blue)
 
-LISA Edge is the lightweight local-infrastructure layer of the LISA ecosystem.
-It provides connectivity, messaging, monitoring, secure remote access, backup,
-and recovery services. AI reasoning, large storage, and video processing belong
-on other LISA systems.
+LISA Edge is the lightweight local-infrastructure layer of the **[LISA Ecosystem](docs/architecture/01-lisa-ecosystem.md)**. It provides connectivity, messaging, monitoring, secure remote access, backup,
+and recovery services. (AI reasoning, large storage, and video processing belong on other LISA systems)
 
 The stable operator interface is the root command:
 
@@ -115,6 +113,9 @@ or mini PC can be used when its CPU architecture supports the selected images.
 | [`tools/`](tools/README.md) | building assets or validating the repository |
 | [`tests/`](tests/README.md) | running unit, security, and integration tests |
 
+A file-by-file reference lives in
+[docs/reference/repository-map.md](docs/reference/repository-map.md).
+
 Former layouts (`scripts/`, `bootstrap/`, `provisioning/`, `usb-installer/`,
 `recovery/`, `compose/`, `config/`, `systemd/`) have been removed. All
 automation goes through the root CLI and the canonical paths above.
@@ -145,4 +146,6 @@ material are indexed in [docs/README.md](docs/README.md).
 
 Licensed under the [Apache License 2.0](LICENSE).
 
-Copyright (c) 2026 [LisaHQ](https://lisahq.io)
+Other LISA ecosystem repositories, services, models, datasets, or future components may use different licenses.
+
+Copyright (c) 2026 **[LisaHQ](https://lisahq.io)**

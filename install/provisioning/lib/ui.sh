@@ -14,12 +14,18 @@ ask_value() {
   local default_value="${3:-}"
   local value
 
-  if [ -n "$default_value" ]; then
-    read -r -p "$label [$default_value]: " value
-    value="${value:-$default_value}"
-  else
-    read -r -p "$label: " value
-  fi
+  while :; do
+    if [ -n "$default_value" ]; then
+      read -r -p "$label [$default_value]: " value
+      value="${value:-$default_value}"
+    else
+      read -r -p "$label: " value
+    fi
+    case "$value" in
+      *"'"*) echo "Values must not contain single quotes ('). Try again." >&2; continue ;;
+    esac
+    break
+  done
   printf -v "$variable" '%s' "$value"
 }
 
@@ -29,14 +35,20 @@ ask_secret() {
   local current_value="${3:-}"
   local value
 
-  if [ -n "$current_value" ]; then
-    read -r -s -p "$label [press Enter to keep current value]: " value
-    echo
-    value="${value:-$current_value}"
-  else
-    read -r -s -p "$label [leave empty to auto-generate/skip]: " value
-    echo
-  fi
+  while :; do
+    if [ -n "$current_value" ]; then
+      read -r -s -p "$label [press Enter to keep current value]: " value
+      echo
+      value="${value:-$current_value}"
+    else
+      read -r -s -p "$label [leave empty to auto-generate/skip]: " value
+      echo
+    fi
+    case "$value" in
+      *"'"*) echo "Values must not contain single quotes ('). Try again." >&2; continue ;;
+    esac
+    break
+  done
   printf -v "$variable" '%s' "$value"
 }
 

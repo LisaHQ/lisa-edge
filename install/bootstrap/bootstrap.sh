@@ -62,4 +62,10 @@ log "Deploying services"
 "$REPO_DIR/ops/deploy/install-systemd.sh"
 bash "$REPO_DIR/install/bootstrap/finalize-admin-access.sh"
 
+log "Marking host as provisioned"
+install -d -m 0755 /var/lib/lisa-edge
+touch /var/lib/lisa-edge/provisioned
+rm -f /etc/update-motd.d/99-lisa-edge-provision
+systemctl disable lisa-first-boot.service >/dev/null 2>&1 || true
+
 log "Bootstrap completed successfully"

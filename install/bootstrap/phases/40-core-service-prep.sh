@@ -23,7 +23,12 @@ echo "Chrony configured."
 # Thread/OTBR host preparation is optional.
 # It is only needed when this host runs OpenThread Border Router.
 
-if ! echo "${LISA_COMPOSE_SERVICES:-}" | grep -qw otbr && [ "${LISA_ENABLE_THREAD_HOST_PREP:-0}" != "1" ]; then
+PHASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$PHASE_DIR/../../.." && pwd)"
+# shellcheck disable=SC1091
+. "$REPO_DIR/lib/compose.sh"
+
+if ! lisa_has_service otbr && [ "${LISA_ENABLE_THREAD_HOST_PREP:-0}" != "1" ]; then
   echo "Skipping Thread host preparation. Enable with LISA_COMPOSE_SERVICES=otbr or LISA_ENABLE_THREAD_HOST_PREP=1."
   exit 0
 fi

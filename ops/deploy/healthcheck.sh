@@ -4,6 +4,11 @@ set -euo pipefail
 EDGE_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$EDGE_REPO"
 
+if [ ! -f .env ]; then
+  echo "Missing .env. Run 'sudo ./lisa-edge configure' (or setup) first." >&2
+  exit 1
+fi
+
 set -a
 # shellcheck disable=SC1091
 . ./.env
@@ -88,8 +93,14 @@ wait_for_otbr() {
 check_tailscale() {
   if docker exec lisa-tailscale tailscale status --peers=false >/dev/null 2>&1; then
     echo "[LISA] Tailscale is authenticated and responding."
+  elif [ -z "${TS_AUTHKEY:-}" ]; then
+    # No auth key was configured: interactive login is expected, so an
+    # unauthenticated tailscale must not fail readiness (or the systemd
+    # deploy unit) on an otherwise healthy node.
+    echo "[LISA] WARNING: Tailscale is running but not authenticated." >&2
+    echo "[LISA] Authenticate with: docker exec lisa-tailscale tailscale up" >&2
   else
-    echo "[LISA] Tailscale is not authenticated or ready. Configure TS_AUTHKEY or authenticate it, then rerun healthcheck." >&2
+    echo "[LISA] Tailscale is not authenticated or ready. Check TS_AUTHKEY, then rerun healthcheck." >&2
     return 1
   fi
 }

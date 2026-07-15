@@ -9,11 +9,15 @@ lsblk -o NAME,PATH,SIZE,MODEL,SERIAL,TYPE,TRAN,MOUNTPOINTS
 echo
 
 echo "-- Disk by-id entries --"
-find /dev/disk/by-id -maxdepth 1 -type l -printf "%f -> %l\n" | sort || true
+find /dev/disk/by-id -maxdepth 1 -type l -printf "%f -> %l\n" 2>/dev/null | sort || true
 echo
 
 echo "-- Candidate install targets --"
-lsblk -dn -o NAME,PATH,SIZE,MODEL,SERIAL,TYPE,TRAN | awk '$6 == "disk" {print}'
+# TYPE must be matched from a spaceless column set: models like
+# "Samsung SSD 870 EVO" contain spaces and break positional awk fields.
+while IFS= read -r disk_path; do
+  lsblk -dn -o NAME,PATH,SIZE,MODEL,SERIAL,TRAN "$disk_path"
+done < <(lsblk -dn -o PATH,TYPE | awk '$2 == "disk" {print $1}')
 echo
 
 cat <<'EOF'

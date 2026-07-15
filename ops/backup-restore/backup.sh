@@ -102,6 +102,28 @@ chmod 0600 "$ARCHIVE"
 )
 chmod 0600 "$ARCHIVE.sha256"
 
+# Fail fast if this archive would be rejected at restore time (for example a
+# hand-edited .env value the validator considers unsafe). A backup that cannot
+# be restored is worse than a failed backup.
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  echo "[LISA] Verifying archive restorability..."
+  VALIDATED_ENV_TMP="$(mktemp)"
+  if ! "$PYTHON_BIN" "$EDGE_REPO/ops/backup-restore/lib/validate_backup.py" \
+    --archive "$ARCHIVE" \
+    --env-member .env \
+    --env-output "$VALIDATED_ENV_TMP" \
+    --env-template "$EDGE_REPO/.env.template"; then
+    rm -f "$VALIDATED_ENV_TMP"
+    echo "[LISA] ERROR: the new backup would be rejected by restore validation." >&2
+    echo "[LISA] Fix .env (quote values in single quotes) and rerun the backup." >&2
+    exit 1
+  fi
+  rm -f "$VALIDATED_ENV_TMP"
+else
+  echo "[LISA] WARNING: $PYTHON_BIN not found; skipping restorability check." >&2
+fi
+
 if command -v jq >/dev/null 2>&1; then
   ARCHIVE_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
   GIT_REF="$(git -C "$EDGE_REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"

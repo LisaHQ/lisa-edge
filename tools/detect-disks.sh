@@ -20,7 +20,9 @@ fi
 echo
 
 echo "-- Candidate disks --"
-lsblk -dn -o PATH,SIZE,MODEL,SERIAL,TYPE,TRAN | awk '$5 == "disk" {print}'
+while IFS= read -r disk_path; do
+  lsblk -dn -o PATH,SIZE,MODEL,SERIAL,TRAN "$disk_path"
+done < <(lsblk -dn -o PATH,TYPE | awk '$2 == "disk" {print $1}')
 echo
 
 cat <<'EOF'

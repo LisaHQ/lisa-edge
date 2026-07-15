@@ -188,6 +188,16 @@ if [ "$RESTORE_TARGET_ROOT" = "/" ] && [ -f .env ]; then
   docker compose --env-file .env "${FILES[@]}" down --remove-orphans || true
 fi
 
+# The production repo checkout always lives at /opt/lisa-edge on LISA Edge
+# hosts. For a target-root (rescue) restore we must NOT use this script's own
+# EDGE_REPO: the running CLI may live on the mounted target itself or in an
+# arbitrary rescue checkout, which would misplace the restored .env.
+if [ "$RESTORE_TARGET_ROOT" = "/" ]; then
+  ENV_RESTORE_TARGET="$EDGE_REPO/.env"
+else
+  ENV_RESTORE_TARGET="${LISA_RESTORE_REPO_DIR:-/opt/lisa-edge}/.env"
+fi
+
 echo "[LISA] Restoring validated files into $RESTORE_TARGET_ROOT"
 restore_member() {
   local member="$1"
@@ -210,14 +220,16 @@ restore_member() {
 }
 
 if [ "$ARCHIVE_FORMAT" -eq 3 ]; then
-  restore_member .env "$EDGE_REPO/.env"
+  restore_member .env "$ENV_RESTORE_TARGET"
   restore_member data "$RESTORED_DATA_ROOT/data"
   restore_member docker "$RESTORED_DATA_ROOT/docker"
   restore_member state "$RESTORED_DATA_ROOT/state"
   restore_member secrets "$RESTORED_DATA_ROOT/secrets"
   restore_member otbr "$RESTORED_OTBR_DIR"
 else
-  restore_member "$REPO_MEMBER/.env" "$EDGE_REPO/.env"
+  echo "[LISA] Note: legacy v2 repo members compose/ and config/ are validated" >&2
+  echo "[LISA] but intentionally not restored (obsolete repository layout)." >&2
+  restore_member "$REPO_MEMBER/.env" "$ENV_RESTORE_TARGET"
   restore_member "${RESTORED_DATA_ROOT#/}/data" "$RESTORED_DATA_ROOT/data"
   restore_member "${RESTORED_DATA_ROOT#/}/docker" "$RESTORED_DATA_ROOT/docker"
   restore_member "${RESTORED_DATA_ROOT#/}/state" "$RESTORED_DATA_ROOT/state"

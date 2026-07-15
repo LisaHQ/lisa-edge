@@ -57,6 +57,7 @@ load_environment() {
   # shellcheck disable=SC1091
   . "$EDGE_REPO/.env.template"
   if [ -f "$EDGE_REPO/.env" ]; then
+    [ -r "$EDGE_REPO/.env" ] || die "Cannot read $EDGE_REPO/.env (try again with sudo)."
     # shellcheck disable=SC1091
     . "$EDGE_REPO/.env"
   fi
@@ -308,6 +309,8 @@ discover_usb_backup() {
     mkdir -p "$mount_dir"
     if ! mountpoint -q "$mount_dir"; then
       mount -o ro /dev/disk/by-label/LISA_BACKUP "$mount_dir"
+      MOUNTED_BACKUP_DIR="$mount_dir"
+      trap 'umount "$MOUNTED_BACKUP_DIR" 2>/dev/null || true' EXIT
     fi
     choose_archive "$mount_dir"
     return 0

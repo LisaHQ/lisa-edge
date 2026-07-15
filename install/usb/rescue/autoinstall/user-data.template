@@ -22,8 +22,9 @@ autoinstall:
     - git
 
   storage:
-    layout:
-      name: direct
+    # IMPORTANT: never add a "layout:" section here. When "layout" is present,
+    # autoinstall ignores "config" entirely and guided-installs onto the
+    # LARGEST disk - which would wipe the production SSD instead of the eMMC.
     config:
       - type: disk
         id: rescue_emmc
@@ -32,6 +33,7 @@ autoinstall:
           serial: REPLACE_WITH_EMMC_SERIAL
         ptable: gpt
         wipe: superblock-recursive
+        preserve: false
         grub_device: true
 
       - type: partition

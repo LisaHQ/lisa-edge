@@ -37,6 +37,17 @@ lisa_validate_persistent_path() {
       return 1
       ;;
   esac
+
+  # Refuse bare top-level directories (/srv, /mnt, /data, ...). Destructive
+  # operations such as reset-node.sh act on $DATA_ROOT subtrees, so the root
+  # must be a dedicated directory, not a shared filesystem top level.
+  case "$resolved" in
+    /*/*) ;;
+    *)
+      echo "$label must be a dedicated directory below a top-level path (got $resolved), for example ${resolved}/lisa-edge." >&2
+      return 1
+      ;;
+  esac
 }
 
 lisa_verify_mounted_destination() {

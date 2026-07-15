@@ -59,7 +59,15 @@ if [[ "$CONFIRM" != "RESTORE" ]]; then
     exit 1
 fi
 
+# mount-production.sh bind-mounts the live /dev, /proc, /sys and /run into
+# the target for chroot workflows. Never rsync snapshot content into those:
+# it would write into the RUNNING rescue OS instead of the production disk.
 rsync -aHAX --numeric-ids --info=progress2 \
+    --exclude=/dev/* \
+    --exclude=/proc/* \
+    --exclude=/sys/* \
+    --exclude=/run/* \
+    --exclude=/tmp/* \
     "$SNAPSHOT_SOURCE"/ \
     "$PRODUCTION_ROOT"/
 

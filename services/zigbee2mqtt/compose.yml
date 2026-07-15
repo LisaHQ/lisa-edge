@@ -14,3 +14,8 @@ services:
       - ${ZIGBEE_DONGLE:-/dev/ttyACM0}:/dev/ttyUSB0
     environment:
       - TZ=${TZ:-America/Los_Angeles}
+      # Wire the bridge to the selected LISA MQTT broker with the credentials
+      # generated during provisioning (Zigbee2MQTT env-config overrides).
+      - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mosquitto:1883
+      - ZIGBEE2MQTT_CONFIG_MQTT_USER=${MQTT_USERNAME:-lisa}
+      - ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD=${MQTT_PASSWORD:-changeme}
