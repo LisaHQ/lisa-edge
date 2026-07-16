@@ -29,6 +29,7 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 | Path | Purpose |
 | --- | --- |
 | `lisa-edge` | The single operator CLI. Resolves the repo root (also through symlinks such as `/usr/local/sbin/lisa-edge-provision`, which first boot uses to run `setup`) and dispatches every command to its canonical script. No implementation logic lives here. |
+| `lisa-edge.cmd` | Windows day-0 companion CLI: `usb production`, `usb rescue`, and `config` from a workstation before any server exists; dispatches to the canonical scripts under `install/usb/`. Runtime commands stay on the Linux host. |
 | `README.md` | One-screen task map: command table, fastest install, capabilities, repository map, safety rules. |
 | `.env.template` | Documented template for the runtime `.env`. The wizard writes `.env` from prompts; never put real secrets in the template. |
 | `.editorconfig` | Editor defaults. LF for everything; CRLF only for `.bat`/`.cmd`/`.ps1`. Do not change the LF default — CRLF breaks scripts, YAML, and systemd units on Linux hosts. |

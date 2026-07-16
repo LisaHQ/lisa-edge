@@ -51,7 +51,6 @@ popd >nul 2>nul
 
 set "AUTOINSTALL_DIR=%PROJECT_ROOT%\autoinstall"
 set "STEP_TOTAL=9"
-set "STEP_COL=75"
 
 set "ESC="
 set "CLR_RESET=%ESC%[0m"
@@ -538,6 +537,9 @@ if errorlevel 1 exit /b 1
 call :PromptGitRef
 if errorlevel 1 exit /b 1
 
+rem The LISA_* variables below look unused in this script: they are
+rem environment variables consumed by generate-user-data.ps1 (via $env:).
+rem Do not delete them.
 set "LISA_TEMPLATE=%AUTOINSTALL_DIR%\user-data.template"
 set "LISA_OUT=%AUTOINSTALL_DIR%\user-data"
 set "LISA_SSH_PUBLIC_KEY=%SSH_PUBLIC_KEY%"
@@ -598,7 +600,7 @@ if not "!DEFAULT_SSH_PUBLIC_KEY!"=="" (
     echo   !DEFAULT_SSH_PUBLIC_KEY!
     echo.
     set "USE_DEFAULT_SSH_KEY="
-    set /p USE_DEFAULT_SSH_KEY=Use this key? [Y/n]: 
+    set /p USE_DEFAULT_SSH_KEY=Use this key? [Y/n]:
     if /I "!USE_DEFAULT_SSH_KEY!"=="" set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
     if /I "!USE_DEFAULT_SSH_KEY!"=="Y" set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
     if /I "!USE_DEFAULT_SSH_KEY!"=="YES" set "SSH_PUBLIC_KEY=!DEFAULT_SSH_PUBLIC_KEY!"
@@ -612,7 +614,7 @@ if "!SSH_PUBLIC_KEY!"=="" (
     echo   If you do not have one yet, create it first:
     echo   ssh-keygen -t ed25519 -C lisa-edge-admin
     echo.
-    set /p SSH_PUBLIC_KEY=Public key: 
+    set /p SSH_PUBLIC_KEY=Public key:
 )
 
 if "!SSH_PUBLIC_KEY!"=="" (
@@ -644,7 +646,7 @@ echo   %CLR_WHITE%3%CLR_RESET% - Disk model name %CLR_YELLOW_DARK%(less specific
 echo   %CLR_WHITE%4%CLR_RESET% - Show commands to find disk serial and stop
 echo.
 set "DISK_MATCH_CHOICE="
-set /p DISK_MATCH_CHOICE=Choose [1]: 
+set /p DISK_MATCH_CHOICE=Choose [1]:
 if "%DISK_MATCH_CHOICE%"=="" set "DISK_MATCH_CHOICE=1"
 
 if "%DISK_MATCH_CHOICE%"=="1" goto :PromptDiskSerial
@@ -662,7 +664,7 @@ echo   Linux:   lsblk -o NAME,MODEL,SERIAL,SIZE
 echo   Windows: Get-CimInstance Win32_DiskDrive ^| Select Model,SerialNumber,Size
 echo.
 set "DISK_SERIAL="
-set /p DISK_SERIAL=Target disk serial: 
+set /p DISK_SERIAL=Target disk serial:
 if "%DISK_SERIAL%"=="" (
     call :Error Disk serial is required for this option.
     goto :PromptDiskMatchMenu
@@ -677,7 +679,7 @@ echo %CLR_YELLOW_DARK%WARNING:%CLR_RESET% This will install to the largest match
 echo Use this only when the target hardware has one intended install disk.
 echo.
 set "CONFIRM_LARGEST="
-set /p CONFIRM_LARGEST=Type LARGEST to continue: 
+set /p CONFIRM_LARGEST=Type LARGEST to continue:
 if /I not "%CONFIRM_LARGEST%"=="LARGEST" (
     echo Aborted largest-disk selection.
     goto :PromptDiskMatchMenu
@@ -690,7 +692,7 @@ exit /b 0
 echo.
 echo Model matching is useful when serial is unavailable, but it can match multiple disks.
 set "DISK_MODEL="
-set /p DISK_MODEL=Target disk model: 
+set /p DISK_MODEL=Target disk model:
 if "%DISK_MODEL%"=="" (
     call :Error Disk model is required for this option.
     goto :PromptDiskMatchMenu

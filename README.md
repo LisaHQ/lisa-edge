@@ -4,8 +4,10 @@
 ![Platform](https://img.shields.io/badge/Automated%20Setup-Ubuntu%20%7C%20Debian-blue)
 ![Runtime](https://img.shields.io/badge/Runtime-Docker%20Compose-blue)
 
-LISA Edge is the lightweight local-infrastructure layer of the **[LISA Ecosystem](docs/architecture/01-lisa-ecosystem.md)**. It provides connectivity, messaging, monitoring, secure remote access, backup,
-and recovery services. (AI reasoning, large storage, and video processing belong on other LISA systems)
+LISA Edge is the lightweight local-infrastructure layer of the **[LISA Ecosystem](docs/architecture/01-lisa-ecosystem.md)**.
+It provides connectivity, messaging, monitoring, secure remote access, backup,
+and recovery services. (AI reasoning, large storage, and video processing belong
+on other LISA systems)
 
 The stable operator interface is the root command:
 
@@ -57,6 +59,20 @@ For a production USB install or an existing backup, choose the matching path:
 
 - [USB Autoinstall Flow](docs/getting-started/03-autoinstall-flow.md)
 - [First-Boot and Restore Provisioning](docs/getting-started/06-first-boot-provisioning.md)
+
+### Preparing media from Windows
+
+Before any LISA Edge server exists, `lisa-edge.cmd` provides the same
+command style for day-0 tasks from a Windows workstation:
+
+```bat
+lisa-edge usb production --auto-detect
+lisa-edge usb rescue E:
+lisa-edge config
+```
+
+Runtime commands (`setup`, `deploy`, `backup`, ...) still run on the Linux
+host via `./lisa-edge`.
 
 ## Current capabilities
 
@@ -146,6 +162,4 @@ material are indexed in [docs/README.md](docs/README.md).
 
 Licensed under the [Apache License 2.0](LICENSE).
 
-Other LISA ecosystem repositories, services, models, datasets, or future components may use different licenses.
-
-Copyright (c) 2026 **[LisaHQ](https://lisahq.io)**
+Copyright (c) 2026 [LisaHQ](https://lisahq.io)

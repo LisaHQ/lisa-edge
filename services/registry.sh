@@ -2,7 +2,12 @@
 
 # Canonical catalog for deployable LISA Edge services. Keep selection keys
 # stable because they are stored in .env and in backup archives.
+# These globals look unused to IDE/shellcheck within this file, but every
+# consumer (lib/compose.sh, services/list.sh, the provisioning wizard, tests)
+# sources this file and reads them. Do not delete.
+# shellcheck disable=SC2034
 LISA_DEFAULT_SERVICES="mqtt uptime-kuma"
+# shellcheck disable=SC2034
 LISA_ALL_SERVICES="mqtt uptime-kuma otbr vpn-tailscale ha zigbee2mqtt node-red"
 
 lisa_normalize_service_id() {

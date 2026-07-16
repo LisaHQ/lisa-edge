@@ -5,6 +5,8 @@ configure_vpn_tailscale() {
   echo "--- Tailscale wizard ---"
   ask_secret TS_AUTHKEY "Tailscale auth key" "${TS_AUTHKEY:-}"
   ask_value TS_EXTRA_ARGS "Tailscale extra arguments" "${TS_EXTRA_ARGS:-}"
+  # Looks unused here, but lisa-first-boot.sh writes it into .env via env_line().
+  # shellcheck disable=SC2034
   TS_USERSPACE=false
   if [ -z "$TS_AUTHKEY" ]; then
     warn "No auth key supplied. Tailscale may require interactive authentication after deploy."

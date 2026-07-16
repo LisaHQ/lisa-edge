@@ -1,4 +1,6 @@
 Set-StrictMode -Version 2.0
+# PowerShell preference variable: read by the runtime itself, never referenced
+# below - it makes every error terminating. Do not delete as "unused".
 $ErrorActionPreference = "Stop"
 
 $templatePath = $env:LISA_TEMPLATE

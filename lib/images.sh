@@ -2,6 +2,7 @@
 
 lisa_image_ref_for_service() {
   local variable
+  # Used via bash indirection "${!variable}" below - not dead, despite IDE hints.
   variable="$(lisa_service_image_variable "$1")" || return 1
   printf '%s\n' "${!variable:-}"
 }

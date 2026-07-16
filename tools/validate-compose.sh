@@ -93,6 +93,8 @@ main() {
 
     for service in $LISA_ALL_SERVICES; do
         dependencies="$(lisa_service_dependencies "$service")"
+        # Read by compose_paths_for_selection/lib functions, not directly here.
+        # shellcheck disable=SC2034
         LISA_COMPOSE_SERVICES="${dependencies:+$dependencies }$service"
         compose_paths_for_selection
         if ! validate_stack "$service" "${LISA_COMPOSE_PATHS[@]}"; then
@@ -100,6 +102,7 @@ main() {
         fi
     done
 
+    # shellcheck disable=SC2034
     LISA_COMPOSE_SERVICES=all
     compose_paths_for_selection
     if ! validate_stack "all registered services" "${LISA_COMPOSE_PATHS[@]}"; then

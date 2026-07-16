@@ -2,7 +2,6 @@
 
 LISA_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LISA_REPO_ROOT="$(cd "$LISA_LIB_DIR/.." && pwd)"
-# shellcheck disable=SC1091
 . "$LISA_REPO_ROOT/services/registry.sh"
 
 lisa_selected_services() {
@@ -69,6 +68,9 @@ lisa_build_compose_files() {
   local added=""
 
   lisa_validate_services
+  # Built for callers: deploy/stop/update/healthcheck/backup source this file
+  # and expand "${LISA_COMPOSE_FILES[@]}" — unused-looking only at file scope.
+  # shellcheck disable=SC2034
   LISA_COMPOSE_FILES=(-f "$repo_root/ops/deploy/compose.yml")
   for service in $(lisa_selected_services); do
     case " $added " in *" $service "*) continue ;; esac

@@ -25,6 +25,7 @@ done
 
 canonical_files=(
   lisa-edge
+  lisa-edge.cmd
   .env.template
   install/bootstrap/bootstrap.sh
   install/provisioning/lisa-first-boot.sh
@@ -94,6 +95,12 @@ bash "$REPO_ROOT/lisa-edge" rescue restore-backup --help >/dev/null 2>&1
 if bash "$REPO_ROOT/lisa-edge" definitely-not-a-command >/dev/null 2>&1; then
   fail "unknown CLI command was accepted"
 fi
+
+echo "Checking Windows day-0 CLI targets..."
+grep -Fq 'install\usb\production\scripts\prepare-ubuntu-usb.bat' lisa-edge.cmd ||
+  fail "lisa-edge.cmd does not target the canonical production USB script"
+grep -Fq 'install\usb\rescue\prepare-ubuntu-rescue-usb.bat' lisa-edge.cmd ||
+  fail "lisa-edge.cmd does not target the canonical rescue USB script"
 
 echo "Checking installed /opt/lisa-edge path literals..."
 installed_assets=()
