@@ -13,52 +13,69 @@ while [ -L "$SCRIPT_PATH" ]; do
 done
 EDGE_REPO="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 
+# Colors: enabled only on interactive terminals; honor NO_COLOR (https://no-color.org).
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
+  C_TITLE=$'\033[1;36m'   # bold cyan   - banner
+  C_SECTION=$'\033[1;33m' # bold yellow - section headings
+  C_CMD=$'\033[1;32m'     # bold green  - command names
+  C_DIM=$'\033[2m'        # dim         - footnotes
+  C_RESET=$'\033[0m'
+else
+  C_TITLE='' C_SECTION='' C_CMD='' C_DIM='' C_RESET=''
+fi
+if [ -t 2 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
+  C_ERR=$'\033[1;31m'     # bold red    - errors (stderr)
+  C_ERR_RESET=$'\033[0m'
+else
+  C_ERR='' C_ERR_RESET=''
+fi
+
 usage() {
-  cat <<'USAGE'
-LISA Edge operator command
+  cat <<USAGE
+${C_TITLE}LISA Edge operator command${C_RESET}
 
-Usage:
-  lisa-edge <command> [arguments]
+${C_SECTION}Usage:${C_RESET}
+  ${C_CMD}lisa-edge${C_RESET} <command> [arguments]
 
-Setup and installation:
-  setup                         Run the interactive first-boot workflow
-  configure [wizard options]    Write or update configuration only
-  bootstrap [arguments]         Prepare the host and deploy configured services
-  usb production <mount-path>   Prepare a production installer USB
-  usb rescue <mount-path>       Prepare a rescue installer USB
+${C_SECTION}Setup and installation:${C_RESET}
+  ${C_CMD}setup${C_RESET}                         Run the interactive first-boot workflow
+  ${C_CMD}configure${C_RESET} [wizard options]    Write or update configuration only
+  ${C_CMD}bootstrap${C_RESET} [arguments]         Prepare the host and deploy configured services
+  ${C_CMD}usb production${C_RESET} <mount-path>   Prepare a production installer USB
+  ${C_CMD}usb rescue${C_RESET} <mount-path>       Prepare a rescue installer USB
 
-Runtime operations:
-  deploy [--pull|--offline]      Start or refresh selected services
-  stop                           Stop selected services
-  update                         Fast-forward the repository and refresh images
-  health                         Run readiness checks
-  status                         Show selected services and runtime state
-  diagnostics [output-dir]       Create a diagnostics bundle
-  service list                  List available service selection keys
+${C_SECTION}Runtime operations:${C_RESET}
+  ${C_CMD}deploy${C_RESET} [--pull|--offline]      Start or refresh selected services
+  ${C_CMD}stop${C_RESET}                           Stop selected services
+  ${C_CMD}update${C_RESET}                         Fast-forward the repository and refresh images
+  ${C_CMD}health${C_RESET}                         Run readiness checks
+  ${C_CMD}status${C_RESET}                         Show selected services and runtime state
+  ${C_CMD}diagnostics${C_RESET} [output-dir]       Create a diagnostics bundle
+  ${C_CMD}service list${C_RESET}                  List available service selection keys
 
-Data protection:
-  backup                         Create a production backup
-  restore [options] <archive>    Validate and restore a backup archive
+${C_SECTION}Data protection:${C_RESET}
+  ${C_CMD}backup${C_RESET}                         Create a production backup
+  ${C_CMD}restore${C_RESET} [options] <archive>    Validate and restore a backup archive
 
-Rescue layer:
-  rescue bootstrap              Install rescue tools
-  rescue doctor                 Collect rescue-host diagnostics
-  rescue disks                  Inspect disks and installation candidates
-  rescue mount [arguments]      Mount the production filesystem
-  rescue restore-backup <file>  Safely restore a LISA Edge backup archive
-  rescue restore-snapshot ...   Restore a raw filesystem snapshot
-  rescue reinstall              Show the production reinstall procedure
-  rescue update                 Refresh installed rescue scripts
+${C_SECTION}Rescue layer:${C_RESET}
+  ${C_CMD}rescue bootstrap${C_RESET}              Install rescue tools
+  ${C_CMD}rescue doctor${C_RESET}                 Collect rescue-host diagnostics
+  ${C_CMD}rescue disks${C_RESET}                  Inspect disks and installation candidates
+  ${C_CMD}rescue mount${C_RESET} [arguments]      Mount the production filesystem
+  ${C_CMD}rescue restore-backup${C_RESET} <file>  Safely restore a LISA Edge backup archive
+  ${C_CMD}rescue restore-snapshot${C_RESET} ...   Restore a raw filesystem snapshot
+  ${C_CMD}rescue reinstall${C_RESET}              Show the production reinstall procedure
+  ${C_CMD}rescue update${C_RESET}                 Refresh installed rescue scripts
 
-General:
-  help                           Show this help
+${C_SECTION}General:${C_RESET}
+  ${C_CMD}help${C_RESET}                           Show this help
 
-Run `lisa-edge <command> --help` for command-specific options when supported.
+${C_DIM}Run \`lisa-edge <command> --help\` for command-specific options when supported.${C_RESET}
 USAGE
 }
 
 die() {
-  echo "ERROR: $*" >&2
+  echo "${C_ERR}ERROR:${C_ERR_RESET} $*" >&2
   exit 2
 }
 
@@ -155,7 +172,7 @@ case "$COMMAND" in
   rescue) run_rescue "$@" ;;
   service) run_service "$@" ;;
   *)
-    echo "Unknown command: $COMMAND" >&2
+    echo "${C_ERR}ERROR:${C_ERR_RESET} Unknown command: $COMMAND" >&2
     usage >&2
     exit 2
     ;;
