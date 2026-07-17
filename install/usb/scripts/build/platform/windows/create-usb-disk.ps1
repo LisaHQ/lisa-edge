@@ -33,17 +33,69 @@ $Fat32MaxPartBytes = 32GB - 64MB   # Windows cannot format FAT32 volumes above 3
 $Fat32MaxFileBytes = 4GB - 1
 $MinDiskBytes      = 4GB
 
+function Get-DiskDriveLetters {
+    param([int]$Number)
+    $letters = @(Get-Partition -DiskNumber $Number -ErrorAction SilentlyContinue |
+        Where-Object { $_.DriveLetter } |
+        ForEach-Object { "$($_.DriveLetter):" })
+    return ($letters -join ' ')
+}
+
+function Get-DiskVolumeLabels {
+    param([int]$Number)
+    $labels = @(Get-Partition -DiskNumber $Number -ErrorAction SilentlyContinue |
+        Get-Volume -ErrorAction SilentlyContinue |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_.FileSystemLabel) } |
+        ForEach-Object { "$($_.FileSystemLabel)".Trim() } |
+        Select-Object -Unique)
+    return ($labels -join ' ')
+}
+
+# A USB stick is UEFI-bootable when a readable partition carries the standard
+# fallback bootloader EFI\boot\bootx64.efi (what our build pipeline creates).
+# Note: raw-dd ISO9660 sticks are unreadable to Windows and show blank here.
+function Test-UefiBootableDisk {
+    param([int]$Number)
+    $parts = @(Get-Partition -DiskNumber $Number -ErrorAction SilentlyContinue |
+        Where-Object { $_.DriveLetter })
+    foreach ($part in $parts) {
+        if (Test-Path -LiteralPath "$($part.DriveLetter):\EFI\boot\bootx64.efi") {
+            return "UEFI"
+        }
+    }
+    return ""
+}
+
+# Disk metadata (SerialNumber, FriendlyName) often carries padding spaces or
+# control characters that break Format-Table column alignment. Clean it first.
+function Format-CleanString {
+    param($Value)
+    return ("$Value" -replace '[\x00-\x1F\x7F]', '').Trim()
+}
+
 if ($List) {
     Write-Host ""
     Write-Host "USB disks visible to Windows:"
-    $columns = @(
-        'Number', 'FriendlyName', 'SerialNumber',
-        @{ Label = 'Size(GB)'; Expression = { [math]::Round($_.Size / 1GB, 1) } },
-        'IsBoot', 'IsSystem'
-    )
-    Get-Disk | Where-Object { $_.BusType -eq 'USB' } |
-        Format-Table -AutoSize -Property $columns | Out-Host
+    $usbDisks = @(Get-Disk | Where-Object { $_.BusType -eq 'USB' })
+    if ($usbDisks.Count -eq 0) {
+        Write-Host "  (none detected)"
+    } else {
+        $rows = foreach ($usbDisk in $usbDisks) {
+            [pscustomobject]@{
+                Number       = $usbDisk.Number
+                Drive        = Get-DiskDriveLetters -Number $usbDisk.Number
+                Name         = Get-DiskVolumeLabels -Number $usbDisk.Number
+                FriendlyName = Format-CleanString $usbDisk.FriendlyName
+                Serial       = Format-CleanString $usbDisk.SerialNumber
+                'Size(GB)'   = [math]::Round($usbDisk.Size / 1GB, 1)
+                Bootable     = Test-UefiBootableDisk -Number $usbDisk.Number
+                System       = ($usbDisk.IsBoot -or $usbDisk.IsSystem)
+            }
+        }
+        $rows | Format-Table -AutoSize | Out-Host
+    }
     Write-Host "Pass the disk number via -DiskNumber. Only BusType USB disks are accepted."
+    Write-Host "Bootable=UEFI means EFI\boot\bootx64.efi is present; System=True disks are never touched."
     exit 0
 }
 

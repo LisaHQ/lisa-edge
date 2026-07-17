@@ -20,7 +20,8 @@ needed), and injects the autoinstall profile:
 sudo ./lisa-edge usb build production --device /dev/sdX
 ```
 
-On Windows (elevated prompt; find the disk number with `usb build list`):
+On Windows (elevated prompt; find the disk number with `usb list`, or omit
+it and pick from the interactive listing):
 
 ```bat
 lisa-edge usb build production 2
@@ -29,12 +30,12 @@ lisa-edge usb build production 2
 If you already have a bootable Ubuntu installer USB, inject the profile only:
 
 ```bash
-sudo ./lisa-edge usb production --auto-detect
-sudo ./lisa-edge usb production /media/$USER/UBUNTU_USB
+sudo ./lisa-edge usb prepare production --auto-detect
+sudo ./lisa-edge usb prepare production /media/$USER/UBUNTU_USB
 ```
 
 ```bat
-lisa-edge usb production E:
+lisa-edge usb prepare production E:
 ```
 
 The preparation wizard creates or validates the ignored, machine-specific file:
@@ -101,11 +102,11 @@ lisa-edge usb build rescue 2
 Or inject the profile onto an existing installer USB:
 
 ```bash
-sudo ./lisa-edge usb rescue /media/$USER/UBUNTU_USB
+sudo ./lisa-edge usb prepare rescue /media/$USER/UBUNTU_USB
 ```
 
 ```bat
-lisa-edge usb rescue E:
+lisa-edge usb prepare rescue E:
 ```
 
 After installing the minimal OS, the template invokes:

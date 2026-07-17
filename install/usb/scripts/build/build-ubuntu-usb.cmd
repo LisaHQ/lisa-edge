@@ -33,26 +33,16 @@ echo.
 goto :Usage
 :ProfileOk
 
-set "DISKNUM=%~2"
-if "%DISKNUM%"=="" (
-    echo ERROR: disk number is required ^(never guessed^).
-    echo Find it with:  build-ubuntu-usb.cmd list
-    exit /b 2
-)
-echo %DISKNUM%| findstr /r "^[0-9][0-9]*$" >nul || (
-    echo ERROR: disk number must be numeric: %DISKNUM%
-    exit /b 2
-)
-
+set "DISKNUM="
 set "ISO_PATH="
 set "RELEASE="
 set "OPT_YES="
 set "OPT_DRYRUN="
 
 shift
-shift
 :ParseArgs
 if "%~1"=="" goto :ArgsDone
+echo %~1| findstr /r "^[0-9][0-9]*$" >nul && ( set "DISKNUM=%~1" & shift & goto :ParseArgs )
 if /I "%~1"=="--iso"     ( set "ISO_PATH=%~2" & shift & shift & goto :ParseArgs )
 if /I "%~1"=="--release" ( set "RELEASE=%~2" & shift & shift & goto :ParseArgs )
 if /I "%~1"=="--yes"     ( set "OPT_YES=1" & shift & goto :ParseArgs )
@@ -61,6 +51,28 @@ if /I "%~1"=="--dry-run" ( set "OPT_DRYRUN=1" & shift & goto :ParseArgs )
 echo ERROR: unknown argument: %~1
 exit /b 2
 :ArgsDone
+
+REM ------------------------------------------------------------
+REM Interactive disk selection when no disk number was given.
+REM ------------------------------------------------------------
+if defined DISKNUM goto :HaveDisk
+if defined OPT_YES (
+    echo ERROR: --yes requires an explicit disk number ^(nothing is guessed^).
+    exit /b 2
+)
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PLATFORM_DIR%\create-usb-disk.ps1" -List
+set /p DISKNUM=Enter the target USB disk number: 
+if defined DISKNUM set "DISKNUM=%DISKNUM: =%"
+if not defined DISKNUM (
+    echo ERROR: no disk selected; aborting with no changes.
+    exit /b 2
+)
+echo %DISKNUM%| findstr /r "^[0-9][0-9]*$" >nul || (
+    echo ERROR: disk number must be numeric: %DISKNUM%
+    exit /b 2
+)
+:HaveDisk
 
 REM ------------------------------------------------------------
 REM Step 1/3: obtain a verified ISO.
@@ -141,8 +153,11 @@ exit /b 0
 echo LISA Edge - Build a complete installer USB ^(Windows^)
 echo.
 echo Usage:
-echo   build-ubuntu-usb.cmd ^<production^|rescue^> ^<disk-number^> [options]
+echo   build-ubuntu-usb.cmd ^<production^|rescue^> [disk-number] [options]
 echo   build-ubuntu-usb.cmd list
+echo.
+echo When no disk number is given, USB disks are listed and you are asked
+echo to pick one. With --yes the disk number is mandatory.
 echo.
 echo Options:
 echo   --iso ^<path^>       Use an already-downloaded ISO ^(skips the fetch step^).

@@ -41,10 +41,12 @@ ${C_SECTION}Setup and installation:${C_RESET}
   ${C_CMD}setup${C_RESET}                         Run the interactive first-boot workflow
   ${C_CMD}configure${C_RESET} [wizard options]    Write or update configuration only
   ${C_CMD}bootstrap${C_RESET} [arguments]         Prepare the host and deploy configured services
+  ${C_CMD}usb list${C_RESET}                      List removable/USB disks
   ${C_CMD}usb build${C_RESET} <profile> [options] Download Ubuntu, write a bootable USB,
                                 and inject the autoinstall profile
-  ${C_CMD}usb production${C_RESET} <mount-path>   Inject the production profile on a USB
-  ${C_CMD}usb rescue${C_RESET} <mount-path>       Inject the rescue profile on a USB
+                                ${C_DIM}(asks which disk when --device is omitted)${C_RESET}
+  ${C_CMD}usb prepare${C_RESET} <profile> <mount>  Inject the autoinstall profile on an
+                                existing installer USB (production|rescue)
 
 ${C_SECTION}Runtime operations:${C_RESET}
   ${C_CMD}deploy${C_RESET} [--pull|--offline]      Start or refresh selected services
@@ -119,17 +121,35 @@ run_rescue() {
 
 run_usb() {
   local target="${1:-}"
-  [ -n "$target" ] || die "usb requires 'build', 'production', or 'rescue'"
+  [ -n "$target" ] || die "usb requires 'list', 'build', or 'prepare'"
   shift
 
   case "$target" in
+    list)
+      run_script "USB disk listing" \
+        "install/usb/scripts/build/build-ubuntu-usb.sh" list "$@" ;;
     build)
       run_script "USB build pipeline" \
         "install/usb/scripts/build/build-ubuntu-usb.sh" "$@" ;;
+    prepare)
+      local profile="${1:-}"
+      [ -n "$profile" ] || die "usb prepare requires 'production' or 'rescue'"
+      shift
+      case "$profile" in
+        production)
+          run_script "production USB preparation" \
+            "install/usb/scripts/prepare/prepare-production-usb.sh" "$@" ;;
+        rescue)
+          run_script "rescue USB preparation" \
+            "install/usb/scripts/prepare/prepare-rescue-usb.sh" "$@" ;;
+        *) die "unknown prepare profile: $profile (use 'production' or 'rescue')" ;;
+      esac ;;
     production)
+      # Deprecated alias for 'usb prepare production'; kept for compatibility.
       run_script "production USB preparation" \
         "install/usb/scripts/prepare/prepare-production-usb.sh" "$@" ;;
     rescue)
+      # Deprecated alias for 'usb prepare rescue'; kept for compatibility.
       run_script "rescue USB preparation" \
         "install/usb/scripts/prepare/prepare-rescue-usb.sh" "$@" ;;
     *) die "unknown USB target: $target" ;;

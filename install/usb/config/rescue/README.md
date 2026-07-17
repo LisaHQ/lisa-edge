@@ -73,7 +73,7 @@ sudo ./lisa-edge usb build rescue --device /dev/sdX
 Or inject the profile onto an existing Ubuntu Server installer USB:
 
 ```bash
-sudo ./lisa-edge usb rescue /media/$USER/UBUNTU_USB
+sudo ./lisa-edge usb prepare rescue /media/$USER/UBUNTU_USB
 ```
 
 ### 2. Bootstrap the installed Rescue OS

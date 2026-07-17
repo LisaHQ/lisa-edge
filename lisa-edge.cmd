@@ -69,10 +69,26 @@ REM ------------------------------------------------------------
 :Usb
 set "TARGET=%~2"
 if "%TARGET%"=="" (
-    echo %C_ERR%ERROR:%C_RESET% usb requires 'production' or 'rescue'.
+    echo %C_ERR%ERROR:%C_RESET% usb requires 'list', 'build', or 'prepare'.
     echo.
     call :Usage
     exit /b 2
+)
+
+if /I "%TARGET%"=="list" (
+    if not exist "%USB_BUILD%" (
+        echo %C_ERR%ERROR:%C_RESET% Missing implementation: %USB_BUILD%
+        echo.
+        exit /b 2
+    )
+    call "%USB_BUILD%" list
+    exit /b %ERRORLEVEL%
+)
+
+if /I "%TARGET%"=="prepare" (
+    set "PREP_PROFILE=%~3"
+    call :CollectArgs3 %*
+    goto :UsbPrepare
 )
 
 call :CollectArgs %*
@@ -137,6 +153,33 @@ echo   %C_DIM%%EDGE_REPO%\install\usb\config\rescue\user-data.template%C_RESET%
 exit /b 2
 
 REM ------------------------------------------------------------
+REM usb prepare production ^| rescue - inject-only workflow
+REM ------------------------------------------------------------
+:UsbPrepare
+if /I "%PREP_PROFILE%"=="production" (
+    if not exist "%USB_PRODUCTION%" (
+        echo %C_ERR%ERROR:%C_RESET% Missing implementation: %USB_PRODUCTION%
+        echo.
+        exit /b 2
+    )
+    call "%USB_PRODUCTION%" %FWD_ARGS%
+    exit /b %ERRORLEVEL%
+)
+if /I "%PREP_PROFILE%"=="rescue" (
+    if not exist "%USB_RESCUE%" (
+        echo %C_ERR%ERROR:%C_RESET% Missing implementation: %USB_RESCUE%
+        echo.
+        exit /b 2
+    )
+    call "%USB_RESCUE%" %FWD_ARGS%
+    exit /b %ERRORLEVEL%
+)
+echo %C_ERR%ERROR:%C_RESET% usb prepare requires 'production' or 'rescue'.
+echo.
+call :Usage
+exit /b 2
+
+REM ------------------------------------------------------------
 REM Skip the first two tokens (command + target) and forward the
 REM rest verbatim. NOTE: in cmd, %%* ignores shift, so collect
 REM the remaining arguments manually.
@@ -150,6 +193,18 @@ if "%~1"=="" exit /b 0
 set "FWD_ARGS=%FWD_ARGS% %1"
 shift
 goto :CollectArgsLoop
+
+REM Same as :CollectArgs but skips three tokens (command + target + profile).
+:CollectArgs3
+set "FWD_ARGS="
+shift
+shift
+shift
+:CollectArgs3Loop
+if "%~1"=="" exit /b 0
+set "FWD_ARGS=%FWD_ARGS% %1"
+shift
+goto :CollectArgs3Loop
 
 REM ------------------------------------------------------------
 :LinuxOnly
@@ -170,13 +225,15 @@ echo %C_SECTION%Usage:%C_RESET%
 echo   %C_CMD%lisa-edge%C_RESET% ^<command^> [arguments]
 echo.
 echo %C_SECTION%Installation media (no LISA Edge server required):%C_RESET%
-echo   %C_CMD%usb build%C_RESET% ^<profile^> ^<disk-number^>   Download Ubuntu, write a bootable USB
+echo   %C_CMD%usb list%C_RESET%                          List USB disks ^(number, drive letter,
+echo                                     name, size^) to identify the target
+echo   %C_CMD%usb build%C_RESET% ^<profile^> [disk-number]  Download Ubuntu, write a bootable USB
 echo                                     ^(no Rufus needed^), inject the profile.
-echo                                     %C_DIM%(usb build list shows USB disk numbers)%C_RESET%
-echo   %C_CMD%usb production%C_RESET% [options] [drive]  Prepare a production installer USB
+echo                                     %C_DIM%(asks which disk when number omitted)%C_RESET%
+echo   %C_CMD%usb prepare production%C_RESET% [options] [drive]  Inject the production profile
 echo                                     %C_DIM%(options: --auto-detect ^| -a, --dry-run,%C_RESET%
 echo                                      %C_DIM%--config-only, --yes ^| -y)%C_RESET%
-echo   %C_CMD%usb rescue%C_RESET% ^<drive^>                Prepare a rescue installer USB
+echo   %C_CMD%usb prepare rescue%C_RESET% ^<drive^>        Inject the rescue profile
 echo.
 echo %C_SECTION%Configuration:%C_RESET%
 echo   %C_CMD%config%C_RESET% [production]               Generate or validate the production
@@ -187,10 +244,11 @@ echo %C_SECTION%General:%C_RESET%
 echo   %C_CMD%help%C_RESET%                              Show this help
 echo.
 echo %C_SECTION%Examples:%C_RESET%
-echo   %C_DIM%lisa-edge usb build production 2%C_RESET%
-echo   %C_DIM%lisa-edge usb production --auto-detect%C_RESET%
-echo   %C_DIM%lisa-edge usb production E:%C_RESET%
-echo   %C_DIM%lisa-edge usb rescue E:%C_RESET%
+echo   %C_DIM%lisa-edge usb list%C_RESET%
+echo   %C_DIM%lisa-edge usb build production%C_RESET%
+echo   %C_DIM%lisa-edge usb build production 2 --dry-run%C_RESET%
+echo   %C_DIM%lisa-edge usb prepare production --auto-detect%C_RESET%
+echo   %C_DIM%lisa-edge usb prepare rescue E:%C_RESET%
 echo   %C_DIM%lisa-edge config%C_RESET%
 echo.
 echo Everything after installation (setup, bootstrap, deploy, backup,

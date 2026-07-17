@@ -77,26 +77,28 @@ It runs three steps:
 ### Linux
 
 ```bash
-# identify the USB device first (never guess):
-lsblk -o NAME,PATH,SIZE,MODEL,SERIAL,TYPE,TRAN,RM,MOUNTPOINTS
-
+./lisa-edge usb list                # identify the USB disk first
 sudo ./lisa-edge usb build production --device /dev/sdX
 sudo ./lisa-edge usb build rescue --device /dev/sdX
 ```
 
-Useful options: `--dry-run`, `--yes`, `--iso <path>` (skip download),
-`--release <series>`, `--keep-mounted`.
+When `--device` is omitted, the build lists removable/USB disks and asks
+which one to use. Useful options: `--dry-run`, `--yes` (requires an explicit
+`--device`), `--iso <path>` (skip download), `--release <series>`,
+`--keep-mounted`.
 
 ### Windows (elevated prompt)
 
 ```bat
-lisa-edge usb build list
+lisa-edge usb list
 lisa-edge usb build production 2
 lisa-edge usb build rescue 2 --dry-run
 ```
 
-`2` is the disk number reported by `usb build list`. Only disks with
-BusType `USB` are accepted; boot and system disks are always rejected.
+`2` is the disk number reported by `usb list` (which also shows each disk's
+drive letter and volume name). When the disk number is omitted, `usb build`
+lists the USB disks and asks which one to use. Only disks with BusType `USB`
+are accepted; boot and system disks are always rejected.
 
 ### Boot support
 
@@ -120,16 +122,16 @@ or any other tool), you can inject or refresh the autoinstall profile alone:
 Linux:
 
 ```bash
-sudo ./lisa-edge usb production --auto-detect
-sudo ./lisa-edge usb production /media/$USER/UBUNTU_USB
-sudo ./lisa-edge usb rescue /media/$USER/UBUNTU_USB
+sudo ./lisa-edge usb prepare production --auto-detect
+sudo ./lisa-edge usb prepare production /media/$USER/UBUNTU_USB
+sudo ./lisa-edge usb prepare rescue /media/$USER/UBUNTU_USB
 ```
 
 Windows:
 
 ```bat
-lisa-edge usb production E:
-lisa-edge usb rescue E:
+lisa-edge usb prepare production E:
+lisa-edge usb prepare rescue E:
 ```
 
 ---
