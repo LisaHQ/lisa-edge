@@ -16,8 +16,9 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 | --- | --- |
 | `lisa-edge setup` / `configure` | `install/provisioning/lisa-first-boot.sh` |
 | `lisa-edge bootstrap` | `install/bootstrap/bootstrap.sh` |
-| `lisa-edge usb production` | `install/usb/production/scripts/prepare-ubuntu-usb.sh` |
-| `lisa-edge usb rescue` | `install/usb/rescue/prepare-ubuntu-rescue-usb.sh` |
+| `lisa-edge usb build <profile>` | `install/usb/scripts/build/build-ubuntu-usb.sh` |
+| `lisa-edge usb production` | `install/usb/scripts/prepare/prepare-production-usb.sh` |
+| `lisa-edge usb rescue` | `install/usb/scripts/prepare/prepare-rescue-usb.sh` |
 | `lisa-edge deploy` / `stop` / `update` / `health` / `status` | `ops/deploy/*.sh` |
 | `lisa-edge diagnostics` | `ops/diagnostics/collect-diag.sh` |
 | `lisa-edge backup` / `restore` | `ops/backup-restore/*.sh` |
@@ -29,7 +30,7 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 | Path | Purpose |
 | --- | --- |
 | `lisa-edge` | The single operator CLI. Resolves the repo root (also through symlinks such as `/usr/local/sbin/lisa-edge-provision`, which first boot uses to run `setup`) and dispatches every command to its canonical script. No implementation logic lives here. |
-| `lisa-edge.cmd` | Windows day-0 companion CLI: `usb production`, `usb rescue`, and `config` from a workstation before any server exists; dispatches to the canonical scripts under `install/usb/`. Runtime commands stay on the Linux host. |
+| `lisa-edge.cmd` | Windows day-0 companion CLI: `usb build`, `usb production`, `usb rescue`, and `config` from a workstation before any server exists; dispatches to the canonical scripts under `install/usb/`. Runtime commands stay on the Linux host. |
 | `README.md` | One-screen task map: command table, fastest install, capabilities, repository map, safety rules. |
 | `.env.template` | Documented template for the runtime `.env`. The wizard writes `.env` from prompts; never put real secrets in the template. |
 | `.editorconfig` | Editor defaults. LF for everything; CRLF only for `.bat`/`.cmd`/`.ps1`. Do not change the LF default — CRLF breaks scripts, YAML, and systemd units on Linux hosts. |
@@ -44,12 +45,15 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 
 | Path | Purpose |
 | --- | --- |
-| `production/autoinstall/user-data.template` | Ubuntu autoinstall seed for the production SSD install. Disk is matched by serial; placeholders are filled by `generate-user-data.ps1` or by hand into `user-data` (gitignored). Clones the repo to `/opt/lisa-edge` and installs the first-boot service. |
-| `production/autoinstall/meta-data`, `grub.cfg` | Cloud-init NoCloud identity stub and USB boot menu. |
-| `production/scripts/prepare-ubuntu-usb.sh` / `.bat` | Write the production installer USB (Linux / Windows). Called by `lisa-edge usb production`. |
-| `production/scripts/generate-user-data.ps1` | Windows helper that renders `user-data` from the template and your answers. |
-| `rescue/autoinstall/user-data.template` | Autoinstall seed for the eMMC Rescue OS: minimal Ubuntu, SSH keys only, clones the repo and runs `lisa-edge rescue bootstrap`. |
-| `rescue/prepare-ubuntu-rescue-usb.sh` / `.bat` | Write the rescue installer USB. Called by `lisa-edge usb rescue`. |
+| `config/ubuntu-releases.json` | Ubuntu series, mirror, and optional `iso`/`sha256` pin used by the build pipeline. |
+| `config/production/user-data.template` | Ubuntu autoinstall seed for the production SSD install. Disk is matched by serial; placeholders are filled by `generate-user-data.ps1` or by hand into `user-data` (gitignored). Clones the repo to `/opt/lisa-edge` and installs the first-boot service. |
+| `config/production/meta-data`, `grub.cfg` | Cloud-init NoCloud identity stub and USB boot menu. |
+| `config/rescue/user-data.template` | Autoinstall seed for the eMMC Rescue OS: minimal Ubuntu, SSH keys only, clones the repo and runs `lisa-edge rescue bootstrap`. |
+| `scripts/build/build-ubuntu-usb.sh` / `.cmd` | Full pipeline behind `lisa-edge usb build`: fetch + verify the Ubuntu ISO, write a bootable UEFI USB (replaces Rufus), inject the profile. |
+| `scripts/build/platform/linux/`, `windows/` | Platform steps: `fetch-ubuntu-iso.*` (download, SHA256 verify, cache) and `create-usb-disk.*` (fail-closed USB erase + FAT32 + ISO copy). |
+| `scripts/prepare/prepare-production-usb.sh` / `.cmd` | Inject the production autoinstall profile onto a mounted installer USB. Called by `lisa-edge usb production`. |
+| `scripts/prepare/prepare-rescue-usb.sh` / `.cmd` | Inject the rescue autoinstall profile. Called by `lisa-edge usb rescue`. |
+| `scripts/prepare/generate-user-data.ps1` | Windows helper that renders `user-data` from the template and your answers. |
 
 ### install/provisioning/ — first boot and reconfiguration
 
@@ -154,7 +158,7 @@ snapshots the dataset alongside regular backups.
 | --- | --- |
 | `validate-repo.sh` | CI entrypoint: layout contract, Bash syntax, stale references, Compose rendering, all test suites. Run before every commit. |
 | `validate-compose.sh` | Renders the base Compose file with every service fragment (requires Docker). |
-| `build-usb.sh` | Builds production or rescue USB assets from `install/usb/`. |
+| `build-usb.sh` | Copies production or rescue autoinstall assets from `install/usb/config/` into a build directory. |
 | `disaster-recovery-check.sh` | Audits that recovery prerequisites (scripts, docs, timers) exist. |
 | `generate-secrets.sh` | Prints candidate secret values to stdout; move them straight into secure storage. |
 | `detect-disks.sh` | Developer disk-detection helper (host-side twin of the rescue script). |

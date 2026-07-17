@@ -46,12 +46,16 @@ bash "$REPO_ROOT/tests/unit/test-image-policy.sh"
 echo "Checking provisioning wizard..."
 bash "$REPO_ROOT/tests/unit/test-provisioning-wizard.sh"
 
+echo "Checking USB release config..."
+bash "$REPO_ROOT/tests/unit/test-usb-release-config.sh"
+
 echo "Checking backup archive validation..."
 "$PYTHON_BIN" "$REPO_ROOT/tests/security/test-backup-validation.py"
 bash "$REPO_ROOT/tests/security/test-backup-checksum.sh"
 bash "$REPO_ROOT/tests/security/test-backup-mount-guard.sh"
 bash "$REPO_ROOT/tests/security/test-path-safety.sh"
 bash "$REPO_ROOT/tests/security/test-restore-target-root.sh"
+bash "$REPO_ROOT/tests/security/test-usb-device-guard.sh"
 
 echo "Checking Rescue OS path guardrails..."
 bash "$REPO_ROOT/tests/security/test-recovery-safety.sh"

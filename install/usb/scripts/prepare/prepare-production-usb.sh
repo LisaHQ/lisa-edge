@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Prepare an Ubuntu installation USB for unattended LISA Edge deployment.
-# This is the Unix/Linux counterpart of prepare-ubuntu-usb.bat.
+# This is the Unix/Linux counterpart of prepare-production-usb.cmd.
 
 set -u
 set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
-AUTOINSTALL_DIR="$PROJECT_ROOT/autoinstall"
+USB_ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
+AUTOINSTALL_DIR="$USB_ROOT_DIR/config/production"
 USER_DATA="$AUTOINSTALL_DIR/user-data"
 USER_DATA_TEMPLATE="$AUTOINSTALL_DIR/user-data.template"
 META_DATA="$AUTOINSTALL_DIR/meta-data"
@@ -32,7 +32,6 @@ if [[ -t 1 && "${TERM:-}" != "dumb" ]]; then
     IS_TTY=1
     RESET=$'\033[0m'
     BOLD=$'\033[1m'
-    DIM=$'\033[2m'
     RED=$'\033[31m'
     GREEN=$'\033[32m'
     YELLOW=$'\033[33m'
@@ -42,7 +41,6 @@ else
     IS_TTY=0
     RESET=""
     BOLD=""
-    DIM=""
     RED=""
     GREEN=""
     YELLOW=""
@@ -104,6 +102,7 @@ step_done() { finish_step "DONE" "$GREEN" "${1:-}"; }
 step_pass() { finish_step "PASS" "$GREEN" "${1:-}"; }
 step_fail() { finish_step "FAIL" "$RED" "${1:-}"; }
 step_skip() { finish_step "SKIP" "$YELLOW" "${1:-}"; }
+# shellcheck disable=SC2120
 step_sim()  { finish_step "SIM " "$CYAN" "${1:-}"; }
 
 banner() {

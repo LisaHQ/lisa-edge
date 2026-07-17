@@ -15,8 +15,9 @@ REM ============================================================
 set "EDGE_REPO=%~dp0"
 if "%EDGE_REPO:~-1%"=="\" set "EDGE_REPO=%EDGE_REPO:~0,-1%"
 
-set "USB_PRODUCTION=%EDGE_REPO%\install\usb\production\scripts\prepare-ubuntu-usb.bat"
-set "USB_RESCUE=%EDGE_REPO%\install\usb\rescue\prepare-ubuntu-rescue-usb.bat"
+set "USB_BUILD=%EDGE_REPO%\install\usb\scripts\build\build-ubuntu-usb.cmd"
+set "USB_PRODUCTION=%EDGE_REPO%\install\usb\scripts\prepare\prepare-production-usb.cmd"
+set "USB_RESCUE=%EDGE_REPO%\install\usb\scripts\prepare\prepare-rescue-usb.cmd"
 
 REM ------------------------------------------------------------
 REM Colors (ANSI escape sequences). Enabled only when the console
@@ -76,6 +77,16 @@ if "%TARGET%"=="" (
 
 call :CollectArgs %*
 
+if /I "%TARGET%"=="build" (
+    if not exist "%USB_BUILD%" (
+        echo %C_ERR%ERROR:%C_RESET% Missing implementation: %USB_BUILD%
+        echo.
+        exit /b 2
+    )
+    call "%USB_BUILD%" %FWD_ARGS%
+    exit /b %ERRORLEVEL%
+)
+
 if /I "%TARGET%"=="production" (
     if not exist "%USB_PRODUCTION%" (
         echo %C_ERR%ERROR:%C_RESET% Missing implementation: %USB_PRODUCTION%
@@ -122,7 +133,7 @@ if /I "%TARGET%"=="production" (
 echo %C_ERR%ERROR:%C_RESET% 'config' currently supports only the production profile.
 echo.
 echo The rescue user-data template is edited by hand; see:
-echo   %C_DIM%%EDGE_REPO%\install\usb\rescue\autoinstall\user-data.template%C_RESET%
+echo   %C_DIM%%EDGE_REPO%\install\usb\config\rescue\user-data.template%C_RESET%
 exit /b 2
 
 REM ------------------------------------------------------------
@@ -159,6 +170,9 @@ echo %C_SECTION%Usage:%C_RESET%
 echo   %C_CMD%lisa-edge%C_RESET% ^<command^> [arguments]
 echo.
 echo %C_SECTION%Installation media (no LISA Edge server required):%C_RESET%
+echo   %C_CMD%usb build%C_RESET% ^<profile^> ^<disk-number^>   Download Ubuntu, write a bootable USB
+echo                                     ^(no Rufus needed^), inject the profile.
+echo                                     %C_DIM%(usb build list shows USB disk numbers)%C_RESET%
 echo   %C_CMD%usb production%C_RESET% [options] [drive]  Prepare a production installer USB
 echo                                     %C_DIM%(options: --auto-detect ^| -a, --dry-run,%C_RESET%
 echo                                      %C_DIM%--config-only, --yes ^| -y)%C_RESET%
@@ -173,11 +187,11 @@ echo %C_SECTION%General:%C_RESET%
 echo   %C_CMD%help%C_RESET%                              Show this help
 echo.
 echo %C_SECTION%Examples:%C_RESET%
+echo   %C_DIM%lisa-edge usb build production 2%C_RESET%
 echo   %C_DIM%lisa-edge usb production --auto-detect%C_RESET%
 echo   %C_DIM%lisa-edge usb production E:%C_RESET%
 echo   %C_DIM%lisa-edge usb rescue E:%C_RESET%
 echo   %C_DIM%lisa-edge config%C_RESET%
 echo.
 echo Everything after installation (setup, bootstrap, deploy, backup,
-echo restore, rescue tooling) runs on the Linux host via %C_CMD%./lisa-edge%C_RESET%.
-exit /b 0
+echo r

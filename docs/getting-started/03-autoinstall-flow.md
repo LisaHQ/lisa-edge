@@ -12,28 +12,35 @@ media or booting the installer.
 
 ## Production USB
 
-From a repository checkout on Linux:
+Build the complete installer USB from a repository checkout — this downloads
+and verifies the Ubuntu Server ISO, writes a bootable UEFI USB (no Rufus
+needed), and injects the autoinstall profile:
+
+```bash
+sudo ./lisa-edge usb build production --device /dev/sdX
+```
+
+On Windows (elevated prompt; find the disk number with `usb build list`):
+
+```bat
+lisa-edge usb build production 2
+```
+
+If you already have a bootable Ubuntu installer USB, inject the profile only:
 
 ```bash
 sudo ./lisa-edge usb production --auto-detect
-```
-
-Or provide the mounted Ubuntu installer path:
-
-```bash
 sudo ./lisa-edge usb production /media/$USER/UBUNTU_USB
 ```
 
-On Windows:
-
 ```bat
-install\usb\production\scripts\prepare-ubuntu-usb.bat E:
+lisa-edge usb production E:
 ```
 
 The preparation wizard creates or validates the ignored, machine-specific file:
 
 ```text
-install/usb/production/autoinstall/user-data
+install/usb/config/production/user-data
 ```
 
 It asks for the SSH public key, target disk match rule, and Git release/ref.
@@ -43,7 +50,7 @@ or immutable commit.
 The source template is:
 
 ```text
-install/usb/production/autoinstall/user-data.template
+install/usb/config/production/user-data.template
 ```
 
 Never commit generated `user-data`.
@@ -73,22 +80,32 @@ restore confirmation remain in the interactive first-boot workflow.
 First replace all placeholders in:
 
 ```text
-install/usb/rescue/autoinstall/user-data.template
+install/usb/config/rescue/user-data.template
 ```
 
 The rescue profile requires an explicit eMMC serial, SSH public key, and
 password hash. It must not use `size: largest`.
 
-Prepare the USB on Linux:
+Build the complete rescue USB on Linux:
+
+```bash
+sudo ./lisa-edge usb build rescue --device /dev/sdX
+```
+
+On Windows:
+
+```bat
+lisa-edge usb build rescue 2
+```
+
+Or inject the profile onto an existing installer USB:
 
 ```bash
 sudo ./lisa-edge usb rescue /media/$USER/UBUNTU_USB
 ```
 
-Or on Windows:
-
 ```bat
-install\usb\rescue\prepare-ubuntu-rescue-usb.bat E:
+lisa-edge usb rescue E:
 ```
 
 After installing the minimal OS, the template invokes:

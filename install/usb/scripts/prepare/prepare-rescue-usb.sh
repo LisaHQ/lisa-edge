@@ -2,22 +2,22 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUTOINSTALL_DIR="$SCRIPT_DIR/autoinstall"
+AUTOINSTALL_DIR="$(cd "$SCRIPT_DIR/../../config/rescue" && pwd -P)"
 
 usage() {
     cat <<'EOF'
 Usage:
-  sudo bash install/usb/rescue/prepare-ubuntu-rescue-usb.sh <usb-mount-path>
+  sudo bash install/usb/scripts/prepare/prepare-rescue-usb.sh <usb-mount-path>
 
 Example:
-  sudo bash install/usb/rescue/prepare-ubuntu-rescue-usb.sh /media/$USER/UBUNTU_USB
+  sudo bash install/usb/scripts/prepare/prepare-rescue-usb.sh /media/$USER/UBUNTU_USB
 
 This script prepares an Ubuntu Server USB for automatic Rescue OS installation.
 
 It copies:
-  rescue/autoinstall/meta-data
-  rescue/autoinstall/user-data
-  rescue/autoinstall/grub.cfg
+  config/rescue/meta-data
+  config/rescue/user-data
+  config/rescue/grub.cfg
 
 to the USB drive.
 
@@ -53,8 +53,8 @@ copy_user_data() {
 ERROR: rescue user-data still contains placeholder values.
 
 Edit one of these files first:
-  install/usb/rescue/autoinstall/user-data
-  install/usb/rescue/autoinstall/user-data.template
+  install/usb/config/rescue/user-data
+  install/usb/config/rescue/user-data.template
 
 Required values usually include:
   - eMMC serial

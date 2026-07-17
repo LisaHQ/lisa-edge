@@ -19,7 +19,7 @@ REM   - Can generate user-data from user-data.template interactively.
 REM   - Supports dry-run, config-only, and non-interactive execution.
 REM
 REM Usage:
-REM   prepare-ubuntu-usb.bat [OPTIONS] [USB_DRIVE]
+REM   prepare-production-usb.cmd [OPTIONS] [USB_DRIVE]
 REM
 REM Options:
 REM   --dry-run       Validate and display actions without modifying USB.
@@ -30,26 +30,26 @@ REM   --help          Show this help message.
 REM   -h              Same as --help.
 REM
 REM Examples:
-REM   prepare-ubuntu-usb.bat --auto-detect
-REM   prepare-ubuntu-usb.bat E:
-REM   prepare-ubuntu-usb.bat --dry-run
-REM   prepare-ubuntu-usb.bat --dry-run E:
-REM   prepare-ubuntu-usb.bat --config-only
-REM   prepare-ubuntu-usb.bat --yes E:
+REM   prepare-production-usb.cmd --auto-detect
+REM   prepare-production-usb.cmd E:
+REM   prepare-production-usb.cmd --dry-run
+REM   prepare-production-usb.cmd --dry-run E:
+REM   prepare-production-usb.cmd --config-only
+REM   prepare-production-usb.cmd --yes E:
 REM
 REM Expected project layout:
-REM   production\
+REM   install\usb\
 REM   ├── autoinstall\
 REM   └── scripts\
-REM       └── prepare-ubuntu-usb.bat
+REM       └── prepare-production-usb.cmd
 REM ============================================================
 
 set "SCRIPT_DIR=%~dp0"
-pushd "%SCRIPT_DIR%\.." >nul 2>nul
+pushd "%SCRIPT_DIR%\..\.." >nul 2>nul
 set "PROJECT_ROOT=%CD%"
 popd >nul 2>nul
 
-set "AUTOINSTALL_DIR=%PROJECT_ROOT%\autoinstall"
+set "AUTOINSTALL_DIR=%PROJECT_ROOT%\config\production"
 set "STEP_TOTAL=9"
 
 set "ESC="
@@ -330,7 +330,7 @@ REM ------------------------------------------------------------
 :Usage
 echo.
 echo %CLR_WHITE%Usage:%CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat %CLR_CYAN%[%CLR_GRAY%OPTIONS%CLR_CYAN%] [%CLR_BLUE%USB_DRIVE%CLR_CYAN%]%CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd %CLR_CYAN%[%CLR_GRAY%OPTIONS%CLR_CYAN%] [%CLR_BLUE%USB_DRIVE%CLR_CYAN%]%CLR_RESET%
 echo.
 echo %CLR_WHITE%Options:%CLR_RESET%
 echo   %CLR_GRAY%--auto-detect   %CLR_RESET%Auto detect the USB drive and install files to it.
@@ -343,14 +343,14 @@ echo   %CLR_GRAY%--help          %CLR_RESET%Show this help message.
 echo   %CLR_GRAY%-h              %CLR_RESET%Same as %CLR_GRAY%--help%CLR_RESET%.
 echo.
 echo %CLR_WHITE%Examples:%CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% --auto-detect %CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% -a %CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% %CLR_BLUE%E: %CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% --yes %CLR_BLUE%E: %CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% -y %CLR_BLUE%E: %CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% --dry-run %CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% --dry-run %CLR_BLUE%E: %CLR_RESET%
-echo   %CLR_YELLOW%prepare-ubuntu-usb.bat%CLR_GRAY% --config-only %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% --auto-detect %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% -a %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% %CLR_BLUE%E: %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% --yes %CLR_BLUE%E: %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% -y %CLR_BLUE%E: %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% --dry-run %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% --dry-run %CLR_BLUE%E: %CLR_RESET%
+echo   %CLR_YELLOW%prepare-production-usb.cmd%CLR_GRAY% --config-only %CLR_RESET%
 echo.
 exit /b 0
 

@@ -1,0 +1,22 @@
+{
+  "_comment": "Ubuntu installer sources for the LISA Edge USB build pipeline (install/usb/scripts/build/). Pin 'iso' and 'sha256' for fully reproducible media; leave them empty to resolve the newest point release from the mirror's SHA256SUMS at build time.",
+  "default": "26.04",
+  "releases": {
+    "26.04": {
+      "codename": "resolute",
+      "flavor": "live-server",
+      "arch": "amd64",
+      "mirror": "https://releases.ubuntu.com/26.04",
+      "iso": "",
+      "sha256": ""
+    },
+    "24.04": {
+      "codename": "noble",
+      "flavor": "live-server",
+      "arch": "amd64",
+      "mirror": "https://releases.ubuntu.com/24.04",
+      "iso": "",
+      "sha256": ""
+    }
+  }
+}

@@ -18,15 +18,13 @@ Examples:
   tools/build-usb.sh production /tmp/lisa-edge-usb
 
 Expected layout:
-  install/usb/
+  install/usb/config/
   ├── production/
-  │   └── autoinstall
-  │       ├── user-data
-  │       └── meta-data
+  │   ├── user-data
+  │   └── meta-data
   └── rescue/
-      └── autoinstall
-          ├── user-data
-          └── meta-data
+      ├── user-data
+      └── meta-data
 
 This script prepares autoinstall files for copying to a USB drive.
 It does not format or write to disks.
@@ -47,15 +45,15 @@ main() {
         exit 0
     fi
 
-    local source_dir="$INSTALLER_DIR/$profile"
+    local source_dir="$INSTALLER_DIR/config/$profile"
 
     if [[ -z "$output_dir" ]]; then
         output_dir="$BUILD_DIR/$profile"
     fi
 
     [[ -d "$source_dir" ]] || die "installer profile not found: $source_dir"
-    [[ -f "$source_dir/autoinstall/user-data" ]] || die "missing user-data in $source_dir"
-    [[ -f "$source_dir/autoinstall/meta-data" ]] || die "missing meta-data in $source_dir"
+    [[ -f "$source_dir/user-data" ]] || die "missing user-data in $source_dir"
+    [[ -f "$source_dir/meta-data" ]] || die "missing meta-data in $source_dir"
 
     rm -rf "$output_dir"
     mkdir -p "$output_dir"

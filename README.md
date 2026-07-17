@@ -33,6 +33,7 @@ You should not need to know where an implementation script lives.
 | Create a backup | `sudo ./lisa-edge backup` |
 | Restore a backup | `sudo ./lisa-edge restore <archive>` |
 | Collect diagnostics | `sudo ./lisa-edge diagnostics` |
+| Build a full installer USB | `sudo ./lisa-edge usb build <profile> --device /dev/sdX` |
 | Prepare a production USB | `sudo ./lisa-edge usb production <mount-path>` |
 | Prepare a rescue USB | `sudo ./lisa-edge usb rescue <mount-path>` |
 | Work from the Rescue OS | `sudo ./lisa-edge rescue <command>` |
@@ -66,10 +67,15 @@ Before any LISA Edge server exists, `lisa-edge.cmd` provides the same
 command style for day-0 tasks from a Windows workstation:
 
 ```bat
+lisa-edge usb build production 2
 lisa-edge usb production --auto-detect
 lisa-edge usb rescue E:
 lisa-edge config
 ```
+
+`usb build` downloads and verifies the Ubuntu Server ISO, writes a bootable
+UEFI USB (no Rufus or other imaging tool needed), and injects the autoinstall
+profile in one pass. Run `lisa-edge usb build list` to find the disk number.
 
 Runtime commands (`setup`, `deploy`, `backup`, ...) still run on the Linux
 host via `./lisa-edge`.
@@ -162,4 +168,3 @@ material are indexed in [docs/README.md](docs/README.md).
 
 Licensed under the [Apache License 2.0](LICENSE).
 
-Copyright (c) 2026 [LisaHQ](https://lisahq.io)

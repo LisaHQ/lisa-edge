@@ -228,6 +228,25 @@ When debugging:
 
 Do not randomly rewrite surrounding code while fixing one defect.
 
+### Version Control Summary
+
+If the project uses Git or SVN, every response following file changes must include a concise commit description for the completed change.
+
+- Detect version control from repository metadata, configuration, or established project workflow.
+- Use a Conventional Commits-style type prefix such as `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `build:`, `ci:`, `chore:`, `perf:`, or `revert:`.
+- Use the most specific applicable type and an optional scope when useful.
+- Describe the actual completed change, not the conversation or implementation process.
+- Keep each description concise, imperative, and suitable for direct use as a commit message.
+- When the work contains materially separate changes, provide multiple bullet entries rather than forcing them into one vague description.
+
+Required format:
+
+```text
+Commit description:
+- feat(scope): ...
+- fix(scope): ...
+```
+
 ## 8. Testing and Validation
 
 ### Canonical Validation
@@ -292,6 +311,9 @@ Validation:
 
 Impact:
 - ...
+
+Commit description:
+- type(scope): ...
 
 Notes:
 - ...

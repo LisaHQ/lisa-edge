@@ -30,14 +30,17 @@ services.
 ## Repository paths
 
 ```text
-install/usb/rescue/
+install/usb/config/rescue/
 ├── README.md
-├── autoinstall/
-│   ├── grub.cfg
-│   ├── meta-data
-│   └── user-data.template
-├── prepare-ubuntu-rescue-usb.sh
-└── prepare-ubuntu-rescue-usb.bat
+├── grub.cfg
+├── meta-data
+└── user-data.template
+
+install/usb/scripts/
+├── build/          full pipeline (fetch ISO → bootable USB → inject profile)
+└── prepare/
+    ├── prepare-rescue-usb.sh
+    └── prepare-rescue-usb.cmd
 
 rescue/
 ├── scripts/
@@ -51,7 +54,7 @@ rescue/
 Review:
 
 ```text
-install/usb/rescue/autoinstall/user-data.template
+install/usb/config/rescue/user-data.template
 ```
 
 Replace the eMMC serial, SSH public key, and password-hash placeholders. Find
@@ -61,10 +64,16 @@ the correct disk with:
 lsblk -o NAME,SIZE,MODEL,SERIAL,TYPE,TRAN
 ```
 
-Prepare an existing Ubuntu Server installer USB:
+Build a complete rescue installer USB (downloads Ubuntu, no Rufus needed):
 
 ```bash
-sudo bash install/usb/rescue/prepare-ubuntu-rescue-usb.sh /media/$USER/UBUNTU_USB
+sudo ./lisa-edge usb build rescue --device /dev/sdX
+```
+
+Or inject the profile onto an existing Ubuntu Server installer USB:
+
+```bash
+sudo ./lisa-edge usb rescue /media/$USER/UBUNTU_USB
 ```
 
 ### 2. Bootstrap the installed Rescue OS

@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 set SCRIPT_DIR=%~dp0
-set AUTOINSTALL_DIR=%SCRIPT_DIR%autoinstall
+set AUTOINSTALL_DIR=%SCRIPT_DIR%..\..\config\rescue
 
 if "%~1"=="" goto usage
 if "%~1"=="-h" goto usage
@@ -51,8 +51,8 @@ if %ERRORLEVEL%==0 (
     echo ERROR: rescue user-data still contains placeholder values.
     echo.
     echo Edit one of these files first:
-    echo   install\usb\rescue\autoinstall\user-data
-    echo   install\usb\rescue\autoinstall\user-data.template
+    echo   install\usb\config\rescue\user-data
+    echo   install\usb\config\rescue\user-data.template
     echo.
     echo Required values usually include:
     echo   - eMMC serial
@@ -89,10 +89,10 @@ exit /b 0
 
 :usage
 echo Usage:
-echo   install\usb\rescue\prepare-ubuntu-rescue-usb.bat ^<usb-drive^>
+echo   install\usb\scripts\prepare\prepare-rescue-usb.cmd ^<usb-drive^>
 echo.
 echo Example:
-echo   install\usb\rescue\prepare-ubuntu-rescue-usb.bat E:
+echo   install\usb\scripts\prepare\prepare-rescue-usb.cmd E:
 echo.
 echo This script prepares an Ubuntu Server USB for automatic Rescue OS installation.
 exit /b 0

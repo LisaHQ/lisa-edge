@@ -29,8 +29,19 @@ canonical_files=(
   .env.template
   install/bootstrap/bootstrap.sh
   install/provisioning/lisa-first-boot.sh
-  install/usb/production/autoinstall/user-data.template
-  install/usb/rescue/autoinstall/user-data.template
+  install/usb/config/ubuntu-releases.json
+  install/usb/config/production/user-data.template
+  install/usb/config/rescue/user-data.template
+  install/usb/scripts/build/build-ubuntu-usb.sh
+  install/usb/scripts/build/build-ubuntu-usb.cmd
+  install/usb/scripts/build/platform/linux/fetch-ubuntu-iso.sh
+  install/usb/scripts/build/platform/linux/create-usb-disk.sh
+  install/usb/scripts/build/platform/windows/fetch-ubuntu-iso.ps1
+  install/usb/scripts/build/platform/windows/create-usb-disk.ps1
+  install/usb/scripts/prepare/prepare-production-usb.sh
+  install/usb/scripts/prepare/prepare-production-usb.cmd
+  install/usb/scripts/prepare/prepare-rescue-usb.sh
+  install/usb/scripts/prepare/prepare-rescue-usb.cmd
   services/registry.sh
   services/list.sh
   ops/deploy/compose.yml
@@ -97,10 +108,12 @@ if bash "$REPO_ROOT/lisa-edge" definitely-not-a-command >/dev/null 2>&1; then
 fi
 
 echo "Checking Windows day-0 CLI targets..."
-grep -Fq 'install\usb\production\scripts\prepare-ubuntu-usb.bat' lisa-edge.cmd ||
+grep -Fq 'install\usb\scripts\prepare\prepare-production-usb.cmd' lisa-edge.cmd ||
   fail "lisa-edge.cmd does not target the canonical production USB script"
-grep -Fq 'install\usb\rescue\prepare-ubuntu-rescue-usb.bat' lisa-edge.cmd ||
+grep -Fq 'install\usb\scripts\prepare\prepare-rescue-usb.cmd' lisa-edge.cmd ||
   fail "lisa-edge.cmd does not target the canonical rescue USB script"
+grep -Fq 'install\usb\scripts\build\build-ubuntu-usb.cmd' lisa-edge.cmd ||
+  fail "lisa-edge.cmd does not target the canonical USB build script"
 
 echo "Checking installed /opt/lisa-edge path literals..."
 installed_assets=()
@@ -158,6 +171,8 @@ fi
 
 echo "Checking removed legacy paths stay removed..."
 legacy_paths=(
+  install/usb/production
+  install/usb/rescue
   bootstrap
   provisioning
   scripts
