@@ -53,4 +53,24 @@ Keep `OTBR_AUTO_RESTORE_DATASET=1` and `OTBR_AUTO_CREATE_NETWORK=0` in
 production. Without a dataset backup, a new Thread network must be created and
 devices may need factory reset or re-pairing.
 
+## Agent not ready: "connect session failed"
+
+`ot-ctl` reports `connect session failed: No such file or directory` when the
+`lisa-otbr` container is running but otbr-agent inside it has not started, so
+the agent control socket does not exist. Deploy fails closed in this state
+instead of making dataset decisions.
+
+Inspect next:
+
+```bash
+docker logs --tail 50 lisa-otbr
+ls -l /dev/serial/by-id/
+```
+
+Common causes: `THREAD_RADIO_DEVICE` does not point at the attached RCP radio,
+the radio re-enumerated under a new path after replugging, `THREAD_RADIO_URL`
+uses the wrong UART baud rate, or `OTBR_BACKBONE_IF` does not match an active
+host interface. Fix `.env` (or rerun `sudo ./lisa-edge configure`) and deploy
+again.
+
 Implementation ownership: [`services/otbr/`](../../../services/otbr/README.md).

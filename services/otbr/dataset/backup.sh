@@ -20,10 +20,24 @@ OUT="$BACKUP_DIR/thread-dataset-$TS.hex"
 LATEST="$BACKUP_DIR/latest.dataset.hex"
 RETENTION_DAYS="${OTBR_DATASET_RETENTION_DAYS:-30}"
 
-DATASET="$(docker exec lisa-otbr ot-ctl dataset active -x | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
+# otbr-agent may restart briefly right after dataset creation or deploy, so a
+# single read can race an agent restart. Retry before concluding failure.
+DATASET=""
+for _ in $(seq 1 10); do
+  DATASET="$(docker exec lisa-otbr ot-ctl dataset active -x 2>/dev/null | awk '/^[0-9a-fA-F]+$/ {print $1; exit}' || true)"
+  [ -n "$DATASET" ] && break
+  sleep 3
+done
 
 if [ -z "$DATASET" ]; then
-  echo "ERROR: Could not read active Thread dataset from OTBR." >&2
+  {
+    echo "ERROR: Could not read active Thread dataset from OTBR."
+    echo "Inspect next:"
+    echo "  docker exec lisa-otbr ot-ctl state"
+    echo "  docker exec lisa-otbr ot-ctl dataset active -x"
+    echo "If the state is disabled or detached with no dataset, the network was"
+    echo "never formed; rerun deploy or restore a saved dataset."
+  } >&2
   exit 1
 fi
 
