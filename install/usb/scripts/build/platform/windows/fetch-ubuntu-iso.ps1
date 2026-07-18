@@ -10,12 +10,17 @@ param(
     [string]$Release = "",
     [string]$ConfigPath = "",
     [string]$CacheDir = "",
+    [string]$ResultPath = "",
     [switch]$Offline
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+
+# Windows PowerShell 5.1 may default to TLS 1.0, which HTTPS mirrors reject.
+[Net.ServicePointManager]::SecurityProtocol =
+    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
 if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
     # Script lives in install/usb/scripts/build/platform/windows -> config is 4 levels up.
@@ -110,6 +115,13 @@ if ($expectedSha -notmatch '^[0-9a-f]{64}$') {
 
 $isoPath = Join-Path $CacheDir $isoName
 
+function Write-ResultFile {
+    param([string]$Value)
+    if (-not [string]::IsNullOrWhiteSpace($ResultPath)) {
+        Set-Content -LiteralPath $ResultPath -Value $Value
+    }
+}
+
 function Test-IsoHash {
     param([string]$Path, [string]$Expected)
     Write-Host "Verifying: $Path"
@@ -120,6 +132,7 @@ function Test-IsoHash {
 if (Test-Path -LiteralPath $isoPath) {
     if (Test-IsoHash -Path $isoPath -Expected $expectedSha) {
         Write-Host "Checksum OK (cached): $expectedSha"
+        Write-ResultFile -Value $isoPath
         Write-Output $isoPath
         exit 0
     }
@@ -134,6 +147,7 @@ if ($Offline) {
 $isoUrl = "$mirror/$isoName"
 Write-Host "Downloading: $isoUrl"
 Write-Host "Destination: $isoPath"
+Write-Host "(a few GB; this can take several minutes)"
 $partPath = "$isoPath.part"
 $downloaded = $false
 if (Get-Command Start-BitsTransfer -ErrorAction SilentlyContinue) {
@@ -155,4 +169,5 @@ if (-not (Test-IsoHash -Path $partPath -Expected $expectedSha)) {
 Move-Item -Force $partPath $isoPath
 Write-Host "Checksum OK: $expectedSha"
 
+Write-ResultFile -Value $isoPath
 Write-Output $isoPath

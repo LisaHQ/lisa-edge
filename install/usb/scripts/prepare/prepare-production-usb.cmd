@@ -659,12 +659,17 @@ goto :PromptDiskMatchMenu
 
 :PromptDiskSerial
 echo.
-echo On the target machine, disk serial can be found with:
-echo   Linux:   lsblk -o NAME,MODEL,SERIAL,SIZE
-echo   Windows: Get-CimInstance Win32_DiskDrive ^| Select Model,SerialNumber,Size
+echo On the target machine, find the FULL udev ID_SERIAL value with:
+echo   Linux:   udevadm info --query=property --name=/dev/sdX ^| findstr ID_SERIAL
+echo            ls -l /dev/disk/by-id/
+echo   Windows PowerShell (predicts the udev ID_SERIAL value):
+echo     Get-CimInstance Win32_DiskDrive ^| ForEach-Object { '{0}_{1}' -f ($_.Model.Trim() -replace ' ','_'), $_.SerialNumber.Trim() }
+echo.
+echo Enter the full ID_SERIAL value, e.g. Samsung_SSD_850_EVO_500GB_S2RANX0H643866Z
+echo The short lsblk SERIAL column alone will match no disk.
 echo.
 set "DISK_SERIAL="
-set /p DISK_SERIAL=Target disk serial:
+set /p DISK_SERIAL=Target disk serial (full udev ID_SERIAL):
 if "%DISK_SERIAL%"=="" (
     call :Error Disk serial is required for this option.
     goto :PromptDiskMatchMenu
@@ -704,11 +709,20 @@ exit /b 0
 :PrintDiskDiscoveryHelp
 echo.
 echo To find the target disk serial:
-echo   Linux installer shell:
-echo     lsblk -o NAME,MODEL,SERIAL,SIZE
+echo   Linux installer shell (use the FULL ID_SERIAL value):
+echo     udevadm info --query=property --name=/dev/sdX ^| findstr ID_SERIAL
+echo     ls -l /dev/disk/by-id/
 echo.
-echo   Windows PowerShell on the target:
-echo     Get-CimInstance Win32_DiskDrive ^| Select Model,SerialNumber,Size
+echo   lsblk shows only the short serial (ID_SERIAL_SHORT); the installer
+echo   matches the full ID_SERIAL string, so the short value will not match.
+echo.
+echo   Windows PowerShell (predicts the udev ID_SERIAL value):
+echo     Get-CimInstance Win32_DiskDrive ^| ForEach-Object { '{0}_{1}' -f ($_.Model.Trim() -replace ' ','_'), $_.SerialNumber.Trim() }
+echo.
+echo   Remove any " ATA Device" / " SCSI Disk Device" suffix from Model first.
+echo   USB adapters and some controllers report a different serial; when unsure,
+echo   verify in the installer shell (Ctrl+Alt+F2) with udevadm, or use the
+echo   glob form 'serial: ^*SHORTSERIAL' with the short serial.
 echo.
 echo Re-run this script when you have the value.
 exit /b 1

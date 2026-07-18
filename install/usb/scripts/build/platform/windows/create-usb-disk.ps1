@@ -20,6 +20,7 @@ param(
     [int]$DiskNumber = -1,
     [string]$IsoPath = "",
     [string]$Label = "LISA-USB",
+    [string]$ResultPath = "",
     [switch]$Force,
     [switch]$DryRun,
     [switch]$List
@@ -214,6 +215,9 @@ try {
     }
 
     Write-Host "Bootable Ubuntu USB ready (UEFI) at $usbLetter"
+    if (-not [string]::IsNullOrWhiteSpace($ResultPath)) {
+        Set-Content -LiteralPath $ResultPath -Value $usbLetter
+    }
     Write-Output $usbLetter
 } finally {
     Dismount-DiskImage -ImagePath $IsoPath | Out-Null

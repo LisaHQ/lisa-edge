@@ -272,11 +272,15 @@ show_disk_help() {
     cat <<EOF
 
 Disk discovery commands:
-  Linux:  lsblk -d -o NAME,SIZE,MODEL,SERIAL,TRAN
-          udevadm info --query=property --name=/dev/sda | grep ID_SERIAL
+  Linux:  udevadm info --query=property --name=/dev/sdX | grep '^ID_SERIAL='
+          ls -l /dev/disk/by-id/
+          lsblk -d -o NAME,SIZE,MODEL,SERIAL,TRAN   (overview only)
   macOS:  diskutil list
           system_profiler SPNVMeDataType SPSerialATADataType
 
+IMPORTANT: enter the FULL udev ID_SERIAL value (usually "<model>_<short serial>",
+e.g. Samsung_SSD_850_EVO_500GB_S2RANX0H643866Z). The installer matches the whole
+string; the short lsblk SERIAL column alone will match no disk.
 Use a stable serial when possible. Avoid selecting the installer USB.
 EOF
 }
@@ -389,7 +393,7 @@ EOF
         [[ -z "$disk_choice" ]] && disk_choice="1"
         case "$disk_choice" in
             1)
-                printf 'Target disk serial: '
+                printf 'Target disk serial (full udev ID_SERIAL value): '
                 IFS= read -r disk_value || disk_value=""
                 if [[ -n "$disk_value" ]]; then
                     disk_mode="serial"

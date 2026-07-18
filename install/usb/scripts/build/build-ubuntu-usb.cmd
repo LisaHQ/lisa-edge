@@ -89,9 +89,21 @@ echo.
 echo ==^> [1/3] Downloading and verifying the Ubuntu Server ISO
 set "FETCH_ARGS="
 if defined RELEASE set "FETCH_ARGS=-Release "%RELEASE%""
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%PLATFORM_DIR%\fetch-ubuntu-iso.ps1" %FETCH_ARGS%`) do set "ISO_PATH=%%I"
-if not defined ISO_PATH (
+set "FETCH_RESULT=%TEMP%\lisa-edge-fetch-%RANDOM%%RANDOM%.txt"
+if exist "%FETCH_RESULT%" del "%FETCH_RESULT%" >nul 2>nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PLATFORM_DIR%\fetch-ubuntu-iso.ps1" %FETCH_ARGS% -ResultPath "%FETCH_RESULT%"
+if errorlevel 1 (
     echo ERROR: ISO download/verification failed.
+    exit /b 1
+)
+if not exist "%FETCH_RESULT%" (
+    echo ERROR: the fetch step did not report an ISO path.
+    exit /b 1
+)
+set /p ISO_PATH=<"%FETCH_RESULT%"
+del "%FETCH_RESULT%" >nul 2>nul
+if not defined ISO_PATH (
+    echo ERROR: the fetch step did not report an ISO path.
     exit /b 1
 )
 if not exist "%ISO_PATH%" (
@@ -109,16 +121,34 @@ set "CREATE_FLAGS="
 if defined OPT_YES    set "CREATE_FLAGS=%CREATE_FLAGS% -Force"
 if defined OPT_DRYRUN set "CREATE_FLAGS=%CREATE_FLAGS% -DryRun"
 set "USB_LETTER="
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%PLATFORM_DIR%\create-usb-disk.ps1" -DiskNumber %DISKNUM% -IsoPath "%ISO_PATH%" %CREATE_FLAGS%`) do set "USB_LETTER=%%I"
+set "CREATE_RESULT=%TEMP%\lisa-edge-usb-%RANDOM%%RANDOM%.txt"
+if exist "%CREATE_RESULT%" del "%CREATE_RESULT%" >nul 2>nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PLATFORM_DIR%\create-usb-disk.ps1" -DiskNumber %DISKNUM% -IsoPath "%ISO_PATH%" %CREATE_FLAGS% -ResultPath "%CREATE_RESULT%"
+set "CREATE_RC=%ERRORLEVEL%"
 
 if defined OPT_DRYRUN (
+    if exist "%CREATE_RESULT%" del "%CREATE_RESULT%" >nul 2>nul
+    if not "%CREATE_RC%"=="0" (
+        echo ERROR: dry-run validation failed ^(exit code %CREATE_RC%^).
+        exit /b 1
+    )
     echo.
     echo ==^> [3/3] Skipped ^(dry-run^): would inject the '%PROFILE%' autoinstall profile
     echo Dry-run finished; no changes were made.
     exit /b 0
 )
+if not "%CREATE_RC%"=="0" (
+    echo ERROR: USB creation failed ^(exit code %CREATE_RC%^).
+    exit /b 1
+)
+if not exist "%CREATE_RESULT%" (
+    echo ERROR: USB creation did not report a drive letter.
+    exit /b 1
+)
+set /p USB_LETTER=<"%CREATE_RESULT%"
+del "%CREATE_RESULT%" >nul 2>nul
 if not defined USB_LETTER (
-    echo ERROR: USB creation failed ^(no drive letter reported^).
+    echo ERROR: USB creation did not report a drive letter.
     exit /b 1
 )
 if not exist "%USB_LETTER%\" (

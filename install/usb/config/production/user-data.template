@@ -36,7 +36,13 @@ autoinstall:
         id: install_disk
         match:
           # Prefer the target disk serial. The wizard can also use model or size: largest.
-          # Find it with: lsblk -o NAME,MODEL,SERIAL,SIZE
+          # Subiquity compares "serial" against the FULL udev ID_SERIAL value
+          # (usually "<model>_<short serial>") with whole-string glob matching.
+          # The lsblk SERIAL column shows ID_SERIAL_SHORT and will NOT match.
+          # Find the correct value with:
+          #   udevadm info --query=property --name=/dev/sdX | grep '^ID_SERIAL='
+          # Do NOT use "wwn": subiquity silently ignores unsupported match keys
+          # and would then select the first detected disk.
           serial: REPLACE_WITH_TARGET_DISK_SERIAL
 
         ptable: gpt
@@ -47,14 +53,15 @@ autoinstall:
       - type: partition
         id: efi_partition
         device: install_disk
+        number: 1
         size: 1G
         flag: boot
-        wipe: superblock
-        preserve: false
+        grub_device: true
 
       - type: partition
         id: root_partition
         device: install_disk
+        number: 2
         size: -1
         wipe: superblock
         preserve: false

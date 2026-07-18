@@ -29,8 +29,16 @@ autoinstall:
       - type: disk
         id: rescue_emmc
         match:
-          # Find REPLACE_WITH_EMMC_SERIAL with: lsblk -o NAME,MODEL,SERIAL,SIZE
+          # Subiquity compares "serial" against the FULL udev ID_SERIAL value
+          # with whole-string glob matching (lsblk SERIAL is the short form).
+          # Find it with:
+          #   udevadm info --query=property --name=/dev/mmcblk0 | grep '^ID_SERIAL='
           serial: REPLACE_WITH_EMMC_SERIAL
+        ptable: gpt
+        wipe: superblock-recursive
+        preserve: false
+        grub_device: true
+
         ptable: gpt
         wipe: superblock-recursive
         preserve: false
@@ -39,15 +47,18 @@ autoinstall:
       - type: partition
         id: rescue_efi
         device: rescue_emmc
+        number: 1
         size: 1G
         flag: boot
-        number: 1
+        grub_device: true
 
       - type: partition
         id: rescue_root
         device: rescue_emmc
-        size: -1
         number: 2
+        size: -1
+        wipe: superblock
+        preserve: false
 
       - type: format
         id: rescue_efi_format

@@ -149,6 +149,13 @@ match:
   serial: YOUR_EMMC_SERIAL
 ```
 
+Serial matching uses the full udev `ID_SERIAL` value. Subiquity compares
+`match.serial` against `ID_SERIAL` (usually `<model>_<short serial>`, for
+example `Samsung_SSD_850_EVO_500GB_S2RANX0H643866Z`) with whole-string glob
+matching. The short serial shown by `lsblk` (`ID_SERIAL_SHORT`) will match no
+disk. Do not use `wwn` in `match`: subiquity silently ignores unsupported
+match keys and would then select the first detected disk.
+
 Identify disks on the target machine with:
 
 ```bash
@@ -158,6 +165,7 @@ sudo ./lisa-edge rescue disks
 or:
 
 ```bash
+udevadm info --query=property --name=/dev/sdX | grep '^ID_SERIAL='
 lsblk -o NAME,PATH,SIZE,MODEL,SERIAL,TYPE,TRAN,MOUNTPOINTS
 ```
 
