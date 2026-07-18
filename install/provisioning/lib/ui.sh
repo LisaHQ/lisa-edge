@@ -29,6 +29,34 @@ ask_value() {
   printf -v "$variable" '%s' "$value"
 }
 
+ask_choice() {
+  local variable="$1"
+  local label="$2"
+  local default_value="$3"
+  shift 3
+  local options=("$@")
+  local option value index
+
+  echo "$label:"
+  index=1
+  for option in "${options[@]}"; do
+    printf '  %d) %s\n' "$index" "$option"
+    index=$((index + 1))
+  done
+  while :; do
+    read -r -p "Select a number or enter a custom value [$default_value]: " value
+    value="${value:-$default_value}"
+    if [[ "$value" =~ ^[0-9]+$ ]] && [ "$value" -ge 1 ] && [ "$value" -le "${#options[@]}" ]; then
+      value="${options[$((value - 1))]}"
+    fi
+    case "$value" in
+      *"'"*) echo "Values must not contain single quotes ('). Try again." >&2; continue ;;
+    esac
+    break
+  done
+  printf -v "$variable" '%s' "$value"
+}
+
 ask_secret() {
   local variable="$1"
   local label="$2"
