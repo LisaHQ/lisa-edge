@@ -532,10 +532,13 @@ If the project uses Git or SVN, every response following file changes must inclu
 
 Required format:
 
-```text
 Commit description:
-- feat(scope): ...
-- fix(scope): ...
+
+```text
+Short summary of the completed change
+
+- type(scope): Describe the first logical change.
+- type(scope): Describe additional logical changes when applicable.
 ```
 
 ## 11. Testing and Validation

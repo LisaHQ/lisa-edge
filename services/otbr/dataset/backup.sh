@@ -20,12 +20,21 @@ OUT="$BACKUP_DIR/thread-dataset-$TS.hex"
 LATEST="$BACKUP_DIR/latest.dataset.hex"
 RETENTION_DAYS="${OTBR_DATASET_RETENTION_DAYS:-30}"
 
-# otbr-agent may restart briefly right after dataset creation or deploy, so a
-# single read can race an agent restart. Retry before concluding failure.
+# otbr-agent may briefly drop control sessions right after dataset creation or
+# deploy, so a single read can race an agent restart. Retry transient failures,
+# but stop immediately when the agent confirms no dataset exists (NotFound).
 DATASET=""
 for _ in $(seq 1 10); do
-  DATASET="$(docker exec lisa-otbr ot-ctl dataset active -x 2>/dev/null | awk '/^[0-9a-fA-F]+$/ {print $1; exit}' || true)"
-  [ -n "$DATASET" ] && break
+  OUTPUT=""
+  if OUTPUT="$(docker exec lisa-otbr ot-ctl dataset active -x 2>&1)"; then
+    DATASET="$(printf '%s\n' "$OUTPUT" | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
+    [ -n "$DATASET" ] && break
+  fi
+  if printf '%s' "$OUTPUT" | grep -qi 'NotFound'; then
+    echo "ERROR: OTBR has no active Thread dataset to back up." >&2
+    echo "Form or restore a network first (deploy handles both), then rerun this backup." >&2
+    exit 1
+  fi
   sleep 3
 done
 
@@ -35,8 +44,7 @@ if [ -z "$DATASET" ]; then
     echo "Inspect next:"
     echo "  docker exec lisa-otbr ot-ctl state"
     echo "  docker exec lisa-otbr ot-ctl dataset active -x"
-    echo "If the state is disabled or detached with no dataset, the network was"
-    echo "never formed; rerun deploy or restore a saved dataset."
+    echo "Rerun this backup once ot-ctl answers consistently."
   } >&2
   exit 1
 fi

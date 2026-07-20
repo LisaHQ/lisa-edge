@@ -54,9 +54,52 @@ if [ "$AGENT_READY" -ne 1 ]; then
   exit 1
 fi
 
-CURRENT="$(docker exec lisa-otbr ot-ctl dataset active -x 2>/dev/null | awk '/^[0-9a-fA-F]+$/ {print $1; exit}' || true)"
+# Classify the active dataset instead of trusting a single read. A transient
+# ot-ctl failure must never be mistaken for "no dataset": with auto-create
+# enabled that would replace a live Thread network and orphan its devices.
+# Sets DATASET_HEX. Returns 0=present, 1=agent confirmed absent, 2=undetermined.
+read_active_dataset() {
+  local output=""
+  DATASET_HEX=""
+  if output="$(docker exec lisa-otbr ot-ctl dataset active -x 2>&1)"; then
+    DATASET_HEX="$(printf '%s\n' "$output" | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
+    [ -n "$DATASET_HEX" ] && return 0
+  fi
+  if printf '%s' "$output" | grep -qi 'NotFound'; then
+    return 1
+  fi
+  return 2
+}
 
-if [ -n "$CURRENT" ]; then
+DATASET_STATUS=""
+for _ in $(seq 1 30); do
+  RC=0
+  read_active_dataset || RC=$?
+  if [ "$RC" -eq 0 ]; then
+    DATASET_STATUS=present
+    break
+  fi
+  if [ "$RC" -eq 1 ]; then
+    DATASET_STATUS=absent
+    break
+  fi
+  sleep 2
+done
+if [ -z "$DATASET_STATUS" ]; then
+  {
+    echo "ERROR: Could not determine the active Thread dataset state."
+    echo "otbr-agent answered readiness checks but dataset reads kept failing."
+    echo "Refusing to restore or create a network on an ambiguous state."
+    echo "Inspect next:"
+    echo "  docker logs --tail 50 lisa-otbr"
+    echo "  docker exec lisa-otbr ot-ctl state"
+    echo "  docker exec lisa-otbr ot-ctl dataset active -x"
+    echo "Rerun deploy once ot-ctl answers consistently."
+  } >&2
+  exit 1
+fi
+
+if [ "$DATASET_STATUS" = "present" ]; then
   echo "OTBR already has active dataset. Backing it up."
   "$EDGE_REPO/services/otbr/dataset/backup.sh"
   exit 0
@@ -74,7 +117,26 @@ if [ "${OTBR_AUTO_CREATE_NETWORK:-0}" = "1" ]; then
   docker exec lisa-otbr ot-ctl dataset commit active
   docker exec lisa-otbr ot-ctl ifconfig up
   docker exec lisa-otbr ot-ctl thread start
-  sleep 8
+  # Attaching and BBR/TREL setup can briefly destabilize the control session.
+  # Confirm the committed dataset is readable before backing it up.
+  CONFIRMED=0
+  for _ in $(seq 1 30); do
+    RC=0
+    read_active_dataset || RC=$?
+    if [ "$RC" -eq 0 ]; then
+      CONFIRMED=1
+      break
+    fi
+    sleep 2
+  done
+  if [ "$CONFIRMED" -ne 1 ]; then
+    {
+      echo "ERROR: Created a new Thread network but could not read it back."
+      echo "Inspect next: docker exec lisa-otbr ot-ctl state; docker exec lisa-otbr ot-ctl dataset active -x"
+      echo "Then run services/otbr/dataset/backup.sh manually to store the dataset."
+    } >&2
+    exit 1
+  fi
   "$EDGE_REPO/services/otbr/dataset/backup.sh"
   exit 0
 fi
