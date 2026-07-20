@@ -8,27 +8,28 @@ If another repository instruction file conflicts with this file, follow this fil
 ### Communication
 
 - Chat with the user in Vietnamese.
-- Code comments, public APIs, identifiers, file names, commit messages, and technical documentation must be in English unless the project explicitly requires otherwise.
-- Be direct, practical, and aware of the project's architecture and operational constraints.
+- Code comments, public APIs, identifiers, function names, variable names, file names, commit messages, and technical documentation must be in English.
+- Be direct, practical, security-conscious, and operations-aware.
 - Do not over-explain obvious things.
-- Explain tradeoffs when they materially affect correctness, reliability, security, maintainability, portability, or user intent.
+- Explain tradeoffs when they materially affect safety, reliability, recoverability, security, portability, or long-term maintainability.
 - Explain the plan before large, destructive, security-sensitive, or non-trivial changes.
-- Ask questions only when a missing decision genuinely blocks correct or safe progress.
+- Ask questions only when a missing decision genuinely blocks safe or correct progress.
 - After editing, provide a concise file-level summary of what changed.
-- Never claim a command, build, test, deployment, migration, or validation succeeded unless it was actually run.
+- Never claim a command, deployment, backup, restore, test, or validation succeeded unless it was actually run.
 
 ### Read First
 
-Before non-trivial changes, read only the documents needed for the task:
+Before non-trivial changes:
 
 1. Read `README.md` for the stable operator interface and repository map.
 2. Read the relevant index under `docs/README.md`.
 3. Read only the document, README, and implementation nearest to the area being changed.
 
-Do not read every document blindly. Use indexes first.
-Treat the root `./lisa-edge` CLI and current implementation as the source of truth for available commands and selectable services.
-Do not use archived or planned documents as current deployment instructions.
-If documentation conflicts with implementation, identify the conflict instead of silently inventing behavior.
+- Stop reading once sufficient evidence has been gathered.
+- Do not read every document blindly. Use indexes and references first.
+- Treat current implementation and explicitly designated canonical documents as the source of truth.
+- Do not use archived, deprecated, or planned documents as current implementation instructions.
+- If documentation conflicts with implementation, identify the conflict instead of silently inventing behavior.
 
 ## 2. Immutable Prime Directive
 
@@ -71,55 +72,66 @@ Before answering, recommending, designing, reviewing, editing, or implementing a
 
 * Prefer solutions that are correct, simple, maintainable, and reversible.
 * Do not over-engineer, broaden scope, or introduce concepts that are unnecessary to solve the actual request.
-* Preserve existing intent, architecture, and established structure unless there is a justified reason to change them.
+* Make the smallest change that preserves project integrity.
 * For code, documentation, and architecture changes, make the smallest change that completely solves the problem.
 * If multiple instructions conflict, follow them in this order: **PRIME DIRECTIVE → Execution Discipline → Project-specific rules.**
 
-## 3. Project Boundary
+### Decision-Making Discipline
 
-### Project Identity
+* Prefer evidence from the current repository, implementation, tests, and active documentation over inference, convention, or general best practice.
+* Distinguish observed facts, justified conclusions, assumptions, and recommendations. Do not present one as another.
+* Preserve current intent, architecture, public behavior, and established project conventions unless a change is necessary and justified by the task.
+* Do not optimize one file, component, or workflow at the expense of repository-wide consistency, operator clarity, security, or recoverability.
+* Resolve contradictions using the defined source-of-truth order. When the conflict cannot be resolved safely, identify it explicitly instead of inventing a compromise.
+* Treat the smallest viable change as the default, but do not prefer a smaller change when it leaves the underlying problem incomplete or inconsistent.
+* Introduce a new abstraction, dependency, convention, or architectural layer only when it provides a material long-term benefit that cannot be achieved cleanly within the existing design.
+* Reuse existing terminology, interfaces, patterns, and ownership boundaries before creating alternatives.
+* Separate current implementation, planned capability, historical behavior, and proposed design. Never blur their status.
+* Evaluate decisions at both the local and system level. A locally correct change is not acceptable if it weakens the wider architecture or operating model.
+* Prefer reversible decisions when evidence is incomplete or the operational impact is uncertain.
+* Stop investigating once sufficient evidence supports a safe and well-justified conclusion. Do not continue expanding scope without a material reason.
 
-LISA Edge is the lightweight local-infrastructure layer of the LISA ecosystem. It provides local availability, connectivity, messaging, service discovery, monitoring, secure remote access, backup, restore, diagnostics, and recovery capabilities for the broader LISA platform.
+## 3. Project Identity and Boundary
+
+### Identity
+
+LISA Edge is the lightweight local-infrastructure layer of the LISA ecosystem. It provides connectivity, messaging, service discovery, monitoring, secure remote access, backup, restore, diagnostics, and recovery capabilities that support the broader LISA platform.
 
 LISA Edge is infrastructure for LISA. It supports intelligence but does not replace LISA Brain.
 
-The system must remain useful when cloud services are unavailable and should favor local operation, predictable recovery, secure defaults, and hardware independence.
+The project should optimize for local availability, secure operation, predictable recovery, maintainability, and hardware independence.
 
 ### In Scope
 
-Typical LISA Edge responsibilities include:
-
-- MQTT messaging
-- OpenThread Border Router
-- Matter and Thread connectivity support
-- mDNS and service discovery
-- NTP / Chrony
-- VPN access
-- health monitoring
-- diagnostics
-- backup and restore
-- host bootstrap and hardening
+- MQTT and local messaging
+- Thread, Matter, OTBR, mDNS, and service discovery support
+- NTP / Chrony and supporting infrastructure services
+- VPN-first remote administration
+- health monitoring and diagnostics
+- backup, restore, and disaster recovery
+- host bootstrap, hardening, and configuration
 - Docker Compose service lifecycle
-- integration support for UniFi, Home Assistant, Homey, Zigbee2MQTT, Node-RED, and future edge services
+- integrations that clearly belong at the infrastructure edge
 
 ### Explicit Non-Goals
 
 Do not turn LISA Edge into:
 
-- an LLM inference host
-- an agent reasoning or planning system
-- a memory or vector database platform
-- a video analytics or transcoding server
-- a primary NAS
-- a large database host
-- a heavy observability or analytics stack
+- an LLM inference, agent reasoning, planning, or memory platform
+- a video analytics, object detection, or transcoding server
+- a primary NAS or heavy storage platform
+- a large database or analytics host
 - an all-in-one server
 
-Small supporting databases or lightweight APIs may be acceptable only when their resource use, recovery path, and operational value are clearly justified.
+Small supporting databases or lightweight APIs are acceptable only when their resource use, recovery path, security boundary, and operational value are clearly justified.
 
 ### Current Implementation Status
+The current implementation is defined by:
 
-Implemented selectable services:
+```bash
+./lisa-edge service list
+```
+Current examples may include:
 
 - MQTT
 - Uptime Kuma
@@ -149,48 +161,46 @@ Planned but not currently selectable:
 
 Never present a planned service as implemented. Use `./lisa-edge service list` and the current code before claiming deployability.
 
-## 4. Architectural Principles
+## 4. Technical and Architectural Direction
 
-### Core Direction
-
-LISA Edge is:
+### Required Direction
 
 - Linux-first
-- Docker-first
-- local-first
-- hardware-agnostic
-- recovery-focused
-- infrastructure-as-code oriented
-- Git-managed
-- security-conscious
-
-Prefer practical immutable infrastructure:
-
-- Compose-defined services
+- Docker-first for application services
+- local-first operation
+- hardware-agnostic architecture
 - Git-managed configuration
-- externalized persistent data
-- secure secrets outside Git
-- reproducible host preparation
-- rebuildable deployments
-- documented backup and restore procedures
+- infrastructure as code
+- practical immutable infrastructure
+- recovery-first operations
 
-Avoid manual configuration drift, undocumented host mutations, hidden state, and snowflake deployments.
+Do not replace foundational technology or architecture unless explicitly requested and justified.
+
+### Core Principles
+
+- Prefer reproducible deployment over manual host mutation.
+- Prefer externalized persistent data and portable backups.
+- Prefer simple, replaceable nodes over unnecessary clustering.
+- Preserve security boundaries by default.
+- Keep the Rescue Layer independent from production workloads.
+- Treat backup and restore as part of every critical service design.
+
+Avoid configuration drift, hidden state, undocumented changes, and snowflake servers.
 
 ### Recovery Priority
 
-Use this priority order:
+Use this order:
 
 1. Backup
 2. Restore
 3. Reliability
 4. Failover
 
-Prefer a replaceable node with tested recovery over an unnecessarily complex cluster.
-A design is incomplete if it cannot explain how it is backed up, restored, rebuilt, and diagnosed after failure.
+A design is incomplete if it cannot explain how it is backed up, restored, rebuilt, diagnosed, and recovered after total production SSD failure.
 
 ### Deployment Model
 
-The reference deployment is:
+The reference deployment (ZimaBoard 2 1664) is:
 
 ```text
 eMMC
@@ -203,9 +213,9 @@ NAS or external storage
 └── Backup and restore media
 ```
 
+ZimaBoard 2 is the current reference platform, not an architectural requirement.
 The architecture must not depend on ZimaBoard-specific behavior.
-ZimaBoard 2 is a reference platform, not an architectural requirement.
-Supported deployment targets may include suitable Ubuntu or Debian hosts, mini PCs, NUCs, Raspberry Pi systems, VMs, NAS-hosted VMs, or cloud VMs when the selected images support the CPU architecture.
+Supported deployment targets include, but are not limited to suitable Ubuntu or Debian hosts, mini PCs, NUCs, Raspberry Pi systems, VMs, NAS-hosted VMs, or cloud VMs when the selected images support the CPU architecture.
 
 ### Rescue and Production Separation
 
@@ -229,7 +239,24 @@ The Production Layer exists for:
 
 Do not place production services or log-heavy workloads on the Rescue Layer.
 
-## 5. Repository and CLI Rules
+### Critical Boundaries
+
+- LISA Edge owns infrastructure services, not AI reasoning.
+- LISA Brain owns LLM, ASR/TTS, agent, and orchestration workloads.
+- NAS or external storage should own primary backup and archive capacity.
+- Vision systems should own heavy camera decoding, detection, and analytics.
+- Home automation platforms may integrate with or optionally co-locate on Edge, but their application logic does not redefine the Edge boundary.
+
+## 5. Repository and Source-of-Truth Rules
+
+### Canonical Entry Points
+
+- `./lisa-edge help`: stable operator interface and complete command map
+- `README.md`: project entry point, current capabilities, and repository map
+- `docs/README.md`: documentation index and operational guidance
+- `bash tools/validate-repo.sh`: canonical repository validation used by CI
+
+Users should not need to know where an internal implementation script lives. New operator-facing behavior should normally be exposed through the root CLI.
 
 ### Stable Operator Interface
 
@@ -265,40 +292,37 @@ Preserve backward-compatible operator behavior unless a breaking change is expli
 
 ### Canonical Repository Areas
 
-Use the existing layout:
+- `install/usb/`: production and rescue installation media
+- `install/provisioning/`: first-boot and site-specific provisioning
+- `install/bootstrap/`: host packages, hardening, Docker, and storage preparation
+- `services/`: service Compose, configuration, preparation, and provisioning
+- `ops/deploy/`: deploy, stop, update, status, health, and systemd runtime behavior
+- `ops/backup-restore/`: backup, restore, archive validation, and timers
+- `ops/diagnostics/`: diagnostic collection
+- `rescue/`: Rescue OS and disaster-recovery tooling
+- `docs/`: architecture, operations, security, networking, and procedures
+- `tools/`: repository tooling and validation
+- `tests/`: structure, unit, security, and integration tests
 
-- `install/usb/` for production and rescue installation media
-- `install/provisioning/` for first-boot and site-specific provisioning
-- `install/bootstrap/` for host packages, hardening, Docker, and storage preparation
-- `services/` for service Compose, configuration, preparation, and provisioning
-- `ops/deploy/` for deploy, stop, update, status, health, and systemd runtime behavior
-- `ops/backup-restore/` for backup, restore, archive validation, and timers
-- `ops/diagnostics/` for diagnostic collection
-- `rescue/` for Rescue OS and disaster-recovery tooling
-- `docs/` for architecture, operations, security, networking, and procedures
-- `tools/` for repository tooling and validation
-- `tests/` for structure, unit, security, and integration tests
+Use the existing layout. Do not recreate removed legacy layouts such as `scripts/`, `bootstrap/`, `provisioning/`, `usb-installer/`, `recovery/`, `compose/`, `config/`, or `systemd/`.
 
-Do not recreate removed legacy layouts such as `scripts/`, `bootstrap/`, `provisioning/`, `usb-installer/`, `recovery/`, `compose/`, `config/`, or `systemd/`.
+### Source-of-Truth Precedence
 
-### Source of Truth
-
-Use this precedence when determining current behavior:
+Use this order when determining current behavior:
 
 1. Root CLI behavior and current implementation
 2. Current non-archived documentation
 3. Planned documentation
 4. Archived documentation
 
-Planned documents describe intent, not deployed capability.
-Archived documents are historical context only.
+Planned documents describe intent, not deployed capability. Archived documents are historical context only.
 
-## 6. Service Design Rules
+## 6. Project-Specific Engineering Rules
 
-### Service Packaging
+### Service Design
 
 Prefer Docker Compose for application services.
-Host-level capabilities may use systemd, host packages, or scripts when containerization would reduce reliability or complicate recovery.
+Use systemd, host packages, or scripts for host-level capabilities when containerization would reduce reliability, obscure ownership, or complicate recovery.
 
 Each critical service should define:
 
@@ -314,15 +338,7 @@ Each critical service should define:
 - failure behavior
 - resource expectations
 
-Do not add a service only because it is technically possible.
-Confirm that it belongs on LISA Edge and provides material operational value.
-
-### Service Selection
-
-Selectable services must integrate with the existing service catalog and dependency model.
-Dependencies must be explicit. For example, a service that requires MQTT must select or validate MQTT through the established mechanism rather than silently assuming it exists.
-
-Do not hard-code one deployment profile, one network, one hardware model, or one service set.
+Do not add a service only because it is technically possible. Confirm that it belongs on LISA Edge and provides material operational value.
 
 ### Resource Discipline
 
@@ -338,92 +354,72 @@ Avoid:
 - unnecessary duplicate services
 - polling when event-driven integration is practical
 
-## 7. Networking and Security Rules
+### Networking and Security
 
-### Security Defaults
+Prefer VPN-first administration, SSH key authentication, firewall allow-lists, least privilege, minimal exposed ports, and no public administrative dashboards.
 
-Prefer:
-
-- VPN-first administration
-- SSH key authentication
-- no public administrative dashboards
-- firewall allow-lists
-- least privilege
-- minimal exposed ports
-- local-first service access
-- explicit network boundaries
-- secure secret storage
-
-Do not weaken existing VLAN, firewall, or trust boundaries for convenience.
-
-High-sensitivity networks, including access control, alarm, camera, and management networks, require additional scrutiny.
-
-### Network Integration
-
-Networking is a first-class architectural concern.
 When adding or changing services, evaluate:
 
 - VLAN placement
 - firewall direction and ports
 - multicast and mDNS requirements
 - Thread and Matter discovery
-- DNS behavior
-- NTP dependencies
+- DNS and NTP dependencies
 - VPN reachability
 - site-to-site implications
-- failure behavior when WAN or cloud services are unavailable
+- behavior when WAN or cloud services are unavailable
 
-Never assume all devices share one flat LAN.
-Never require broad inter-VLAN access when narrower rules are sufficient.
+Never assume one flat LAN. Never weaken VLAN, firewall, or trust boundaries for convenience.
 
-### Secrets
+High-sensitivity networks, including access control, alarm, camera, and management networks, require additional scrutiny.
 
-Keep `.env`, credentials, private keys, tokens, and runtime secrets outside Git.
-Use restrictive permissions such as `0600` where appropriate.
-Treat backup archives as sensitive because they may contain credentials.
-Do not print secrets in logs, diagnostics, command output, tests, or error messages.
-
-## 8. Automation and Shell Rules
-
-### General Implementation
+### Automation and Shell
 
 - Follow existing shell style and helper patterns first.
-- Keep scripts non-interactive when automation requires it, and make interactive behavior explicit.
-- Use strict validation for destructive inputs.
-- Quote variable expansions unless intentional word splitting is required and documented.
-- Resolve repository paths from script location rather than the caller's current directory.
-- Prefer idempotent operations.
-- Make reruns safe.
-- Preserve useful exit codes.
-- Send actionable errors to stderr.
-- Avoid hidden global state.
-- Avoid hard-coded installed paths unless the architecture explicitly requires them and tests protect them.
-- Do not introduce a new dependency without clear operational justification.
+- Resolve repository paths from script location, not the caller's current directory.
+- Quote variable expansions unless intentional splitting is documented.
+- Prefer idempotent and safely repeatable operations.
+- Preserve meaningful exit codes and send actionable errors to stderr.
+- Avoid hidden global state and unjustified dependencies.
+- Do not hard-code site-specific IPs, VLANs, hostnames, serials, credentials, or device paths in generic logic.
 
 ### Destructive Operations
 
-Disk, partition, filesystem, restore, archive extraction, mount, and target-root operations are safety-critical.
+Disk, partition, filesystem, mount, archive extraction, target-root, and restore operations are safety-critical.
 
-Required behavior:
+They must:
 
 - validate before mutation
 - fail closed on ambiguity
 - never guess a disk device name
-- prefer serial or explicitly reviewed model matching
 - protect the running system and mounted production data
-- reject unsafe paths and traversal
+- reject traversal and unsafe paths
 - make destructive intent visible
-- provide dry-run or review steps when practical
-- keep cleanup reliable after failure or cancellation
+- use dry-run or review steps when practical
+- clean up safely after failure or cancellation
 
-### Configuration
+Prefer serial or explicitly reviewed model matching for installation targets.
 
-- Preserve user-managed values when safe.
-- Do not overwrite `.env` or persistent configuration without explicit intent.
-- Validate required variables before deploy.
+### Configuration and Secrets
+
+- Keep `.env`, credentials, private keys, tokens, and runtime secrets outside Git.
+- Use restrictive permissions such as `0600` where appropriate.
+- Preserve user-managed values unless replacement is explicit.
+- Validate required configuration before deploy.
 - Keep defaults conservative and portable.
-- Separate generated configuration from source-controlled templates.
-- Avoid embedding site-specific IPs, VLANs, hostnames, serial numbers, credentials, or device paths in generic project logic.
+- Treat backup archives as sensitive.
+- Do not expose secrets through logs, diagnostics, tests, or errors.
+
+### Backup, Restore, and Power Loss
+
+Every critical persistent service must identify what must be backed up and what can be recreated.
+Backups must not depend solely on the production SSD.
+
+Restore workflows must validate archives before mutation, reject unsafe content, avoid partial silent success, report exactly what was restored, and define post-restore validation.
+
+Do not claim backup reliability without testing restore.
+
+When changing persistent state, account for power loss, reboot, process termination, missing storage, and unavailable network resources. Prefer atomic writes, temporary staging, checksums, and safely repeatable steps.
 
 ### Logging and Diagnostics
 
@@ -434,58 +430,20 @@ Logs and diagnostics should answer:
 - What input or state caused it?
 - What should the operator inspect next?
 
-Prefer concise lifecycle, validation, dependency, and recovery information.
-Avoid noisy loop output, secret leakage, duplicated messages, and false success states.
+Avoid noisy output, duplicated messages, secret leakage, and false success states.
 
-## 9. Backup, Restore, and Recovery Rules
-
-### Backup
-
-Every critical persistent service must identify what must be backed up and what can be recreated.
-Backups must not depend solely on the production SSD.
-Prefer NAS, external storage, or remote encrypted storage as destinations.
-
-Backup workflows should include:
-
-- archive validation
-- checksum sidecars
-- clear metadata
-- safe temporary files
-- predictable naming
-- cleanup behavior
-- failure reporting
-
-### Restore
-
-Restore is a first-class feature, not a documentation afterthought.
-
-Restore workflows must:
-
-- validate the archive before mutation
-- reject unsafe paths and malformed content
-- preserve or review image references before deploy
-- avoid partial silent success
-- clearly state what was restored
-- identify required post-restore validation
-
-Do not claim backup reliability without testing restore.
-
-### Power Loss and Partial Failure
-
-When changing persistent state, consider interruption by power loss, reboot, process termination, missing storage, or disconnected network resources.
-Prefer atomic writes, temporary staging, checksums, resumable or safely repeatable steps, and explicit cleanup.
-
-## 10. Change Discipline
+## 7. Change Discipline
 
 ### General
 
-- Preserve current architecture and operator behavior unless change is justified.
+- Preserve current intent, architecture, and public behavior unless change is justified.
 - Make the smallest complete change.
 - Do not mix unrelated refactors with feature work.
-- Do not reformat unrelated files.
+- Do not reformat or rename unrelated code.
 - Do not move files without updating all references and structural tests.
 - Do not broaden scope to adjacent services or future plans without need.
 - Do not silently convert planned capabilities into implemented ones.
+- Update directly affected references, tests, and documentation.
 
 ### Refactoring
 
@@ -528,7 +486,10 @@ If the project uses Git or SVN, every response following file changes must inclu
 - Use the most specific applicable type and an optional scope when useful.
 - Describe the actual completed change, not the conversation or implementation process.
 - Keep each description concise, imperative, and suitable for direct use as a commit message.
-- When the work contains materially separate changes, provide multiple bullet entries rather than forcing them into one vague description.
+- Begin with a single summary line that describes the overall completed change using the same Conventional Commits-style format.
+- Follow the summary with bullet entries for each material change. Use one bullet when the work contains only one material change.
+- Do not replace the summary with the bullet list or omit the per-change bullets.
+- Enclose the entire `Commit description` section in a standalone fenced code block labeled `text` so it can be copied directly and distinguished from the rest of the response.
 
 Required format:
 
@@ -541,11 +502,11 @@ Short summary of the completed change
 - type(scope): Describe additional logical changes when applicable.
 ```
 
-## 11. Testing and Validation
+## 8. Testing and Validation
 
 ### Canonical Validation
 
-Run the same validation used by CI when practical:
+Run the narrowest relevant tests first, then the canonical validation when practical:
 
 ```bash
 bash tools/validate-repo.sh
@@ -558,17 +519,19 @@ The canonical test areas are:
 - `tests/security/` for archive validation, checksums, mount guards, target-root parsing, and Rescue OS path safety
 - `tests/integration/` for complete workflows in isolated temporary filesystem trees
 
+Never claim validation passed unless the command actually completed successfully.
+
 ### Test Safety
 
 Tests must:
 
 - resolve `REPO_ROOT` from their own path
 - use isolated temporary directories
-- never mutate a live host
+- never mutate a live host or production data
 - never deploy into production paths
-- never alter production data
-- never require real destructive disk operations
-- avoid dependence on external cloud availability unless explicitly isolated
+- never perform real destructive disk operations
+- clean up safely after failure
+- include negative tests for security-sensitive behavior
 
 ### Validation Expectations
 
@@ -579,7 +542,56 @@ For security-sensitive changes, include negative tests that prove unsafe input i
 
 Never claim validation passed unless the command actually completed successfully.
 
-## 12. Documentation Rules
+### Acceptance
+
+A task is complete only when:
+
+- the requested change is implemented
+- unrelated files are unchanged
+- relevant validation was run or limitations are clearly stated
+- directly affected documentation is consistent
+- operational, security, or compatibility risks are disclosed
+- no untested behavior is presented as verified
+
+## 9. Backup, Restore, and Recovery Rules
+
+### Backup
+
+Every critical persistent service must identify what must be backed up and what can be recreated.
+Backups must not depend solely on the production SSD.
+Prefer NAS, external storage, or remote encrypted storage as destinations.
+
+Backup workflows should include:
+
+- archive validation
+- checksum sidecars
+- clear metadata
+- safe temporary files
+- predictable naming
+- cleanup behavior
+- failure reporting
+
+### Restore
+
+Restore is a first-class feature, not a documentation afterthought.
+
+Restore workflows must:
+
+- validate the archive before mutation
+- reject unsafe paths and malformed content
+- preserve or review image references before deploy
+- avoid partial silent success
+- clearly state what was restored
+- identify required post-restore validation
+
+Do not claim backup reliability without testing restore.
+
+### Power Loss and Partial Failure
+
+When changing persistent state, consider interruption by power loss, reboot, process termination, missing storage, or disconnected network resources.
+Prefer atomic writes, temporary staging, checksums, resumable or safely repeatable steps, and explicit cleanup.
+
+## 10. Documentation Rules
 
 Documentation is part of the operational interface.
 
@@ -606,9 +618,9 @@ If implementation and documentation conflict:
 3. Update the incorrect source when within scope.
 4. Do not silently preserve contradictory instructions.
 
-## 13. Standard Response Formats
+## 11. Standard Response Formats
 
-After making code or configuration changes:
+After making changes:
 
 ```text
 Summary:
@@ -659,7 +671,7 @@ Score:
 - ...
 ```
 
-## 14. Priority Order
+## 12. Priority Order
 
 When priorities conflict:
 

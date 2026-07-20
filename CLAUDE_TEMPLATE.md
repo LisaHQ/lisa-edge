@@ -1,3 +1,12 @@
+<!--
+Template completion checklist:
+- Replace every [PLACEHOLDER].
+- Remove sections that do not apply.
+- Add only project-specific rules supported by actual risks or workflows.
+- Verify that canonical paths and commands exist.
+- Remove this comment before committing.
+-->
+
 # AI Instruction
 
 This is the canonical AI instruction entry point for this project.
@@ -9,7 +18,7 @@ If another repository instruction file conflicts with this file, follow this fil
 
 - Chat with the user in [USER_LANGUAGE].
 - Code comments, public APIs, identifiers, file names, commit messages, and technical documentation must be in English unless the project explicitly requires otherwise.
-- Be direct, practical, and aware of the project's architecture and operational constraints.
+- Be direct, practical, and aware of the project's architecture, domain constraints, and operating environment.
 - Do not over-explain obvious things.
 - Explain tradeoffs when they materially affect correctness, reliability, security, maintainability, portability, or user intent.
 - Explain the plan before large, destructive, security-sensitive, or non-trivial changes.
@@ -22,13 +31,14 @@ If another repository instruction file conflicts with this file, follow this fil
 Before non-trivial changes:
 
 1. Read the repository root documentation or project entry point.
-2. Read the relevant documentation index.
+2. Read the relevant documentation index or nearest canonical document.
 3. Read only the documents and code nearest to the area being changed.
 
-Do not read every document blindly. Use indexes and references first.
-Treat current implementation and explicitly designated canonical documents as the source of truth.
-Do not use archived, deprecated, or planned documents as current implementation instructions.
-If documentation conflicts with implementation, identify the conflict instead of silently inventing behavior.
+- Stop reading once sufficient evidence has been gathered.
+- Do not read every document blindly. Use indexes and references first.
+- Treat current implementation and explicitly designated canonical documents as the source of truth.
+- Do not use archived, deprecated, or planned documents as current implementation instructions.
+- If documentation conflicts with implementation, identify the conflict instead of silently inventing behavior.
 
 ## 2. Immutable Prime Directive
 
@@ -71,9 +81,24 @@ Before answering, recommending, designing, reviewing, editing, or implementing a
 
 * Prefer solutions that are correct, simple, maintainable, and reversible.
 * Do not over-engineer, broaden scope, or introduce concepts that are unnecessary to solve the actual request.
-* Preserve existing intent, architecture, and established structure unless there is a justified reason to change them.
+* Make the smallest change that preserves project integrity.
 * For code, documentation, and architecture changes, make the smallest change that completely solves the problem.
 * If multiple instructions conflict, follow them in this order: **PRIME DIRECTIVE → Execution Discipline → Project-specific rules.**
+
+### Decision-Making Discipline
+
+* Prefer evidence from the current repository, implementation, tests, and active documentation over inference, convention, or general best practice.
+* Distinguish observed facts, justified conclusions, assumptions, and recommendations. Do not present one as another.
+* Preserve current intent, architecture, public behavior, and established project conventions unless a change is necessary and justified by the task.
+* Do not optimize one file, component, or workflow at the expense of repository-wide consistency, user clarity, security, recoverability, or long-term maintainability.
+* Resolve contradictions using the defined source-of-truth order. When the conflict cannot be resolved safely, identify it explicitly instead of inventing a compromise.
+* Treat the smallest viable change as the default, but do not prefer a smaller change when it leaves the underlying problem incomplete or inconsistent.
+* Introduce a new abstraction, dependency, convention, or architectural layer only when it provides a material long-term benefit that cannot be achieved cleanly within the existing design.
+* Reuse existing terminology, interfaces, patterns, and ownership boundaries before creating alternatives.
+* Separate current implementation, planned capability, historical behavior, and proposed design. Never blur their status.
+* Evaluate decisions at both the local and system level. A locally correct change is not acceptable if it weakens the wider architecture or project model.
+* Prefer reversible decisions when evidence is incomplete or the operational impact is uncertain.
+* Stop investigating once sufficient evidence supports a safe and well-justified conclusion. Do not continue expanding scope without a material reason.
 
 ## 3. Project Identity and Boundary
 
@@ -88,6 +113,20 @@ Its primary responsibility is:
 - [PRIMARY_RESPONSIBILITY_3]
 
 The project should optimize for [CORE_QUALITIES].
+
+### Current Implementation Status
+
+Current implemented capabilities:
+
+- [IMPLEMENTED_CAPABILITY]
+
+Planned but not currently implemented:
+
+- [PLANNED_CAPABILITY]
+
+Use [AUTHORITATIVE_COMMAND_OR_SOURCE] before claiming that a capability is available.
+
+<!-- Remove this section if implementation status is derived reliably from code or generated documentation. -->
 
 ### In Scope
 
@@ -150,7 +189,7 @@ Use the existing layout. Do not create parallel structures or restore removed le
 
 Use this order when determining current behavior:
 
-1. Current implementation and stable public/operator interface
+1. Current implementation and stable public, user-facing, or operator-facing interface
 2. Current canonical documentation
 3. Planned documentation
 4. Archived documentation
@@ -170,7 +209,9 @@ Planned documents describe intent, not implemented capability. Archived document
 
 ### Domain-Specific Safety
 
-[LIST_THE_MINIMUM_SAFETY_RULES_UNIQUE_TO_THIS_PROJECT.]
+[LIST_ONLY_THE_SAFETY_RULES_UNIQUE_TO_THIS_PROJECT,
+SUCH_AS_DATA_LOSS, FINANCIAL IMPACT, PRIVACY, HARDWARE CONTROL,
+MIGRATIONS, CONCURRENCY, OR EXTERNAL SIDE EFFECTS.]
 
 ### Configuration and Secrets
 
@@ -191,6 +232,19 @@ Logs and diagnostics should answer:
 
 Avoid noisy output, duplicated messages, sensitive data, and false success states.
 
+### Critical Component Contracts
+
+For each critical component, define the applicable operational or lifecycle contract:
+
+- ownership and responsibility
+- inputs, outputs, and state
+- configuration and dependencies
+- failure and retry behavior
+- compatibility and migration expectations
+- observability and diagnostics
+- recovery or rollback path
+- resource or performance expectations
+
 ## 7. Change Discipline
 
 ### General
@@ -199,19 +253,28 @@ Avoid noisy output, duplicated messages, sensitive data, and false success state
 - Make the smallest complete change.
 - Do not mix unrelated refactors with feature work.
 - Do not reformat or rename unrelated code.
+- Do not move files without updating all references and structural tests.
 - Do not broaden scope into adjacent features or future plans without need.
+- Do not silently convert planned capabilities into implemented ones.
 - Update directly affected references, tests, and documentation.
+- For state-changing operations, account for interruption, partial completion, retries, and recovery. Prefer atomic, transactional, staged, or safely repeatable designs where appropriate.
 
 ### Refactoring
 
 Before a large refactor:
 
-- identify behavior that must remain stable
+- identify the public, user-facing, or operator-facing behavior that must remain stable
 - identify affected interfaces, files, tests, and documentation
-- identify compatibility or migration risks
+- describe migration or compatibility concerns
 - produce a short plan
 
-Afterward, summarize responsibilities moved, behavior preserved, compatibility impact, and validation performed.
+After a refactor, summarize:
+
+- files changed
+- responsibilities moved
+- behavior preserved
+- compatibility impact
+- validation performed
 
 ### Debugging
 
@@ -237,7 +300,10 @@ If the project uses Git or SVN, every response following file changes must inclu
 - Use the most specific applicable type and an optional scope when useful.
 - Describe the actual completed change, not the conversation or implementation process.
 - Keep each description concise, imperative, and suitable for direct use as a commit message.
-- When the work contains materially separate changes, provide multiple bullet entries rather than forcing them into one vague description.
+- Begin with a single summary line that describes the overall completed change using the same Conventional Commits-style format.
+- Follow the summary with bullet entries for each material change. Use one bullet when the work contains only one material change.
+- Do not replace the summary with the bullet list or omit the per-change bullets.
+- Enclose the entire `Commit description` section in a standalone fenced code block labeled `text` so it can be copied directly and distinguished from the rest of the response.
 
 Required format:
 
@@ -246,8 +312,10 @@ Commit description:
 ```text
 Short summary of the completed change
 
-- type(scope): Describe the first logical change.
-- type(scope): Describe additional logical changes when applicable.
+Changes:
+- type(scope): first material change
+- type(scope): second material change (if applicable)
+...
 ```
 
 ## 8. Testing and Validation
@@ -283,11 +351,22 @@ A task is complete only when:
 - directly affected documentation is consistent
 - operational or compatibility risks are disclosed
 - no untested behavior is presented as verified
+- Match validation depth to the change's risk: use regression tests for defects, negative tests for unsafe inputs, migration tests for state changes, compatibility tests for public interfaces, and recovery tests for destructive or persistent operations.
 
 ## 9. Documentation Rules
 
-Documentation is part of the product.
-Update it when a change affects architecture, terminology, public behavior, workflows, configuration, security assumptions, or operational procedures.
+Documentation is part of the operational interface.
+
+Update documentation when a change affects:
+
+- public interfaces or commands
+- repository paths or ownership boundaries
+- supported capabilities
+- configuration or data formats
+- architecture or dependencies
+- security or privacy assumptions
+- deployment, migration, recovery, or validation workflows
+
 Update only directly affected documents.
 Do not duplicate implementation details across multiple documents when one canonical source and references are sufficient.
 
@@ -314,15 +393,6 @@ Validation:
 
 Impact:
 - ...
-
-Commit description:
-
-```text
-type(scope): short summary of the completed change
-
-- Describe the first logical change.
-- Describe additional logical changes when applicable.
-```
 
 Notes:
 - ...
@@ -362,16 +432,25 @@ Score:
 
 ## 11. Priority Order
 
-When priorities conflict:
+When priorities conflict, define and follow the project's actual risk order:
 
-1. [PROJECT_HIGHEST_PRIORITY]
-2. Correctness
-3. Reliability
-4. Security
-5. Maintainability
-6. Portability
-7. User or operator clarity
-8. Performance
-9. Developer convenience
+1. [PRIORITY_1]
+2. [PRIORITY_2]
+3. [PRIORITY_3]
+4. [PRIORITY_4]
+5. [PRIORITY_5]
+6. ...
+
+<!--
+Example:
+1. Correctness
+2. Reliability
+3. Security
+4. Maintainability
+5. Portability
+6. User or operator clarity
+7. Performance
+8. Developer convenience
+-->
 
 Adjust this list only when the project's actual risk model requires a different order.
