@@ -27,7 +27,7 @@ Before non-trivial changes:
 
 - Stop reading once sufficient evidence has been gathered.
 - Do not read every document blindly. Use indexes and references first.
-- Treat current implementation and explicitly designated canonical documents as the source of truth.
+- Current implementation and explicitly designated canonical documents are authoritative.
 - Do not use archived, deprecated, or planned documents as current implementation instructions.
 - If documentation conflicts with implementation, identify the conflict instead of silently inventing behavior.
 
@@ -70,25 +70,25 @@ Before answering, recommending, designing, reviewing, editing, or implementing a
 
 ### Execution Discipline
 
-* Prefer solutions that are correct, simple, maintainable, and reversible.
-* Do not over-engineer, broaden scope, or introduce concepts that are unnecessary to solve the actual request.
-* Make the smallest change that preserves project integrity.
+* Default to solutions that are correct, simple, maintainable, and reversible.
+* Reject over-engineering, unjustified scope expansion, and unnecessary concepts.
+* Default to the smallest change that preserves project integrity.
 * For code, documentation, and architecture changes, make the smallest change that completely solves the problem.
 * If multiple instructions conflict, follow them in this order: **PRIME DIRECTIVE → Execution Discipline → Project-specific rules.**
 
 ### Decision-Making Discipline
 
-* Prefer evidence from the current repository, implementation, tests, and active documentation over inference, convention, or general best practice.
+* Repository evidence is authoritative. Never substitute inference, convention, or general best practice when repository evidence is available.
 * Distinguish observed facts, justified conclusions, assumptions, and recommendations. Do not present one as another.
 * Preserve current intent, architecture, public behavior, and established project conventions unless a change is necessary and justified by the task.
 * Do not optimize one file, component, or workflow at the expense of repository-wide consistency, operator clarity, security, or recoverability.
 * Resolve contradictions using the defined source-of-truth order. When the conflict cannot be resolved safely, identify it explicitly instead of inventing a compromise.
-* Treat the smallest viable change as the default, but do not prefer a smaller change when it leaves the underlying problem incomplete or inconsistent.
-* Introduce a new abstraction, dependency, convention, or architectural layer only when it provides a material long-term benefit that cannot be achieved cleanly within the existing design.
-* Reuse existing terminology, interfaces, patterns, and ownership boundaries before creating alternatives.
+* Default to the smallest complete change. Never choose a smaller change if it leaves the problem incomplete or inconsistent.
+* Require a clear, material, long-term benefit before introducing any abstraction, dependency, convention, or architectural layer.
+* Maintain existing terminology, interfaces, patterns, and ownership boundaries unless a justified migration is required.
 * Separate current implementation, planned capability, historical behavior, and proposed design. Never blur their status.
 * Evaluate decisions at both the local and system level. A locally correct change is not acceptable if it weakens the wider architecture or operating model.
-* Prefer reversible decisions when evidence is incomplete or the operational impact is uncertain.
+* Default to reversible decisions whenever evidence is incomplete or operational impact is uncertain.
 * Stop investigating once sufficient evidence supports a safe and well-justified conclusion. Do not continue expanding scope without a material reason.
 
 ## 3. Project Identity and Boundary
@@ -308,7 +308,7 @@ Use the existing layout. Do not recreate removed legacy layouts such as `scripts
 
 ### Source-of-Truth Precedence
 
-Use this order when determining current behavior:
+The following precedence is authoritative when determining current behavior:
 
 1. Root CLI behavior and current implementation
 2. Current non-archived documentation
@@ -375,7 +375,7 @@ High-sensitivity networks, including access control, alarm, camera, and manageme
 
 ### Automation and Shell
 
-- Follow existing shell style and helper patterns first.
+- Maintain existing shell style and helper patterns first.
 - Resolve repository paths from script location, not the caller's current directory.
 - Quote variable expansions unless intentional splitting is documented.
 - Prefer idempotent and safely repeatable operations.
@@ -405,10 +405,10 @@ Prefer serial or explicitly reviewed model matching for installation targets.
 - Keep `.env`, credentials, private keys, tokens, and runtime secrets outside Git.
 - Use restrictive permissions such as `0600` where appropriate.
 - Preserve user-managed values unless replacement is explicit.
-- Validate required configuration before deploy.
-- Keep defaults conservative and portable.
+- Require validation of all mandatory configuration before deployment.
+- Default to conservative, portable defaults.
 - Treat backup archives as sensitive.
-- Do not expose secrets through logs, diagnostics, tests, or errors.
+- Never expose secrets through logs, diagnostics, tests, or errors.
 
 ### Backup, Restore, and Power Loss
 
@@ -616,7 +616,7 @@ If implementation and documentation conflict:
 1. Mention the conflict.
 2. Determine which one represents intended current behavior.
 3. Update the incorrect source when within scope.
-4. Do not silently preserve contradictory instructions.
+4. Never silently preserve contradictory instructions.
 
 ## 11. Standard Response Formats
 

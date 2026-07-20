@@ -36,7 +36,7 @@ Before non-trivial changes:
 
 - Stop reading once sufficient evidence has been gathered.
 - Do not read every document blindly. Use indexes and references first.
-- Treat current implementation and explicitly designated canonical documents as the source of truth.
+- Current implementation and explicitly designated canonical documents are authoritative.
 - Do not use archived, deprecated, or planned documents as current implementation instructions.
 - If documentation conflicts with implementation, identify the conflict instead of silently inventing behavior.
 
@@ -79,7 +79,7 @@ Before answering, recommending, designing, reviewing, editing, or implementing a
 
 ### Execution Discipline
 
-* Prefer solutions that are correct, simple, maintainable, and reversible.
+* Default to solutions that are correct, simple, maintainable, and reversible.
 * Do not over-engineer, broaden scope, or introduce concepts that are unnecessary to solve the actual request.
 * Make the smallest change that preserves project integrity.
 * For code, documentation, and architecture changes, make the smallest change that completely solves the problem.
@@ -87,18 +87,18 @@ Before answering, recommending, designing, reviewing, editing, or implementing a
 
 ### Decision-Making Discipline
 
-* Prefer evidence from the current repository, implementation, tests, and active documentation over inference, convention, or general best practice.
+* Default to evidence from the current repository, implementation, tests, and active documentation over inference, convention, or general best practice.
 * Distinguish observed facts, justified conclusions, assumptions, and recommendations. Do not present one as another.
 * Preserve current intent, architecture, public behavior, and established project conventions unless a change is necessary and justified by the task.
 * Do not optimize one file, component, or workflow at the expense of repository-wide consistency, user clarity, security, recoverability, or long-term maintainability.
 * Resolve contradictions using the defined source-of-truth order. When the conflict cannot be resolved safely, identify it explicitly instead of inventing a compromise.
-* Treat the smallest viable change as the default, but do not prefer a smaller change when it leaves the underlying problem incomplete or inconsistent.
-* Introduce a new abstraction, dependency, convention, or architectural layer only when it provides a material long-term benefit that cannot be achieved cleanly within the existing design.
-* Reuse existing terminology, interfaces, patterns, and ownership boundaries before creating alternatives.
+* Treat the smallest viable change as the default, but do not default to a smaller change when it leaves the underlying problem incomplete or inconsistent.
+* Require a clear, material, long-term benefit before introducing any abstraction, dependency, convention, or architectural layer.
+* Maintain existing terminology, interfaces, patterns, and ownership boundaries unless a justified migration is required.
 * Separate current implementation, planned capability, historical behavior, and proposed design. Never blur their status.
 * Evaluate decisions at both the local and system level. A locally correct change is not acceptable if it weakens the wider architecture or project model.
-* Prefer reversible decisions when evidence is incomplete or the operational impact is uncertain.
-* Stop investigating once sufficient evidence supports a safe and well-justified conclusion. Do not continue expanding scope without a material reason.
+* Default to reversible decisions when evidence is incomplete or the operational impact is uncertain.
+* Stop investigating immediately once sufficient evidence supports a safe, well-justified conclusion. Do not continue expanding scope without a material reason.
 
 ## 3. Project Identity and Boundary
 
@@ -162,7 +162,7 @@ Do not replace foundational technology or architecture unless explicitly request
 - [PRINCIPLE]
 - [PRINCIPLE]
 
-Prefer explicit, maintainable, reversible designs over clever or tightly coupled ones.
+Default to explicit, maintainable, reversible designs over clever or tightly coupled ones.
 Preserve established boundaries and avoid hidden global state, circular dependencies, and unnecessary abstractions.
 
 ### Critical Boundaries
@@ -183,7 +183,7 @@ Preserve established boundaries and avoid hidden global state, circular dependen
 - `[PATH]`: [RESPONSIBILITY]
 - `[PATH]`: [RESPONSIBILITY]
 
-Use the existing layout. Do not create parallel structures or restore removed legacy layouts without a justified migration plan.
+Use the existing layout. Never create parallel structures or restore removed legacy layouts without a justified migration plan.
 
 ### Source-of-Truth Precedence
 
@@ -200,9 +200,9 @@ Planned documents describe intent, not implemented capability. Archived document
 
 ### Implementation
 
-- Follow existing style and helper patterns first.
+- Maintain existing style and helper patterns first.
 - Make behavior explicit and failure states observable.
-- Prefer idempotent and safely repeatable operations where applicable.
+- Default to idempotent and safely repeatable operations where applicable.
 - Preserve compatibility unless a breaking change is explicitly justified.
 - Do not introduce a new dependency without clear material benefit.
 - Do not hard-code deployment-specific values in generic project logic.
@@ -215,11 +215,11 @@ MIGRATIONS, CONCURRENCY, OR EXTERNAL SIDE EFFECTS.]
 
 ### Configuration and Secrets
 
-- Keep secrets outside source control.
-- Validate required configuration before execution.
+- Never store secrets in source control.
+- Require validation of all mandatory configuration before execution.
 - Preserve user-managed values unless replacement is explicit.
-- Keep defaults conservative and portable.
-- Do not expose secrets through logs, diagnostics, tests, or errors.
+- Default to conservative, portable defaults.
+- Never expose secrets through logs, diagnostics, tests, or errors.
 
 ### Logging and Diagnostics
 
@@ -255,9 +255,9 @@ For each critical component, define the applicable operational or lifecycle cont
 - Do not reformat or rename unrelated code.
 - Do not move files without updating all references and structural tests.
 - Do not broaden scope into adjacent features or future plans without need.
-- Do not silently convert planned capabilities into implemented ones.
+- Never silently convert planned capabilities into implemented ones.
 - Update directly affected references, tests, and documentation.
-- For state-changing operations, account for interruption, partial completion, retries, and recovery. Prefer atomic, transactional, staged, or safely repeatable designs where appropriate.
+- For state-changing operations, account for interruption, partial completion, retries, and recovery. Default to atomic, transactional, staged, or safely repeatable designs where appropriate.
 
 ### Refactoring
 
@@ -375,7 +375,7 @@ If implementation and documentation conflict:
 1. Mention the conflict.
 2. Determine which source represents intended current behavior.
 3. Update the incorrect source when within scope.
-4. Do not silently preserve contradictory instructions.
+4. Never silently preserve contradictory instructions.
 
 ## 10. Standard Response Formats
 
