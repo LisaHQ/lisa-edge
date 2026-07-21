@@ -25,7 +25,11 @@ REM is known to support them; honors NO_COLOR (https://no-color.org).
 REM Windows Terminal / ConEmu / ANSICON advertise support via env
 REM vars; classic conhost needs HKCU\Console VirtualTerminalLevel=1.
 REM ------------------------------------------------------------
-set "C_TITLE=" & set "C_SECTION=" & set "C_CMD=" & set "C_ERR=" & set "C_DIM=" & set "C_RESET="
+set "C_RESET=" & set "C_TITLE=" & set "C_SECTION="
+set "C_EXE=" & set "C_CMD=" & set "C_CMD_LIGHT=" & set "C_OPT=" & set "C_ARG=" & set "C_VALUE="
+set "C_TEXT=" & set "C_SECONDARY=" & set "C_TEXT_DIM="
+set "C_ERR=" & set "C_WARN=" & set "C_SUCCESS=" & set "C_INFO=" & set "C_HINT="
+set "C_EX_EXE=" & set "C_EX_CMD=" & set "C_EX_ARG=" & set "C_EX_VAL=" & set "C_EX_OPT="
 set "COLOR_OK="
 if defined WT_SESSION set "COLOR_OK=1"
 if /I "%ConEmuANSI%"=="ON" set "COLOR_OK=1"
@@ -35,12 +39,28 @@ if defined NO_COLOR set "COLOR_OK="
 if not defined COLOR_OK goto :ColorsDone
 REM Capture the raw ESC (0x1B) character via the prompt $E token.
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do set "ESC=%%b"
-set "C_TITLE=%ESC%[1;96m"
-set "C_SECTION=%ESC%[1;93m"
-set "C_CMD=%ESC%[1;92m"
-set "C_ERR=%ESC%[1;91m"
-set "C_DIM=%ESC%[90m"
 set "C_RESET=%ESC%[0m"
+set "C_TITLE=%ESC%[38;2;179;190;255m"
+set "C_SECTION=%ESC%[38;2;59;120;255m"
+set "C_EXE=%ESC%[38;2;170;180;190m"
+set "C_CMD=%ESC%[38;2;58;150;221m"
+set "C_CMD_LIGHT=%ESC%[38;2;249;241;165m"
+set "C_OPT=%ESC%[38;2;19;161;14m"
+set "C_ARG=%ESC%[38;2;193;156;0m"
+set "C_VALUE=%ESC%[38;2;26;188;156m"
+set "C_TEXT=%ESC%[38;2;204;204;204m"
+set "C_SECONDARY=%ESC%[38;2;170;180;190m"
+set "C_TEXT_DIM=%ESC%[38;2;90;98;112m"
+set "C_ERR=%ESC%[38;2;231;76;60m"
+set "C_WARN=%ESC%[38;2;241;196;15m"
+set "C_SUCCESS=%ESC%[38;2;46;204;113m"
+set "C_INFO=%ESC%[38;2;52;152;219m"
+set "C_HINT=%ESC%[38;2;98;114;164m"
+set "C_EX_EXE=%ESC%[38;2;170;180;190m"
+set "C_EX_CMD=%ESC%[38;2;58;150;221m"
+set "C_EX_ARG=%ESC%[38;2;26;188;156m"
+set "C_EX_VAL=%ESC%[38;2;98;114;164m"
+set "C_EX_OPT=%ESC%[38;2;46,204,113m"
 :ColorsDone
 
 if "%~1"=="" goto :Usage
@@ -149,7 +169,7 @@ if /I "%TARGET%"=="production" (
 echo %C_ERR%ERROR:%C_RESET% 'config' currently supports only the production profile.
 echo.
 echo The rescue user-data template is edited by hand; see:
-echo   %C_DIM%%EDGE_REPO%\install\usb\config\rescue\user-data.template%C_RESET%
+echo   %C_HINT%%EDGE_REPO%\install\usb\config\rescue\user-data.template%C_RESET%
 exit /b 2
 
 REM ------------------------------------------------------------
@@ -219,37 +239,36 @@ exit /b 2
 
 REM ------------------------------------------------------------
 :Usage
-echo %C_TITLE%LISA Edge operator command (Windows, day-0 preparation)%C_RESET%
+echo.
+echo %C_TITLE%LISA Edge CLI (Windows Day-0 Provisioning)%C_RESET%
 echo.
 echo %C_SECTION%Usage:%C_RESET%
-echo   %C_CMD%lisa-edge%C_RESET% ^<command^> [arguments]
+echo   %C_EXE%lisa-edge %C_CMD%^<command^> %C_ARG%[arguments...]%C_RESET%
 echo.
-echo %C_SECTION%Installation media (no LISA Edge server required):%C_RESET%
-echo   %C_CMD%usb list%C_RESET%                          List USB disks ^(number, drive letter,
-echo                                     name, size^) to identify the target
-echo   %C_CMD%usb build%C_RESET% ^<profile^> [disk-number]  Download Ubuntu, write a bootable USB
-echo                                     ^(no Rufus needed^), inject the profile.
-echo                                     %C_DIM%(asks which disk when number omitted)%C_RESET%
-echo   %C_CMD%usb prepare production%C_RESET% [options] [drive]  Inject the production profile
-echo                                     %C_DIM%(options: --auto-detect ^| -a, --dry-run,%C_RESET%
-echo                                      %C_DIM%--config-only, --yes ^| -y)%C_RESET%
-echo   %C_CMD%usb prepare rescue%C_RESET% ^<drive^>        Inject the rescue profile
+echo %C_SECTION%Commands:%C_RESET%
+echo   %C_CMD%usb list%C_RESET%                                  %C_TEXT%List available USB disks %C_SECONDARY%^(number, drive letter, label, size^) %C_TEXT%to identify the target.%C_RESET%
+echo   %C_CMD%usb build %C_ARG%production %C_HINT%[disk-number]        %C_TEXT%Download Ubuntu, create a bootable USB, and inject the production profile.%C_RESET%
+echo   %C_CMD%usb build %C_ARG%rescue %C_HINT%[disk-number]            %C_TEXT%Download Ubuntu, create a bootable USB, and inject the rescue profile.%C_RESET%
+echo   %C_CMD%usb prepare %C_ARG%production%C_RESET% %C_ARG%[options] %C_HINT%[drive]  %C_TEXT%Inject the production profile into an existing Ubuntu USB.%C_RESET%
+echo   %C_CMD%usb prepare %C_ARG%rescue%C_RESET% %C_HINT%^<drive^>                %C_TEXT%Inject the rescue profile into an existing Ubuntu USB.%C_RESET%
+echo   %C_CMD%config%C_RESET% %C_ARG%[production]                       %C_TEXT%Generate or validate the production autoinstall configuration %C_SECONDARY%^(no USB required^)%C_RESET%
+echo   %C_CMD%help%C_RESET%                                      %C_TEXT%Show this help message.%C_RESET%
 echo.
-echo %C_SECTION%Configuration:%C_RESET%
-echo   %C_CMD%config%C_RESET% [production]               Generate or validate the production
-echo                                     autoinstall user-data (config wizard,
-echo                                     no USB required)
-echo.
-echo %C_SECTION%General:%C_RESET%
-echo   %C_CMD%help%C_RESET%                              Show this help
+echo %C_SECTION%Options: %C_TEXT_DIM%(usb prepare production)%C_RESET%
+echo   %C_OPT%-a%C_TEXT%, %C_CMD%--auto-detect%C_RESET%                         %C_TEXT%Automatically detect the Ubuntu bootable USB.%C_RESET%
+echo   %C_OPT%-y%C_TEXT%, %C_CMD%--yes%C_RESET%                                 %C_TEXT%Skip confirmation prompts.%C_RESET%
+echo   %C_CMD%--dry-run%C_RESET%                                 %C_TEXT%Preview the actions without making any changes.%C_RESET%
+echo   %C_CMD%--config-only%C_RESET%                             %C_TEXT%Validate the configuration only.%C_RESET%
 echo.
 echo %C_SECTION%Examples:%C_RESET%
-echo   %C_DIM%lisa-edge usb list%C_RESET%
-echo   %C_DIM%lisa-edge usb build production%C_RESET%
-echo   %C_DIM%lisa-edge usb build production 2 --dry-run%C_RESET%
-echo   %C_DIM%lisa-edge usb prepare production --auto-detect%C_RESET%
-echo   %C_DIM%lisa-edge usb prepare rescue E:%C_RESET%
-echo   %C_DIM%lisa-edge config%C_RESET%
+echo   %C_EX_EXE%lisa-edge %C_EX_CMD%usb list%C_RESET%
+echo   %C_EX_EXE%lisa-edge %C_EX_CMD%usb build %C_EX_ARG%production%C_RESET%
+echo   %C_EX_EXE%lisa-edge %C_EX_CMD%usb build %C_EX_ARG%production %C_EX_ARG%2 %C_EX_ARG%--dry-run%C_RESET%
+echo   %C_EX_EXE%lisa-edge %C_EX_CMD%usb prepare %C_EX_ARG%production %C_EX_ARG%--auto-detect%C_RESET%
+echo   %C_EX_EXE%lisa-edge %C_EX_CMD%usb prepare %C_EX_ARG%rescue %C_EX_ARG%E:%C_RESET%
+echo   %C_EX_EXE%lisa-edge %C_EX_CMD%config%C_RESET%
 echo.
-echo Everything after installation (setup, bootstrap, deploy, backup,
-echo r
+echo Runtime operations (setup, bootstrap, deploy, backup, restore, ...)
+echo are performed on the Linux host via %C_CMD_LIGHT%./lisa-edge%C_RESET%
+echo.
+exit /b 0
