@@ -23,11 +23,12 @@ want to bootstrap or deploy yet.
 | --- | --- | --- |
 | `mqtt` | Eclipse Mosquitto | clients need a local message bus |
 | `uptime-kuma` | Uptime Kuma | you need lightweight availability monitoring |
-| `otbr` | OpenThread Border Router | you have Matter-over-Thread devices and an RCP radio |
-| `vpn-tailscale` | Tailscale | you need VPN-first remote administration |
 | `ha` | Home Assistant | this Edge host is intentionally hosting a small HA deployment |
+| `matter` | Matter Server | your Matter controller (for example Home Assistant without add-ons) needs a local Matter controller server |
+| `otbr` | OpenThread Border Router | you have Matter-over-Thread devices and an RCP radio |
 | `zigbee2mqtt` | Zigbee2MQTT | you have a supported Zigbee coordinator |
 | `node-red` | Node-RED | you need a lightweight local flow engine |
+| `vpn-tailscale` | Tailscale | you need VPN-first remote administration |
 
 Selecting Zigbee2MQTT automatically selects MQTT. Hand-written configurations
 that omit this dependency are rejected during deployment validation.
@@ -47,8 +48,11 @@ mqtt
 ### Matter-over-Thread infrastructure
 
 ```text
-mqtt otbr uptime-kuma
+uptime-kuma ha matter otbr
 ```
+
+Add `matter` when Home Assistant on another host needs a local Matter
+controller server next to OTBR.
 
 ### Remotely administered edge node
 

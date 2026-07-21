@@ -24,11 +24,12 @@ existing keys when adding a service.
 |---|---|:---:|---|---|
 | MQTT / Mosquitto | `mqtt` | Yes | — | [MQTT](mqtt.md) |
 | Uptime Kuma | `uptime-kuma` | Yes | — | [Uptime Kuma](uptime-kuma.md) |
-| OpenThread Border Router | `otbr` | No | Thread RCP hardware | [OTBR](otbr.md) |
-| Tailscale | `vpn-tailscale` | No | `/dev/net/tun` | [Tailscale](vpn-tailscale.md) |
 | Home Assistant | `ha` | No | — | [Home Assistant](home-assistant.md) |
+| Matter Server | `matter` | No | — | [Matter Server](matter-server.md) |
+| OpenThread Border Router | `otbr` | No | Thread RCP hardware | [OTBR](otbr.md) |
 | Zigbee2MQTT | `zigbee2mqtt` | No | `mqtt`, Zigbee coordinator | [Zigbee2MQTT](zigbee2mqtt.md) |
 | Node-RED | `node-red` | No | — | [Node-RED](node-red.md) |
+| Tailscale | `vpn-tailscale` | No | `/dev/net/tun` | [Tailscale](vpn-tailscale.md) |
 
 The implementation for each service is a vertical slice under `services/`
 containing its Compose fragment, provisioning logic, source configuration and

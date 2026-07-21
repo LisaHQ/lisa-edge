@@ -118,8 +118,9 @@ fi
 
 for service in $(lisa_selected_services); do
   case "$service" in
-    otbr) wait_for_container lisa-otbr ;;
     ha) wait_for_container lisa-ha ;;
+    matter) wait_for_container lisa-matter ;;
+    otbr) wait_for_container lisa-otbr ;;
     zigbee2mqtt) wait_for_container lisa-zigbee2mqtt ;;
     node-red) wait_for_container lisa-node-red ;;
     vpn-tailscale) wait_for_container lisa-tailscale ;;
@@ -136,20 +137,24 @@ if lisa_has_service uptime-kuma; then
   wait_for_tcp "Uptime Kuma" "$(healthcheck_host "${UPTIME_KUMA_BIND_ADDR:-127.0.0.1}")" "${UPTIME_KUMA_PORT:-3001}"
 fi
 
+if lisa_has_service ha; then
+  wait_for_tcp "Home Assistant" 127.0.0.1 "${HOME_ASSISTANT_PORT:-8123}"
+fi
+
+if lisa_has_service matter; then
+  wait_for_tcp "Matter Server" 127.0.0.1 "${MATTER_SERVER_PORT:-5580}"
+fi
+
+if lisa_has_service otbr; then
+  wait_for_otbr
+fi
+
 if lisa_has_service zigbee2mqtt; then
   wait_for_tcp "Zigbee2MQTT" "$(healthcheck_host "${ZIGBEE2MQTT_BIND_ADDR:-127.0.0.1}")" "${ZIGBEE2MQTT_PORT:-8080}"
 fi
 
 if lisa_has_service node-red; then
   wait_for_tcp "Node-RED" "$(healthcheck_host "${NODE_RED_BIND_ADDR:-127.0.0.1}")" "${NODE_RED_PORT:-1880}"
-fi
-
-if lisa_has_service ha; then
-  wait_for_tcp "Home Assistant" 127.0.0.1 "${HOME_ASSISTANT_PORT:-8123}"
-fi
-
-if lisa_has_service otbr; then
-  wait_for_otbr
 fi
 
 if lisa_has_service vpn-tailscale; then

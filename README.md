@@ -89,11 +89,12 @@ Selectable services:
 
 - MQTT
 - Uptime Kuma
-- OpenThread Border Router
-- Tailscale
 - Home Assistant
+- Matter Server
+- OpenThread Border Router
 - Zigbee2MQTT
 - Node-RED
+- Tailscale
 
 Zigbee2MQTT automatically selects MQTT. Chrony time synchronization, host
 bootstrap, health checks, backup/restore, systemd runtime units, and rescue

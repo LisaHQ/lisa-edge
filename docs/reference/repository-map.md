@@ -122,8 +122,8 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 | `<service>/config/` | Static configuration shipped to the host (for example `mqtt/config/mosquitto.conf`). |
 | `<service>/README.md` | Service-specific operational notes. |
 
-Current slices: `mqtt`, `uptime-kuma`, `otbr`, `tailscale`, `home-assistant`,
-`zigbee2mqtt`, `node-red`.
+Current slices: `mqtt`, `uptime-kuma`, `home-assistant`, `matter-server`, `otbr`,
+`zigbee2mqtt`, `node-red`, `tailscale`.
 
 `otbr/dataset/` protects the Thread network dataset: `backup.sh`,
 `restore.sh`, `init-or-restore.sh`, and a systemd service/timer pair that

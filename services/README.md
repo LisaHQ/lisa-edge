@@ -19,8 +19,9 @@ Only implemented services belong here. Planned services are documented under
 |---|---|:---:|---|
 | [mqtt/](mqtt/README.md) | `mqtt` | Yes | Mosquitto messaging |
 | [uptime-kuma/](uptime-kuma/README.md) | `uptime-kuma` | Yes | Lightweight monitoring |
-| [otbr/](otbr/README.md) | `otbr` | No | Thread RCP required |
-| [tailscale/](tailscale/README.md) | `vpn-tailscale` | No | `tailscale` alias accepted |
 | [home-assistant/](home-assistant/README.md) | `ha` | No | Compact-host option |
+| [matter-server/](matter-server/README.md) | `matter` | No | Matter controller server; `matter-server` alias accepted |
+| [otbr/](otbr/README.md) | `otbr` | No | Thread RCP required |
 | [zigbee2mqtt/](zigbee2mqtt/README.md) | `zigbee2mqtt` | No | Requires `mqtt` |
 | [node-red/](node-red/README.md) | `node-red` | No | Compact-host option |
+| [tailscale/](tailscale/README.md) | `vpn-tailscale` | No | `tailscale` alias accepted |

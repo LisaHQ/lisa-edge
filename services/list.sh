@@ -17,6 +17,7 @@ done
 cat <<'EOF'
 
 Aliases accepted by the command interface:
-  tailscale -> vpn-tailscale
   home-assistant -> ha
+  matter-server -> matter
+  tailscale -> vpn-tailscale
 EOF

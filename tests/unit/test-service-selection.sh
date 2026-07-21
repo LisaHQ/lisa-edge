@@ -20,8 +20,8 @@ lisa_build_compose_files "$REPO_ROOT"
 LISA_COMPOSE_SERVICES="all"
 lisa_validate_services
 lisa_build_compose_files "$REPO_ROOT"
-[ "${#LISA_COMPOSE_FILES[@]}" -eq 16 ] || {
-  echo "Expected core plus seven service Compose files." >&2
+[ "${#LISA_COMPOSE_FILES[@]}" -eq 18 ] || {
+  echo "Expected core plus eight service Compose files." >&2
   exit 1
 }
 
