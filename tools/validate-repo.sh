@@ -6,6 +6,45 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
+FIX_EXEC_BITS=0
+for arg in "$@"; do
+  case "$arg" in
+    --fix)
+      FIX_EXEC_BITS=1
+      ;;
+    *)
+      echo "Usage: tools/validate-repo.sh [--fix]" >&2
+      echo "  --fix  set the executable bit in the git index for tracked scripts" >&2
+      exit 2
+      ;;
+  esac
+done
+
+echo "Checking executable bits in git index..."
+# The repo is authored on Windows (core.fileMode=false), so scripts staged
+# without an explicit +x end up as 100644 in the index. On deployed hosts
+# bootstrap.sh chmods everything +x, producing permanent mode-only diffs that
+# make `lisa-edge update` (git pull --ff-only) abort.
+missing_exec=()
+while IFS=$'\t' read -r meta path; do
+  [[ "${meta%% *}" == "100755" ]] || missing_exec+=("$path")
+done < <(git ls-files -s -- lisa-edge '*.sh')
+if (( ${#missing_exec[@]} > 0 )); then
+  if (( FIX_EXEC_BITS )); then
+    for path in "${missing_exec[@]}"; do
+      git update-index --chmod=+x -- "$path"
+      echo "  set +x: $path"
+    done
+    echo "Executable bit set on ${#missing_exec[@]} file(s) in the index; commit the mode change."
+  else
+    printf '  missing +x in index: %s\n' "${missing_exec[@]}" >&2
+    echo "Tracked scripts must carry the executable bit in the git index," >&2
+    echo "or 'lisa-edge update' breaks on deployed hosts." >&2
+    echo "Fix with: tools/validate-repo.sh --fix   (or: git add --chmod=+x <file>)" >&2
+    exit 1
+  fi
+fi
+
 echo "Checking canonical layout and compatibility contracts..."
 bash "$REPO_ROOT/tests/structure/test-layout.sh"
 bash "$REPO_ROOT/tests/structure/test-repo-root-resolution.sh"

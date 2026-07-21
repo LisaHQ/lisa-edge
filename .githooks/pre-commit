@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Auto-set the executable bit on staged shell scripts.
+#
+# The repo is authored on Windows (core.fileMode=false), so a newly added
+# *.sh file lands in the index as 100644. On deployed hosts bootstrap.sh
+# chmods scripts +x, which turns the missing index bit into a permanent
+# mode-only diff that makes `lisa-edge update` (git pull --ff-only) abort.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+git diff --cached --name-only --diff-filter=ACMR -z |
+  while IFS= read -r -d '' path; do
+    case "$path" in
+      lisa-edge|*.sh) ;;
+      *) continue ;;
+    esac
+    meta="$(git ls-files -s -- "$path")"
+    mode="${meta%% *}"
+    if [[ -n "$mode" && "$mode" != "100755" ]]; then
+      git update-index --chmod=+x -- "$path"
+      echo "pre-commit: set +x in index: $path" >&2
+    fi
+  done
