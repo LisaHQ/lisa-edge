@@ -50,6 +50,10 @@ if [ -f "$SSHD_CONFIG" ]; then
   } > "$SSHD_DROP_IN"
 
   if command -v sshd >/dev/null 2>&1; then
+    # Socket-activated OpenSSH (Ubuntu 22.10+) only creates /run/sshd when
+    # the service starts, and `sshd -t` fails without it ("Missing privilege
+    # separation directory"), aborting the whole bootstrap under set -e.
+    install -d -m 0755 /run/sshd
     sshd -t
   fi
 
