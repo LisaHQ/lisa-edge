@@ -62,7 +62,8 @@ read_active_dataset() {
   local output=""
   DATASET_HEX=""
   if output="$(docker exec lisa-otbr ot-ctl dataset active -x 2>&1)"; then
-    DATASET_HEX="$(printf '%s\n' "$output" | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
+    # ot-ctl terminates lines with CRLF; strip \r or the hex line never matches.
+    DATASET_HEX="$(printf '%s\n' "$output" | tr -d '\r' | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
     [ -n "$DATASET_HEX" ] && return 0
   fi
   if printf '%s' "$output" | grep -qi 'NotFound'; then

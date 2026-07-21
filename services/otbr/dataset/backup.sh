@@ -27,7 +27,8 @@ DATASET=""
 for _ in $(seq 1 10); do
   OUTPUT=""
   if OUTPUT="$(docker exec lisa-otbr ot-ctl dataset active -x 2>&1)"; then
-    DATASET="$(printf '%s\n' "$OUTPUT" | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
+    # ot-ctl terminates lines with CRLF; strip \r or the hex line never matches.
+    DATASET="$(printf '%s\n' "$OUTPUT" | tr -d '\r' | awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
     [ -n "$DATASET" ] && break
   fi
   if printf '%s' "$OUTPUT" | grep -qi 'NotFound'; then
