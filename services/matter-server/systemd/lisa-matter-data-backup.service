@@ -1,0 +1,9 @@
+[Unit]
+Description=LISA Matter fabric data backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/lisa-edge
+ExecStart=/opt/lisa-edge/services/matter-server/data/backup.sh

@@ -61,6 +61,15 @@ if lisa_has_service mqtt; then
   "$EDGE_REPO/services/mqtt/prepare.sh"
   docker compose --env-file .env "${FILES[@]}" up "${UP_ARGS[@]}" --force-recreate mosquitto
 fi
+
+# Matter fabric-data protection runs BEFORE compose up, while the store is
+# plain files: it applies staged wizard selections, backs the store up ahead
+# of a container image change, and restores the latest backup into an empty
+# store. Compose up then starts the (possibly stopped) container.
+if lisa_has_service matter; then
+  "$EDGE_REPO/services/matter-server/data/init-or-restore.sh"
+fi
+
 docker compose --env-file .env "${FILES[@]}" up "${UP_ARGS[@]}"
 
 if lisa_has_service otbr; then

@@ -1,20 +1,20 @@
 services:
   matter-server:
-    image: ${MATTER_SERVER_IMAGE:-ghcr.io/home-assistant-libs/python-matter-server:stable}
+    image: ${MATTER_SERVER_IMAGE:-ghcr.io/matter-js/matterjs-server:stable}
     container_name: lisa-matter
     restart: unless-stopped
     # Host networking is required: Matter commissioning and device discovery
     # rely on mDNS multicast and direct IPv6 reachability to devices on the
     # LAN and Thread (via OTBR) networks.
     network_mode: host
-    security_opt:
-      - apparmor:unconfined
     volumes:
       # /data holds the Matter fabric credentials and commissioned-device
       # state. Losing it requires re-commissioning every Matter device.
+      # matterjs-server migrates existing python-matter-server storage found
+      # here in place (one-way); deploy backs this directory up beforehand.
       - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/matter-server:/data
-      # Read-only D-Bus access enables Bluetooth-assisted commissioning when
-      # the host has a Bluetooth adapter. Harmless when absent.
-      - /run/dbus:/run/dbus:ro
     environment:
+      # Effective WebSocket/dashboard listen port (matterjs-server honors PORT).
+      PORT: ${MATTER_SERVER_PORT:-5580}
+      LOG_LEVEL: ${MATTER_LOG_LEVEL:-info}
       TZ: ${TZ:-America/Los_Angeles}

@@ -56,12 +56,25 @@ if [ -n "$OTBR_BACKUP_TIMER" ]; then
   install_unit "$OTBR_BACKUP_TIMER" /etc/systemd/system/lisa-otbr-dataset-backup.timer
 fi
 
+MATTER_BACKUP_SERVICE="$(first_existing_file \
+  "$EDGE_REPO/services/matter-server/systemd/lisa-matter-data-backup.service" || true)"
+if [ -n "$MATTER_BACKUP_SERVICE" ]; then
+  install_unit "$MATTER_BACKUP_SERVICE" /etc/systemd/system/lisa-matter-data-backup.service
+fi
+
+MATTER_BACKUP_TIMER="$(first_existing_file \
+  "$EDGE_REPO/services/matter-server/systemd/lisa-matter-data-backup.timer" || true)"
+if [ -n "$MATTER_BACKUP_TIMER" ]; then
+  install_unit "$MATTER_BACKUP_TIMER" /etc/systemd/system/lisa-matter-data-backup.timer
+fi
+
 systemctl daemon-reload
 systemctl enable lisa-edge.service
 systemctl enable lisa-edge-backup.timer
 systemctl start lisa-edge-backup.timer
 
-if [ -f /etc/systemd/system/lisa-otbr-dataset-backup.timer ]; then
+if [ -f /etc/systemd/system/lisa-otbr-dataset-backup.timer ] ||
+  [ -f /etc/systemd/system/lisa-matter-data-backup.timer ]; then
   if [ -f "$EDGE_REPO/.env" ]; then
     set -a
     # shellcheck disable=SC1091
@@ -69,12 +82,23 @@ if [ -f /etc/systemd/system/lisa-otbr-dataset-backup.timer ]; then
     set +a
     # shellcheck disable=SC1091
     . "$EDGE_REPO/lib/compose.sh"
-    if lisa_has_service otbr; then
-      systemctl enable --now lisa-otbr-dataset-backup.timer
-      echo "OTBR dataset backup timer enabled."
-    else
-      systemctl disable --now lisa-otbr-dataset-backup.timer >/dev/null 2>&1 || true
-      echo "OTBR dataset backup timer installed but disabled because OTBR is not selected."
+    if [ -f /etc/systemd/system/lisa-otbr-dataset-backup.timer ]; then
+      if lisa_has_service otbr; then
+        systemctl enable --now lisa-otbr-dataset-backup.timer
+        echo "OTBR dataset backup timer enabled."
+      else
+        systemctl disable --now lisa-otbr-dataset-backup.timer >/dev/null 2>&1 || true
+        echo "OTBR dataset backup timer installed but disabled because OTBR is not selected."
+      fi
+    fi
+    if [ -f /etc/systemd/system/lisa-matter-data-backup.timer ]; then
+      if lisa_has_service matter; then
+        systemctl enable --now lisa-matter-data-backup.timer
+        echo "Matter data backup timer enabled."
+      else
+        systemctl disable --now lisa-matter-data-backup.timer >/dev/null 2>&1 || true
+        echo "Matter data backup timer installed but disabled because Matter is not selected."
+      fi
     fi
   fi
 fi

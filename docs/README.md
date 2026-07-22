@@ -107,6 +107,7 @@ deployment path.
 - [Backup and Restore](operations/backup-restore.md)
 - [Disaster Recovery](operations/disaster-recovery.md)
 - [OTBR Recovery](operations/service-recovery/otbr.md)
+- [Matter Data Recovery](operations/service-recovery/matter.md)
 
 ## Reference
 

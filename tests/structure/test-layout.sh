@@ -126,6 +126,7 @@ done < <(
     ops/deploy/systemd \
     ops/backup-restore/systemd \
     services/otbr/systemd \
+    services/matter-server/systemd \
     -type f \
     \( -name 'user-data' -o -name 'user-data.template' -o -name '*.service' -o -name '*.timer' \) \
     -print0

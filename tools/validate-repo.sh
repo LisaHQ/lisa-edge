@@ -88,6 +88,9 @@ bash "$REPO_ROOT/tests/unit/test-provisioning-wizard.sh"
 echo "Checking OTBR dataset selection helpers..."
 bash "$REPO_ROOT/tests/unit/test-otbr-dataset-selection.sh"
 
+echo "Checking Matter data selection helpers..."
+bash "$REPO_ROOT/tests/unit/test-matter-data-selection.sh"
+
 echo "Checking USB release config..."
 bash "$REPO_ROOT/tests/unit/test-usb-release-config.sh"
 

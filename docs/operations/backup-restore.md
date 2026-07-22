@@ -71,5 +71,10 @@ sudo systemctl start lisa-edge-backup.service
 journalctl -u lisa-edge-backup.service -n 100 --no-pager
 ```
 
+When OTBR or Matter is selected, `lisa-otbr-dataset-backup.timer` (03:15) and
+`lisa-matter-data-backup.timer` (03:45) additionally snapshot the Thread
+dataset and the Matter fabric data into their own backup directories.
+
 Test restore on representative spare hardware. A backup is not proven until
-the restored services, credentials and OTBR dataset have been verified.
+the restored services, credentials, OTBR dataset and Matter fabric data have
+been verified.
