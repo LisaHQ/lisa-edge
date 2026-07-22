@@ -11,12 +11,22 @@ set +a
 BACKUP_DIR="${OTBR_DATASET_BACKUP_DIR:-/srv/lisa-edge/backups/otbr}"
 # shellcheck disable=SC1091
 . "$EDGE_REPO/lib/paths.sh"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/services/otbr/dataset/lib.sh"
 lisa_validate_persistent_path OTBR_DATASET_BACKUP_DIR "$BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
 
+# Optional description appended to the backup filename:
+#   backup.sh [description]
+DESCRIPTION_RAW="${1:-}"
+
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
-OUT="$BACKUP_DIR/thread-dataset-$TS.hex"
+BASE_NAME="thread-dataset-$TS"
+# Reserve room for the base name, the '-' separator and the '.hex' extension.
+DESCRIPTION_MAX=$((OTBR_FILENAME_MAX_BYTES - ${#BASE_NAME} - 1 - 4))
+DESCRIPTION="$(otbr_sanitize_backup_description "$DESCRIPTION_RAW" "$DESCRIPTION_MAX")"
+OUT="$BACKUP_DIR/$BASE_NAME${DESCRIPTION:+-$DESCRIPTION}.hex"
 LATEST="$BACKUP_DIR/latest.dataset.hex"
 RETENTION_DAYS="${OTBR_DATASET_RETENTION_DAYS:-30}"
 

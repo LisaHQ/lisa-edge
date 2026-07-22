@@ -52,6 +52,22 @@ new network unless explicitly allowed. Dataset snapshots live under
 `/srv/lisa-edge/backups/otbr/`; the dataset timer is enabled automatically when
 OTBR is selected.
 
+## Dataset detection during provisioning
+
+The OTBR wizard also detects existing dataset backups. It scans the configured
+backup directory (or a custom path you enter, such as a mounted USB or NAS
+directory) for `*.hex` dataset files, lists them newest first, and lets you
+restore a selected backup, create a new Thread network, or keep the current
+behavior. The choice is staged as a one-shot `pending.dataset.hex` or
+`pending.new-network` marker inside `OTBR_DATASET_BACKUP_DIR` and applied
+exactly once by the next deploy; delete the marker to cancel before deploying.
+
+If OTBR is already running, the wizard backs up the active dataset before the
+staged change is applied and offers to append a description to that backup's
+filename (spaces become `-`, characters unsafe in filenames become `_`, and the
+result is truncated to the filesystem name limit). Deploy backs the active
+dataset up again before applying any staged change.
+
 Keep an encrypted copy outside the edge host. See the
 [OTBR recovery runbook](../operations/service-recovery/otbr.md) before hardware
 migration or disaster recovery.

@@ -22,8 +22,11 @@ Thread network.
    sudo ./lisa-edge configure
    ```
 
-3. Copy the saved dataset to the `OTBR_DATASET_LATEST` path in `.env`. For the
-   default layout:
+3. Point the wizard at the saved dataset. The OTBR wizard's "Thread dataset
+   detection" step accepts a custom path (for example a mounted USB or NAS
+   directory), lists the `*.hex` backups it finds, and stages the selected file
+   for restore on the next deploy. Alternatively, copy the saved dataset to the
+   `OTBR_DATASET_LATEST` path in `.env` manually. For the default layout:
 
    ```bash
    sudo install -D -m 0600 /path/to/latest.dataset.hex \

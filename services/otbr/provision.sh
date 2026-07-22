@@ -129,6 +129,128 @@ configure_otbr_image() {
   ask_value OTBR_IMAGE "OTBR container image" "$default_image"
 }
 
+# True when the lisa-otbr container is currently running on this host.
+otbr_container_running() {
+  command -v docker >/dev/null 2>&1 || return 1
+  docker ps --format '{{.Names}}' 2>/dev/null | grep -qx lisa-otbr
+}
+
+# Detect existing Thread dataset backups and stage the operator's choice as a
+# one-shot pending marker consumed by dataset/init-or-restore.sh on deploy.
+configure_otbr_dataset_source() {
+  local search_root="" selection="" description="" answer choice item index
+  local backups=() default_choice otbr_running=0
+  local pending_dataset pending_new_network
+
+  # shellcheck disable=SC1091
+  . "$EDGE_REPO/services/otbr/dataset/lib.sh"
+  pending_dataset="$OTBR_DATASET_BACKUP_DIR/$OTBR_PENDING_DATASET_FILE_NAME"
+  pending_new_network="$OTBR_DATASET_BACKUP_DIR/$OTBR_PENDING_NEW_NETWORK_FILE_NAME"
+  otbr_container_running && otbr_running=1
+
+  echo
+  echo "--- Thread dataset detection ---"
+  if [ -d "$OTBR_DATASET_BACKUP_DIR" ]; then
+    ask_choice search_root "Path to scan for Thread dataset backups" \
+      "$OTBR_DATASET_BACKUP_DIR" "$OTBR_DATASET_BACKUP_DIR"
+  else
+    info "Default dataset backup directory does not exist yet: $OTBR_DATASET_BACKUP_DIR"
+    ask_value search_root "Custom path to scan for dataset backups (directory or .hex file, Enter to skip)" ""
+  fi
+
+  if [ -z "$search_root" ]; then
+    info "Skipping Thread dataset detection."
+  elif [ -f "$search_root" ]; then
+    selection="$search_root"
+  elif [ -d "$search_root" ]; then
+    mapfile -t backups < <(otbr_list_dataset_backup_files "$search_root")
+    if [ "${#backups[@]}" -gt 0 ]; then
+      echo "Detected Thread dataset backups (newest first):"
+      index=1
+      for item in "${backups[@]}"; do
+        printf '  %d) %s\n' "$index" "$item"
+        index=$((index + 1))
+      done
+      echo "  n) Create a new Thread network instead"
+      echo "  s) Skip (keep the current dataset behavior)"
+      # Default to the safe choice when a border router is already running.
+      default_choice=1
+      [ "$otbr_running" -eq 1 ] && default_choice=s
+      while :; do
+        read -r -p "Select a backup to restore, n, or s [$default_choice]: " choice
+        choice="${choice:-$default_choice}"
+        case "$choice" in
+          n|N) selection="new"; break ;;
+          s|S) selection=""; break ;;
+          *)
+            if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#backups[@]}" ]; then
+              selection="${backups[$((choice - 1))]}"
+              break
+            fi
+            echo "Invalid selection. Try again." >&2
+            ;;
+        esac
+      done
+    else
+      warn "No Thread dataset backup (*.hex) was found under $search_root."
+      ask_yes_no answer "Create a new Thread network on the next deployment" "no"
+      [ "$answer" = "yes" ] && selection="new"
+    fi
+  else
+    warn "Dataset backup path does not exist: $search_root. Skipping detection."
+  fi
+
+  if [ -z "$selection" ]; then
+    if [ "${DRY_RUN:-0}" -eq 0 ] &&
+      { [ -e "$pending_dataset" ] || [ -e "$pending_new_network" ]; }; then
+      rm -f -- "$pending_dataset" "$pending_new_network"
+      info "Cleared a previously staged dataset selection."
+    fi
+    return 0
+  fi
+
+  if [ "$selection" != "new" ] && ! otbr_dataset_file_is_valid_hex "$selection"; then
+    die "Selected dataset file is not a valid hex dataset: $selection"
+  fi
+
+  if [ "$otbr_running" -eq 1 ]; then
+    info "OTBR is currently running. Its active dataset will be backed up before the selected change is applied."
+    ask_yes_no answer "Add a description to that backup's filename" "no"
+    if [ "$answer" = "yes" ]; then
+      ask_value description "Backup description (sanitized for the filename)" ""
+    fi
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then
+      info "Dry run: backup of the running dataset skipped."
+    elif "$EDGE_REPO/services/otbr/dataset/backup.sh" ${description:+"$description"}; then
+      :
+    else
+      warn "Could not back up the running dataset now; deploy backs it up again before applying the change."
+    fi
+  fi
+
+  if [ "${DRY_RUN:-0}" -eq 1 ]; then
+    info "Dry run: dataset selection is not staged."
+    return 0
+  fi
+
+  mkdir -p "$OTBR_DATASET_BACKUP_DIR"
+  chmod 0700 "$OTBR_DATASET_BACKUP_DIR"
+  if [ "$selection" = "new" ]; then
+    rm -f -- "$pending_dataset"
+    : > "$pending_new_network"
+    chmod 0600 "$pending_new_network"
+    info "Staged: a NEW Thread network will be created on the next deploy."
+    warn "Creating a new network disconnects devices paired to a previous Thread network."
+  else
+    rm -f -- "$pending_new_network"
+    if [ ! "$selection" -ef "$pending_dataset" ]; then
+      install -m 0600 -- "$selection" "$pending_dataset"
+    fi
+    info "Staged dataset for restore on the next deploy: $selection"
+  fi
+  info "To cancel before deploying, delete $pending_dataset and $pending_new_network."
+}
+
 configure_otbr() {
   local answer
   echo
@@ -143,6 +265,7 @@ configure_otbr() {
   # Looks unused here, but lisa-first-boot.sh writes it into .env via env_line().
   # shellcheck disable=SC2034
   OTBR_DATASET_LATEST="$OTBR_DATASET_BACKUP_DIR/latest.dataset.hex"
+  configure_otbr_dataset_source
   ask_yes_no answer "Automatically restore the latest Thread dataset" "yes"
   # OTBR_AUTO_RESTORE_DATASET looks unused here, but lisa-first-boot.sh writes it into .env via env_line().
   # shellcheck disable=SC2034

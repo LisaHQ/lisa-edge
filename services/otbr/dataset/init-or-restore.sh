@@ -10,6 +10,15 @@ set +a
 
 LATEST="${OTBR_DATASET_LATEST:-/srv/lisa-edge/backups/otbr/latest.dataset.hex}"
 
+# shellcheck disable=SC1091
+. "$EDGE_REPO/lib/paths.sh"
+# shellcheck disable=SC1091
+. "$EDGE_REPO/services/otbr/dataset/lib.sh"
+BACKUP_DIR="${OTBR_DATASET_BACKUP_DIR:-/srv/lisa-edge/backups/otbr}"
+lisa_validate_persistent_path OTBR_DATASET_BACKUP_DIR "$BACKUP_DIR"
+PENDING_DATASET="$BACKUP_DIR/$OTBR_PENDING_DATASET_FILE_NAME"
+PENDING_NEW_NETWORK="$BACKUP_DIR/$OTBR_PENDING_NEW_NETWORK_FILE_NAME"
+
 echo "Waiting for OTBR container..."
 CONTAINER_RUNNING=0
 for _ in $(seq 1 60); do
@@ -72,6 +81,36 @@ read_active_dataset() {
   return 2
 }
 
+# Form a brand-new Thread network and store its dataset as the newest backup.
+create_new_thread_network() {
+  docker exec lisa-otbr ot-ctl dataset init new
+  docker exec lisa-otbr ot-ctl dataset commit active
+  docker exec lisa-otbr ot-ctl ifconfig up
+  docker exec lisa-otbr ot-ctl thread start
+  # Attaching and BBR/TREL setup can briefly destabilize the control session.
+  # Confirm the committed dataset is readable before backing it up.
+  local confirmed=0
+  local rc
+  for _ in $(seq 1 30); do
+    rc=0
+    read_active_dataset || rc=$?
+    if [ "$rc" -eq 0 ]; then
+      confirmed=1
+      break
+    fi
+    sleep 2
+  done
+  if [ "$confirmed" -ne 1 ]; then
+    {
+      echo "ERROR: Created a new Thread network but could not read it back."
+      echo "Inspect next: docker exec lisa-otbr ot-ctl state; docker exec lisa-otbr ot-ctl dataset active -x"
+      echo "Then run services/otbr/dataset/backup.sh manually to store the dataset."
+    } >&2
+    return 1
+  fi
+  "$EDGE_REPO/services/otbr/dataset/backup.sh"
+}
+
 DATASET_STATUS=""
 for _ in $(seq 1 30); do
   RC=0
@@ -100,6 +139,28 @@ if [ -z "$DATASET_STATUS" ]; then
   exit 1
 fi
 
+# One-shot dataset change staged by the provisioning wizard. Applied exactly
+# once: the marker is removed only after the change fully succeeds, so an
+# interrupted deploy safely retries. The dataset state was classified above,
+# so this never acts on an ambiguous agent.
+if [ -f "$PENDING_DATASET" ] || [ -f "$PENDING_NEW_NETWORK" ]; then
+  if [ "$DATASET_STATUS" = "present" ]; then
+    echo "Provisioning staged a dataset change. Backing up the currently active dataset first."
+    "$EDGE_REPO/services/otbr/dataset/backup.sh"
+  fi
+  if [ -f "$PENDING_DATASET" ]; then
+    echo "Applying the Thread dataset selected during provisioning."
+    "$EDGE_REPO/services/otbr/dataset/restore.sh" "$PENDING_DATASET"
+    # Snapshot the now-active dataset so latest.dataset.hex reflects it.
+    "$EDGE_REPO/services/otbr/dataset/backup.sh"
+  else
+    echo "Creating the new Thread network selected during provisioning."
+    create_new_thread_network
+  fi
+  rm -f -- "$PENDING_DATASET" "$PENDING_NEW_NETWORK"
+  exit 0
+fi
+
 if [ "$DATASET_STATUS" = "present" ]; then
   echo "OTBR already has active dataset. Backing it up."
   "$EDGE_REPO/services/otbr/dataset/backup.sh"
@@ -114,31 +175,7 @@ fi
 
 if [ "${OTBR_AUTO_CREATE_NETWORK:-0}" = "1" ]; then
   echo "No dataset found. Creating a new Thread network."
-  docker exec lisa-otbr ot-ctl dataset init new
-  docker exec lisa-otbr ot-ctl dataset commit active
-  docker exec lisa-otbr ot-ctl ifconfig up
-  docker exec lisa-otbr ot-ctl thread start
-  # Attaching and BBR/TREL setup can briefly destabilize the control session.
-  # Confirm the committed dataset is readable before backing it up.
-  CONFIRMED=0
-  for _ in $(seq 1 30); do
-    RC=0
-    read_active_dataset || RC=$?
-    if [ "$RC" -eq 0 ]; then
-      CONFIRMED=1
-      break
-    fi
-    sleep 2
-  done
-  if [ "$CONFIRMED" -ne 1 ]; then
-    {
-      echo "ERROR: Created a new Thread network but could not read it back."
-      echo "Inspect next: docker exec lisa-otbr ot-ctl state; docker exec lisa-otbr ot-ctl dataset active -x"
-      echo "Then run services/otbr/dataset/backup.sh manually to store the dataset."
-    } >&2
-    exit 1
-  fi
-  "$EDGE_REPO/services/otbr/dataset/backup.sh"
+  create_new_thread_network
   exit 0
 fi
 

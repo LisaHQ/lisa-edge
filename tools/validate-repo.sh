@@ -85,6 +85,9 @@ bash "$REPO_ROOT/tests/unit/test-image-policy.sh"
 echo "Checking provisioning wizard..."
 bash "$REPO_ROOT/tests/unit/test-provisioning-wizard.sh"
 
+echo "Checking OTBR dataset selection helpers..."
+bash "$REPO_ROOT/tests/unit/test-otbr-dataset-selection.sh"
+
 echo "Checking USB release config..."
 bash "$REPO_ROOT/tests/unit/test-usb-release-config.sh"
 
