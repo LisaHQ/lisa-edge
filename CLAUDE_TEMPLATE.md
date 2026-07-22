@@ -310,7 +310,7 @@ Required format:
 Commit description:
 
 ```text
-Short summary of the completed change
+A short summary of the completed change.
 
 Changes:
 - type(scope): first material change

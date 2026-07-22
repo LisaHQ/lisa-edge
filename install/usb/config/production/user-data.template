@@ -40,7 +40,13 @@ autoinstall:
           # (usually "<model>_<short serial>") with whole-string glob matching.
           # The lsblk SERIAL column shows ID_SERIAL_SHORT and will NOT match.
           # Find the correct value with:
+          #
+          # 1. List all avaible device disks:
+          #   lsblk -dn -o PATH,SIZE,MODEL,SERIAL,TRAN
+          #
+          # 2. Rplace 'sdX' below by the device path you want to get serial. (ex: sda, sdb, ...)
           #   udevadm info --query=property --name=/dev/sdX | grep '^ID_SERIAL='
+          #
           # Do NOT use "wwn": subiquity silently ignores unsupported match keys
           # and would then select the first detected disk.
           serial: REPLACE_WITH_TARGET_DISK_SERIAL
