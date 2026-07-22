@@ -1,5 +1,8 @@
 # AI Instruction
 
+- Version: 7.2
+- Last Updated: 2026-07-22
+
 This is the canonical AI instruction entry point for the LISA Edge project.
 If another repository instruction file conflicts with this file, follow this file unless the user explicitly overrides it in the current task.
 

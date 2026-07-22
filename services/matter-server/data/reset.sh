@@ -56,6 +56,9 @@ fi
 
 mkdir -p "$MATTER_DATA_DIR"
 find "$MATTER_DATA_DIR" -mindepth 1 -delete
+# Self-heal ownership so the fresh fabric can be written by the server user
+# even when the store was created by an older (root-owned) deployment.
+matter_data_set_store_ownership "$MATTER_DATA_DIR"
 # Drop the latest pointer, or auto-restore would resurrect the old fabric
 # into the emptied store on the next deploy. The archives themselves stay.
 rm -f -- "$BACKUP_DIR/latest.matter-data.tar.gz"

@@ -54,6 +54,12 @@ Assistant host) can reach it. Never expose it beyond the local network.
 and commissioned-device state. Treat it like the OTBR Thread dataset: losing
 it requires re-commissioning every Matter device.
 
+The store must be owned by uid/gid `1000:1000`, the fixed non-root user the
+matterjs-server container runs as; a root-owned store makes the server
+crash-loop at startup with `EACCES: permission denied, mkdir '/data/config'`.
+The data scripts enforce this ownership after creating the directory and
+after every archive extraction, so no manual `chown` is needed.
+
 Protection mirrors the OTBR dataset tooling:
 
 - On every deploy, `services/matter-server/data/init-or-restore.sh` runs

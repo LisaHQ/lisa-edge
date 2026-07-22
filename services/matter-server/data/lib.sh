@@ -14,6 +14,23 @@ MATTER_PENDING_RESET_FILE_NAME="pending.reset"
 # Maximum filename length on the supported filesystems (ext4 and friends).
 MATTER_FILENAME_MAX_BYTES=255
 
+# matterjs-server runs as a fixed non-root user (upstream Dockerfile:
+# `USER 1000:1000`), unlike python-matter-server which ran as root. The host
+# store mounted at /data must be writable by that uid, or the server fails at
+# startup with "EACCES: permission denied, mkdir '/data/config'".
+MATTER_DATA_STORE_UID=1000
+MATTER_DATA_STORE_GID=1000
+
+# Make the Matter data store writable by the in-container server user. The
+# data scripts run as root (via sudo through deploy or the CLI); without root
+# (for example in unit tests) the chown cannot succeed and is skipped, since
+# tests must never require privileges or mutate live ownership.
+matter_data_set_store_ownership() {
+  local data_dir="$1"
+  [ "$(id -u)" -eq 0 ] || return 0
+  chown -R "$MATTER_DATA_STORE_UID:$MATTER_DATA_STORE_GID" "$data_dir"
+}
+
 # Sanitize a user-supplied backup description so it can be embedded in a
 # filename: spaces become '-', any other byte outside [A-Za-z0-9._-] becomes
 # '_', and the result is truncated to max_length bytes. The output is pure

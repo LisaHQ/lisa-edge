@@ -30,6 +30,7 @@ PENDING_DATA="$BACKUP_DIR/$MATTER_PENDING_DATA_FILE_NAME"
 PENDING_RESET="$BACKUP_DIR/$MATTER_PENDING_RESET_FILE_NAME"
 
 mkdir -p "$MATTER_DATA_DIR"
+matter_data_set_store_ownership "$MATTER_DATA_DIR"
 
 matter_container_running() {
   command -v docker >/dev/null 2>&1 || return 1
@@ -68,6 +69,9 @@ extract_archive() {
     exit 1
   fi
   tar -C "$MATTER_DATA_DIR" -xzf "$archive_file"
+  # Extraction as root preserves archive ownership (pre-switch archives carry
+  # root-owned files); hand the store back to the server user afterwards.
+  matter_data_set_store_ownership "$MATTER_DATA_DIR"
 }
 
 # One-shot change staged by the provisioning wizard. Applied exactly once:

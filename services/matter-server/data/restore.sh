@@ -61,6 +61,9 @@ fi
 mkdir -p "$MATTER_DATA_DIR"
 find "$MATTER_DATA_DIR" -mindepth 1 -delete
 tar -C "$MATTER_DATA_DIR" -xzf "$ARCHIVE_FILE"
+# Extraction as root preserves archive ownership (pre-switch archives carry
+# root-owned files); hand the store back to the server user afterwards.
+matter_data_set_store_ownership "$MATTER_DATA_DIR"
 
 if [ "$WAS_RUNNING" -eq 1 ]; then
   restart_matter
