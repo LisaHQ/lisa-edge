@@ -14,5 +14,5 @@ end_of_line = lf
 [*.{bat,cmd,ps1}]
 end_of_line = crlf
 
-[user-data]
+[{user-data,compose.yml}]
 indent_size = 2

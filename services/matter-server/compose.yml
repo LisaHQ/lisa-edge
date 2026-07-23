@@ -19,3 +19,6 @@ services:
       LOG_LEVEL: ${MATTER_LOG_LEVEL:-info}
       TZ: ${TZ:-America/Los_Angeles}
       BLUETOOTH_ADAPTER: "0"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
