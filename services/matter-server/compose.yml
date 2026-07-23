@@ -13,9 +13,11 @@ services:
       # matterjs-server migrates existing python-matter-server storage found
       # here in place (one-way); deploy backs this directory up beforehand.
       - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/matter-server:/data
+      - /run/dbus:/run/dbus:ro
     environment:
       # Effective WebSocket/dashboard listen port (matterjs-server honors PORT).
       PORT: ${MATTER_SERVER_PORT:-5580}
       LOG_LEVEL: ${MATTER_LOG_LEVEL:-info}
       TZ: ${TZ:-America/Los_Angeles}
       BLUETOOTH_ADAPTER: "0"
+      NOBLE_BINDINGS: dbus
