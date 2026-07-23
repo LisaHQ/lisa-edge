@@ -18,3 +18,4 @@ services:
       PORT: ${MATTER_SERVER_PORT:-5580}
       LOG_LEVEL: ${MATTER_LOG_LEVEL:-info}
       TZ: ${TZ:-America/Los_Angeles}
+      BLUETOOTH_ADAPTER: "0"
