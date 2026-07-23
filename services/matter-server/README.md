@@ -15,6 +15,13 @@ It uses host networking because commissioning depends on mDNS multicast and
 direct IPv6 reachability. The WebSocket API is unauthenticated: keep port
 5580 restricted to trusted controller networks with firewall or VLAN rules.
 
+BLE commissioning (new Thread devices receive their network credentials over
+Bluetooth) needs a Bluetooth adapter on the host. The container runs as root
+with `NET_RAW`/`NET_ADMIN` because the kernel ignores HCI commands from
+unprivileged users, and the image is pinned to a release tag because
+`:stable` can serve nightly matter.js alpha builds. See the operator
+reference for the full BLE requirements and troubleshooting.
+
 Fabric credentials and commissioned-device state live at
 `${DATA_ROOT}/docker/volumes/matter-server/`. This data is critical: losing
 it requires re-commissioning every Matter device. matterjs-server migrates

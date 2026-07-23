@@ -1,12 +1,30 @@
 services:
   matter-server:
-    image: ${MATTER_SERVER_IMAGE:-ghcr.io/matter-js/matterjs-server:stable}
+    # Pinned to a verified release tag: the :stable tag can serve nightly
+    # matter.js alpha builds (a 2026-07-22 alpha shipped a BLE regression
+    # that hung commissioning right after the ATT MTU exchange).
+    image: ${MATTER_SERVER_IMAGE:-ghcr.io/matter-js/matterjs-server:1.3.0}
     container_name: lisa-matter
     restart: unless-stopped
     # Host networking is required: Matter commissioning and device discovery
     # rely on mDNS multicast and direct IPv6 reachability to devices on the
     # LAN and Thread (via OTBR) networks.
     network_mode: host
+    # BLE commissioning needs direct HCI access, and the kernel only honors
+    # HCI commands from a process with effective NET_RAW/NET_ADMIN. The
+    # image's default unprivileged user (1000:1000) never gets effective
+    # capabilities (cap_add only extends the container's bounding set), so
+    # BLE discovery silently finds nothing unless the server runs as root;
+    # upstream documents no unprivileged alternative. This trades away
+    # in-container user isolation (python-matter-server used the same root
+    # model).
+    user: "0:0"
+    cap_add:
+      # Open the raw HCI socket for BLE scanning and commissioning.
+      - NET_RAW
+      # Power and configure the Bluetooth adapter when bluetoothd is not
+      # managing it on the host.
+      - NET_ADMIN
     volumes:
       # /data holds the Matter fabric credentials and commissioned-device
       # state. Losing it requires re-commissioning every Matter device.
@@ -19,6 +37,3 @@ services:
       LOG_LEVEL: ${MATTER_LOG_LEVEL:-info}
       TZ: ${TZ:-America/Los_Angeles}
       BLUETOOTH_ADAPTER: "0"
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW

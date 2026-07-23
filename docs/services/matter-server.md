@@ -20,6 +20,8 @@ Wi-Fi and Ethernet work without OTBR.
 
 - Host networking (mDNS multicast and direct IPv6 reachability to devices)
 - IPv6 enabled on the host
+- A Bluetooth adapter on the host for BLE commissioning (see
+  [BLE commissioning](#ble-commissioning))
 
 Use `sudo ./lisa-edge setup` to select it. The wizard asks for
 `MATTER_SERVER_PORT` (passed to the server as its listen port and used by
@@ -30,6 +32,50 @@ stage a data restore or fabric reset for the next deploy. Deploy and verify:
 sudo ./lisa-edge deploy
 sudo ./lisa-edge health
 ```
+
+## BLE commissioning
+
+New Thread (and Wi-Fi) Matter devices hand over their network credentials
+during commissioning via Bluetooth LE, so the dashboard's "Commission node"
+needs working BLE on the edge host. Three configuration points make it work,
+all encoded in `compose.yml`:
+
+- The container runs as **root** (`user: "0:0"`). The kernel only honors HCI
+  commands from a process with effective `NET_RAW`/`NET_ADMIN`; the image's
+  default unprivileged user never gets effective capabilities, so BLE
+  discovery silently finds nothing (the server still logs `BLE is enabled`).
+  Upstream documents no unprivileged alternative.
+- `cap_add: NET_RAW, NET_ADMIN` for the raw HCI socket and adapter control.
+- The image is pinned to a **release tag**. The `:stable` tag can serve
+  nightly matter.js alpha builds; a 2026-07-22 alpha shipped a BLE
+  regression that hung commissioning right after the ATT MTU exchange.
+
+Troubleshooting, in the order that localizes the fault fastest:
+
+1. Confirm the device is advertising: `sudo btmon` on the host must show
+   `Service Data: Matter Profile ID (0xfff6)` advertisements. The
+   discriminator is in bytes 1–2 of that payload (12-bit little-endian);
+   its upper 4 bits must match the short discriminator the server logs. No
+   0xfff6 adverts means the device is not in pairing mode or is already
+   commissioned into another fabric (factory-reset it, or open a
+   commissioning window from the existing controller).
+2. Do not run `bluetoothctl scan` or leave the adapter discoverable during
+   commissioning; a passive `sudo btmon` is safe and shows whether the
+   container actually issues `LE Set Extended Scan` commands.
+3. `Commission failed ... started attempt(s) failed` after a successful BLE
+   session means the device joined BLE fine and the failure moved to the
+   Thread/IP layer (see below).
+
+**"Operative reconnection with device failed"** after the BLE phase almost
+always means the Thread dataset the server hands to devices has drifted from
+OTBR's active dataset (for example after an OTBR dataset restore or
+regeneration). Symptom: the device never appears in
+`sudo docker exec lisa-otbr ot-ctl child table` and SRP stays empty. Compare
+the Mesh-Local Prefix TLV (`0708...`) inside the dataset logged with
+`addOrUpdateThreadNetwork` against
+`sudo docker exec lisa-otbr ot-ctl dataset active -x`; on mismatch, paste
+the current OTBR dataset into the dashboard settings, factory-reset the
+device (failed attempts leave stale state on it), and commission again.
 
 ## Migration from python-matter-server
 
@@ -54,11 +100,14 @@ Assistant host) can reach it. Never expose it beyond the local network.
 and commissioned-device state. Treat it like the OTBR Thread dataset: losing
 it requires re-commissioning every Matter device.
 
-The store must be owned by uid/gid `1000:1000`, the fixed non-root user the
-matterjs-server container runs as; a root-owned store makes the server
-crash-loop at startup with `EACCES: permission denied, mkdir '/data/config'`.
-The data scripts enforce this ownership after creating the directory and
-after every archive extraction, so no manual `chown` is needed.
+The compose file runs the container as root for BLE commissioning (see
+[BLE commissioning](#ble-commissioning)), so store ownership no longer
+affects startup. The data scripts still normalize ownership to uid/gid
+`1000:1000`, the image's default unprivileged user, after creating the
+directory and after every archive extraction; that keeps the store usable if
+the root override is ever removed — under the image's default user, a
+root-owned store crash-loops at startup with
+`EACCES: permission denied, mkdir '/data/config'`.
 
 Protection mirrors the OTBR dataset tooling:
 

@@ -14,9 +14,11 @@ MATTER_PENDING_RESET_FILE_NAME="pending.reset"
 # Maximum filename length on the supported filesystems (ext4 and friends).
 MATTER_FILENAME_MAX_BYTES=255
 
-# matterjs-server runs as a fixed non-root user (upstream Dockerfile:
-# `USER 1000:1000`), unlike python-matter-server which ran as root. The host
-# store mounted at /data must be writable by that uid, or the server fails at
+# The matterjs-server image defaults to a fixed non-root user (upstream
+# Dockerfile: `USER 1000:1000`). Our compose overrides it to root because BLE
+# commissioning needs effective HCI capabilities, but the store is still
+# normalized to the image's default uid so it keeps working if that override
+# is ever removed: under the default user, a root-owned store fails at
 # startup with "EACCES: permission denied, mkdir '/data/config'".
 MATTER_DATA_STORE_UID=1000
 MATTER_DATA_STORE_GID=1000
