@@ -70,12 +70,18 @@ Troubleshooting, in the order that localizes the fault fastest:
 always means the Thread dataset the server hands to devices has drifted from
 OTBR's active dataset (for example after an OTBR dataset restore or
 regeneration). Symptom: the device never appears in
-`sudo docker exec lisa-otbr ot-ctl child table` and SRP stays empty. Compare
-the Mesh-Local Prefix TLV (`0708...`) inside the dataset logged with
-`addOrUpdateThreadNetwork` against
-`sudo docker exec lisa-otbr ot-ctl dataset active -x`; on mismatch, paste
-the current OTBR dataset into the dashboard settings, factory-reset the
-device (failed attempts leave stale state on it), and commission again.
+`sudo docker exec lisa-otbr ot-ctl child table` and SRP stays empty.
+`lisa-edge health` (deploy runs it too) compares OTBR's active dataset with
+the server's registered credentials and warns on drift. Fix it with:
+
+```bash
+sudo ./lisa-edge matter sync-dataset
+```
+
+which pushes OTBR's active dataset over the WebSocket API and restarts
+`lisa-matter` to re-register it (`sudo ./lisa-edge otbr dataset` prints the
+same dataset hex for manual use). Then factory-reset the device — failed
+attempts leave stale state on it — and commission again.
 
 ## Migration from python-matter-server
 

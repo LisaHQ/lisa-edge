@@ -27,10 +27,14 @@ Deploy and verify:
 sudo ./lisa-edge deploy
 sudo ./lisa-edge health
 docker exec lisa-otbr ot-ctl state
-docker exec lisa-otbr ot-ctl dataset active -x
+sudo ./lisa-edge otbr dataset
 ```
 
 An attached network normally reports `child`, `router` or `leader`.
+`otbr dataset` prints the active operational dataset as one hex line (a
+secret — it contains the network key) for use in other commissioners;
+`sudo ./lisa-edge matter sync-dataset` pushes it into the Matter server, and
+`lisa-edge health` warns when the two have drifted apart.
 
 ## Thread dataset safety
 

@@ -12,6 +12,7 @@ policy. Then deploy and verify:
 sudo ./lisa-edge deploy
 sudo ./lisa-edge health
 docker exec lisa-otbr ot-ctl state
+sudo ./lisa-edge otbr dataset   # print the active dataset hex (secret)
 ```
 
 The Thread dataset is a secret and the identity of the network. Dataset tools

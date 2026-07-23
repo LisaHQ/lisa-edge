@@ -30,6 +30,8 @@ You should not need to know where an implementation script lives.
 | See runtime state | `sudo ./lisa-edge status` |
 | Run readiness checks | `sudo ./lisa-edge health` |
 | List selectable services | `./lisa-edge service list` |
+| Print the Thread dataset (secret) | `sudo ./lisa-edge otbr dataset` |
+| Sync the Thread dataset into Matter | `sudo ./lisa-edge matter sync-dataset` |
 | Create a backup | `sudo ./lisa-edge backup` |
 | Restore a backup | `sudo ./lisa-edge restore <archive>` |
 | Collect diagnostics | `sudo ./lisa-edge diagnostics` |

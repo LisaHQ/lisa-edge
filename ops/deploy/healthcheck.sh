@@ -161,4 +161,66 @@ if lisa_has_service vpn-tailscale; then
   check_tailscale
 fi
 
+# Warn (without failing readiness) when the Thread dataset the Matter server
+# hands to devices during commissioning has drifted from OTBR's active
+# dataset: running devices keep working, but every new Thread commissioning
+# fails at the operative reconnection step until the dataset is re-synced.
+if lisa_has_service matter && lisa_has_service otbr; then
+  echo "[LISA] Checking OTBR <-> Matter Thread dataset sync..."
+  # shellcheck disable=SC1091
+  . "$EDGE_REPO/lib/thread-dataset.sh"
+  if drift_report="$(thread_dataset_drift_report_live)"; then
+    echo "[LISA] $drift_report"
+  else
+    echo "[LISA] WARNING: $drift_report" >&2
+    echo "[LISA] New Thread commissionings will fail until the dataset is synced:" >&2
+    echo "[LISA]   sudo ./lisa-edge matter sync-dataset" >&2
+  fi
+fi
+
+# Print the web interfaces of the selected services, preferring the LAN
+# address (with the host's mDNS name) and falling back to localhost-only
+# with a hint about the bind-address variable that would expose it.
+print_web_urls() {
+  local lan_ip mdns_host entry label port bind_var
+  lan_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  mdns_host="$(hostname 2>/dev/null || echo lisa-edge).local"
+
+  local entries=()
+  if lisa_has_service uptime-kuma; then
+    entries+=("Uptime Kuma|${UPTIME_KUMA_PORT:-3001}|UPTIME_KUMA_BIND_ADDR")
+  fi
+  if lisa_has_service ha; then
+    entries+=("Home Assistant|${HOME_ASSISTANT_PORT:-8123}|")
+  fi
+  if lisa_has_service matter; then
+    entries+=("Matter Server|${MATTER_SERVER_PORT:-5580}|")
+  fi
+  if lisa_has_service otbr; then
+    entries+=("OTBR Web|80|")
+  fi
+  if lisa_has_service zigbee2mqtt; then
+    entries+=("Zigbee2MQTT|${ZIGBEE2MQTT_PORT:-8080}|ZIGBEE2MQTT_BIND_ADDR")
+  fi
+  if lisa_has_service node-red; then
+    entries+=("Node-RED|${NODE_RED_PORT:-1880}|NODE_RED_BIND_ADDR")
+  fi
+  [ "${#entries[@]}" -gt 0 ] || return 0
+
+  echo "[LISA] Web interfaces:"
+  for entry in "${entries[@]}"; do
+    IFS='|' read -r label port bind_var <<<"$entry"
+    if [ -n "$lan_ip" ] && check_tcp "$lan_ip" "$port"; then
+      echo "[LISA]   $label: http://$mdns_host:$port  (http://$lan_ip:$port)"
+    elif check_tcp 127.0.0.1 "$port"; then
+      if [ -n "$bind_var" ]; then
+        echo "[LISA]   $label: http://127.0.0.1:$port  (localhost only; set $bind_var=0.0.0.0 in .env and redeploy to expose it on the LAN)"
+      else
+        echo "[LISA]   $label: http://127.0.0.1:$port  (localhost only)"
+      fi
+    fi
+  done
+}
+print_web_urls
+
 echo "[LISA] Selected LISA Edge services passed readiness checks."

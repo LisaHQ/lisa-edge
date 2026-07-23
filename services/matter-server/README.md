@@ -39,7 +39,9 @@ schedule daily data backups when Matter is selected; a scheduled backup stops
 included in the standard `sudo ./lisa-edge backup` archive.
 
 Select it with `sudo ./lisa-edge setup`, then use `sudo ./lisa-edge deploy`
-and `sudo ./lisa-edge health`.
+and `sudo ./lisa-edge health`. When OTBR is also selected, health warns if
+the server's stored Thread credentials drift from OTBR's active dataset;
+`sudo ./lisa-edge matter sync-dataset` re-syncs them.
 
 Owned files: `compose.yml`, `provision.sh`, `data/` and `systemd/`. See the
 [operator reference](../../docs/services/matter-server.md) and

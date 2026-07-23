@@ -78,6 +78,9 @@ echo "Checking Docker Compose configurations..."
 ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env.template}" \
   bash "$REPO_ROOT/tools/validate-compose.sh"
 
+echo "Checking Thread dataset helpers..."
+bash "$REPO_ROOT/tests/unit/test-thread-dataset-lib.sh"
+
 echo "Checking service selection and image policy..."
 bash "$REPO_ROOT/tests/unit/test-service-selection.sh"
 bash "$REPO_ROOT/tests/unit/test-image-policy.sh"
