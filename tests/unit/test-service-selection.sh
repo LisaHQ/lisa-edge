@@ -19,9 +19,24 @@ lisa_build_compose_files "$REPO_ROOT"
 
 LISA_COMPOSE_SERVICES="all"
 lisa_validate_services
+# With the default configuration, selecting matter also layers its BLE
+# compose slice (MATTER_BLUETOOTH_ADAPTER defaults to adapter 0).
+unset MATTER_BLUETOOTH_ADAPTER MATTER_PRIMARY_INTERFACE || true
 lisa_build_compose_files "$REPO_ROOT"
-[ "${#LISA_COMPOSE_FILES[@]}" -eq 18 ] || {
-  echo "Expected core plus eight service Compose files." >&2
+[ "${#LISA_COMPOSE_FILES[@]}" -eq 20 ] || {
+  echo "Expected core plus eight service Compose files plus the Matter BLE slice." >&2
+  exit 1
+}
+
+MATTER_BLUETOOTH_ADAPTER=none
+MATTER_PRIMARY_INTERFACE=enp1s0
+lisa_build_compose_files "$REPO_ROOT"
+[ "${#LISA_COMPOSE_FILES[@]}" -eq 20 ] || {
+  echo "Expected the primary-interface slice to replace the BLE slice in the count." >&2
+  exit 1
+}
+printf '%s\n' "${LISA_COMPOSE_FILES[@]}" | grep -q 'compose.primary-interface.yml' || {
+  echo "Expected the primary-interface slice to be included." >&2
   exit 1
 }
 

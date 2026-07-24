@@ -125,9 +125,22 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 Current slices: `mqtt`, `uptime-kuma`, `home-assistant`, `matter-server`, `otbr`,
 `zigbee2mqtt`, `node-red`, `tailscale`.
 
-`otbr/dataset/` protects the Thread network dataset: `backup.sh`,
-`restore.sh`, `init-or-restore.sh`, and a systemd service/timer pair that
-snapshots the dataset alongside regular backups.
+`otbr/dataset/` protects the Thread network dataset: `show.sh` (redacted
+summary / `--show-secret`), `export.sh` (0600 secret export), `backup.sh`
+(checksum + metadata sidecars), `restore.sh` (validated, confirmed network
+replacement), `init-or-restore.sh` (deploy-time decisions), and a systemd
+service/timer pair that snapshots the dataset alongside regular backups.
+`otbr/status.sh` implements `lisa-edge otbr status` and
+`otbr/network-create.sh` implements `lisa-edge otbr network create`.
+
+`matter-server/` additionally owns `status.sh`, `credentials.sh`,
+`thread.sh` (`matter thread status|sync|remove`), `lib/ws.sh` +
+`lib/ws-client.js` (the shared Matter WebSocket client), the optional
+compose slices `compose.ble.yml` / `compose.primary-interface.yml`, and
+`data/` (backup/restore/reset with checksum sidecars).
+`ops/diagnostics/doctor-matter-thread.sh` implements
+`lisa-edge doctor matter-thread`, and `lib/service-config.sh` validates the
+Matter/Thread configuration before deploy.
 
 ## rescue/ — the independent eMMC Rescue OS
 

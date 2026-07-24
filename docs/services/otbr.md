@@ -26,15 +26,32 @@ Deploy and verify:
 ```bash
 sudo ./lisa-edge deploy
 sudo ./lisa-edge health
-docker exec lisa-otbr ot-ctl state
-sudo ./lisa-edge otbr dataset
+sudo ./lisa-edge otbr status
+sudo ./lisa-edge otbr dataset show
 ```
 
 An attached network normally reports `child`, `router` or `leader`.
-`otbr dataset` prints the active operational dataset as one hex line (a
-secret — it contains the network key) for use in other commissioners;
-`sudo ./lisa-edge matter sync-dataset` pushes it into the Matter server, and
-`lisa-edge health` warns when the two have drifted apart.
+`otbr dataset show` prints a decoded summary with the network key and PSKc
+redacted. The complete dataset is only available explicitly:
+`otbr dataset show --show-secret` prints it after a warning, and
+`otbr dataset export --output <file>` writes it atomically to a new file
+with mode `0600` for use in other commissioners.
+`sudo ./lisa-edge matter thread sync` stores it on the Matter server as the
+named credential `MATTER_THREAD_CREDENTIAL_ID`, and `lisa-edge health`
+degrades when the identity fields of the two sides have drifted apart.
+
+## Creating a Thread network
+
+`sudo ./lisa-edge otbr network create` forms a completely new Thread network
+named `THREAD_NETWORK_NAME` (default `LISA-HOME-01`, max 16 bytes). The name
+identifies the logical site mesh — never the host, the border router, the
+ZimaBoard, or the RCP dongle — so it survives hardware replacement. There is
+no rename of an established network: creating a network with a different
+name is a network REPLACEMENT. When a network is already active the command
+shows its summary, requires typing `CREATE`, and backs the old dataset up
+first. After forming, it verifies the committed dataset, stores a new
+backup, and (when Matter is selected) syncs the credentials to the Matter
+server. Every previously paired Thread device must be re-commissioned.
 
 ## Thread dataset safety
 

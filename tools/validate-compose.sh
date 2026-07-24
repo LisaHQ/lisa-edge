@@ -102,6 +102,25 @@ main() {
         fi
     done
 
+    # The matter service composes optional slices depending on environment
+    # variables; validate the full combination explicitly (BLE enabled and a
+    # pinned primary interface) since the per-service loop above only covers
+    # the defaults.
+    if ! MATTER_PRIMARY_INTERFACE=eth0 validate_stack \
+        "matter (BLE + primary-interface slices)" \
+        "$REPO_ROOT/ops/deploy/compose.yml" \
+        "$REPO_ROOT/services/matter-server/compose.yml" \
+        "$REPO_ROOT/services/matter-server/compose.ble.yml" \
+        "$REPO_ROOT/services/matter-server/compose.primary-interface.yml"; then
+        failed=1
+    fi
+    if ! MATTER_BLUETOOTH_ADAPTER=none validate_stack \
+        "matter (BLE disabled)" \
+        "$REPO_ROOT/ops/deploy/compose.yml" \
+        "$REPO_ROOT/services/matter-server/compose.yml"; then
+        failed=1
+    fi
+
     # shellcheck disable=SC2034
     LISA_COMPOSE_SERVICES=all
     compose_paths_for_selection

@@ -29,10 +29,21 @@ You should not need to know where an implementation script lives.
 | Update Git and selected images | `sudo ./lisa-edge update` |
 | Discard local changes and update | `sudo ./lisa-edge update clean` |
 | See runtime state | `sudo ./lisa-edge status` |
-| Run readiness checks | `sudo ./lisa-edge health` |
+| Run readiness checks (HEALTHY/DEGRADED/FAILED) | `sudo ./lisa-edge health` |
+| Fail on degradations too (monitoring) | `sudo ./lisa-edge health --strict` |
 | List selectable services | `./lisa-edge service list` |
-| Print the Thread dataset (secret) | `sudo ./lisa-edge otbr dataset` |
-| Sync the Thread dataset into Matter | `sudo ./lisa-edge matter sync-dataset` |
+| See OTBR / Thread state | `sudo ./lisa-edge otbr status` |
+| Show the Thread dataset (secrets redacted) | `sudo ./lisa-edge otbr dataset show` |
+| Export the Thread dataset to a 0600 file | `sudo ./lisa-edge otbr dataset export --output <file>` |
+| Back up the Thread dataset | `sudo ./lisa-edge otbr dataset backup` |
+| Restore a Thread dataset (replaces the network) | `sudo ./lisa-edge otbr dataset restore <file>` |
+| Create a NEW Thread network | `sudo ./lisa-edge otbr network create` |
+| See Matter server state | `sudo ./lisa-edge matter status` |
+| List stored Thread credentials on Matter | `sudo ./lisa-edge matter credentials list` |
+| Sync Thread credentials into Matter | `sudo ./lisa-edge matter thread sync` |
+| Check OTBR vs Matter credential drift | `sudo ./lisa-edge matter thread status` |
+| Reset the Matter fabric (re-commission!) | `sudo ./lisa-edge matter reset` |
+| Diagnose Matter-over-Thread end to end | `sudo ./lisa-edge doctor matter-thread` |
 | Create a backup | `sudo ./lisa-edge backup` |
 | Restore a backup | `sudo ./lisa-edge restore <archive>` |
 | Collect diagnostics | `sudo ./lisa-edge diagnostics` |

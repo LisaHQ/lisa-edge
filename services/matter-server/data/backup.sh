@@ -19,16 +19,37 @@ lisa_validate_persistent_path MATTER_DATA_BACKUP_DIR "$BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
 
-# Optional description appended to the backup filename:
-#   backup.sh [description]
-DESCRIPTION_RAW="${1:-}"
+usage() {
+  cat <<'EOF'
+Usage: services/matter-server/data/backup.sh [--label <label>]
+
+Create a consistent Matter fabric data archive with checksum and metadata
+sidecars under MATTER_DATA_BACKUP_DIR.
+EOF
+}
+
+LABEL_RAW=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --label)
+      [ "$#" -ge 2 ] || { echo "ERROR: --label requires a value." >&2; exit 2; }
+      LABEL_RAW="$2"
+      shift
+      ;;
+    -h|--help) usage; exit 0 ;;
+    -*) echo "ERROR: unknown option: $1" >&2; usage >&2; exit 2 ;;
+    *) echo "ERROR: unexpected argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+  shift
+done
 
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 BASE_NAME="matter-data-$TS"
-# Reserve room for the base name, the '-' separator and the '.tar.gz' extension.
-DESCRIPTION_MAX=$((MATTER_FILENAME_MAX_BYTES - ${#BASE_NAME} - 1 - 7))
-DESCRIPTION="$(matter_sanitize_backup_description "$DESCRIPTION_RAW" "$DESCRIPTION_MAX")"
-OUT="$BACKUP_DIR/$BASE_NAME${DESCRIPTION:+-$DESCRIPTION}.tar.gz"
+# Reserve room for the base name, the '-' separator and the '.tar.gz.sha256'
+# extension (the longest sidecar suffix).
+LABEL_MAX=$((MATTER_FILENAME_MAX_BYTES - ${#BASE_NAME} - 1 - 14))
+LABEL="$(matter_sanitize_backup_description "$LABEL_RAW" "$LABEL_MAX")"
+OUT="$BACKUP_DIR/$BASE_NAME${LABEL:+-$LABEL}.tar.gz"
 LATEST="$BACKUP_DIR/latest.matter-data.tar.gz"
 RETENTION_DAYS="${MATTER_DATA_RETENTION_DAYS:-30}"
 
@@ -43,7 +64,7 @@ fi
 # guaranteed consistent; restart it afterwards only if it was running.
 WAS_RUNNING=0
 if command -v docker >/dev/null 2>&1 &&
-  docker ps --format '{{.Names}}' 2>/dev/null | grep -qx lisa-matter; then
+  grep -qx lisa-matter <<<"$(docker ps --format '{{.Names}}' 2>/dev/null || true)"; then
   WAS_RUNNING=1
 fi
 restart_matter() {
@@ -58,18 +79,26 @@ if [ "$WAS_RUNNING" -eq 1 ]; then
   docker stop lisa-matter >/dev/null
 fi
 
-tar -C "$MATTER_DATA_DIR" -czf "$OUT" .
-chmod 0600 "$OUT"
+# Stage in the destination directory, then rename: a power loss mid-write
+# must never leave a truncated archive behind the latest symlink.
+TMP_OUT="$(umask 077 && mktemp "$BACKUP_DIR/.matter-data.XXXXXX")"
+cleanup_tmp() { rm -f -- "$TMP_OUT" 2>/dev/null || true; }
+trap 'cleanup_tmp; restart_matter' EXIT
+tar -C "$MATTER_DATA_DIR" -czf "$TMP_OUT" .
+chmod 0600 "$TMP_OUT"
+mv -- "$TMP_OUT" "$OUT"
+trap restart_matter EXIT
+matter_data_write_archive_sidecars "$OUT" "$LABEL"
 ln -sfn "$(basename "$OUT")" "$LATEST"
 
-if [ "$WAS_RUNNING" -eq 1 ]; then
-  restart_matter
-  WAS_RUNNING=0
-  trap - EXIT
-fi
+restart_matter
+WAS_RUNNING=0
+trap - EXIT
 
 if [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] && [ "$RETENTION_DAYS" -gt 0 ]; then
-  find "$BACKUP_DIR" -maxdepth 1 -type f -name 'matter-data-*.tar.gz' \
+  find "$BACKUP_DIR" -maxdepth 1 -type f \
+    \( -name 'matter-data-*.tar.gz' -o -name 'matter-data-*.tar.gz.sha256' \
+       -o -name 'matter-data-*.tar.gz.meta' \) \
     -mtime "+$RETENTION_DAYS" -delete
 fi
 

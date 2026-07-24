@@ -53,12 +53,27 @@ ${C_SECTION}Runtime operations:${C_RESET}
   ${C_CMD}stop${C_RESET}                           Stop selected services
   ${C_CMD}update${C_RESET} [clean]                 Fast-forward the repository and refresh images
                                 ${C_DIM}(clean discards local changes to tracked files first)${C_RESET}
-  ${C_CMD}health${C_RESET}                         Run readiness checks
+  ${C_CMD}health${C_RESET} [--strict]              Run readiness checks (HEALTHY/DEGRADED/FAILED)
   ${C_CMD}status${C_RESET}                         Show selected services and runtime state
   ${C_CMD}diagnostics${C_RESET} [output-dir]       Create a diagnostics bundle
+  ${C_CMD}doctor matter-thread${C_RESET}          Focused Matter-over-Thread diagnostics
   ${C_CMD}service list${C_RESET}                  List available service selection keys
-  ${C_CMD}otbr dataset${C_RESET}                  Print OTBR's active Thread dataset (hex, secret)
-  ${C_CMD}matter sync-dataset${C_RESET}           Push OTBR's dataset into the Matter server
+
+${C_SECTION}Thread border router (OTBR):${C_RESET}
+  ${C_CMD}otbr status${C_RESET}                   Show OTBR runtime and Thread network state
+  ${C_CMD}otbr dataset show${C_RESET}             Decoded dataset summary (secrets redacted)
+  ${C_CMD}otbr dataset export${C_RESET} --output <file>  Export the dataset to a 0600 file
+  ${C_CMD}otbr dataset backup${C_RESET} [--label <label>]  Back up the active dataset
+  ${C_CMD}otbr dataset restore${C_RESET} <file>   Restore a dataset (network replacement)
+  ${C_CMD}otbr network create${C_RESET}           Create a NEW Thread network (replaces the old one)
+
+${C_SECTION}Matter server:${C_RESET}
+  ${C_CMD}matter status${C_RESET}                 Show Matter server state (secret-safe)
+  ${C_CMD}matter credentials list${C_RESET}       List stored Thread credential summaries
+  ${C_CMD}matter thread status${C_RESET}          Compare stored credentials with OTBR
+  ${C_CMD}matter thread sync${C_RESET} [options]  Store OTBR's dataset as a named credential
+  ${C_CMD}matter thread remove${C_RESET} --id <id> Remove a stored Thread credential
+  ${C_CMD}matter reset${C_RESET}                  Back up and wipe the Matter fabric (re-commission!)
 
 ${C_SECTION}Data protection:${C_RESET}
   ${C_CMD}backup${C_RESET}                         Create a production backup
@@ -161,26 +176,69 @@ run_usb() {
 
 run_otbr() {
   local action="${1:-}"
-  [ -n "$action" ] || die "otbr requires a subcommand; currently supported: dataset"
+  [ -n "$action" ] || die "otbr requires a subcommand: status, dataset, or network"
   shift
 
   case "$action" in
+    status)
+      run_script "OTBR status" "services/otbr/status.sh" "$@" ;;
     dataset)
-      run_script "OTBR dataset" "services/otbr/dataset/show.sh" "$@" ;;
+      local dataset_action="${1:-}"
+      [ -n "$dataset_action" ] || die "otbr dataset requires a subcommand: show, export, backup, or restore"
+      shift
+      case "$dataset_action" in
+        show)
+          run_script "OTBR dataset summary" "services/otbr/dataset/show.sh" "$@" ;;
+        export)
+          run_script "OTBR dataset export" "services/otbr/dataset/export.sh" "$@" ;;
+        backup)
+          run_script "OTBR dataset backup" "services/otbr/dataset/backup.sh" "$@" ;;
+        restore)
+          run_script "OTBR dataset restore" "services/otbr/dataset/restore.sh" "$@" ;;
+        *) die "unknown otbr dataset subcommand: $dataset_action" ;;
+      esac ;;
+    network)
+      local network_action="${1:-}"
+      [ -n "$network_action" ] || die "otbr network requires a subcommand: create"
+      shift
+      case "$network_action" in
+        create)
+          run_script "Thread network creation" "services/otbr/network-create.sh" "$@" ;;
+        *) die "unknown otbr network subcommand: $network_action" ;;
+      esac ;;
     *) die "unknown otbr subcommand: $action" ;;
   esac
 }
 
 run_matter() {
   local action="${1:-}"
-  [ -n "$action" ] || die "matter requires a subcommand; currently supported: sync-dataset"
+  [ -n "$action" ] || die "matter requires a subcommand: status, credentials, thread, or reset"
   shift
 
   case "$action" in
-    sync-dataset)
-      run_script "Matter Thread dataset sync" \
-        "services/matter-server/data/sync-thread-dataset.sh" "$@" ;;
+    status)
+      run_script "Matter status" "services/matter-server/status.sh" "$@" ;;
+    credentials)
+      run_script "Matter credentials" "services/matter-server/credentials.sh" "$@" ;;
+    thread)
+      run_script "Matter Thread credential management" \
+        "services/matter-server/thread.sh" "$@" ;;
+    reset)
+      run_script "Matter fabric reset" "services/matter-server/data/reset.sh" "$@" ;;
     *) die "unknown matter subcommand: $action" ;;
+  esac
+}
+
+run_doctor() {
+  local topic="${1:-}"
+  [ -n "$topic" ] || die "doctor requires a topic; currently supported: matter-thread"
+  shift
+
+  case "$topic" in
+    matter-thread)
+      run_script "Matter-over-Thread diagnostics" \
+        "ops/diagnostics/doctor-matter-thread.sh" "$@" ;;
+    *) die "unknown doctor topic: $topic" ;;
   esac
 }
 
@@ -224,6 +282,7 @@ case "$COMMAND" in
   usb) run_usb "$@" ;;
   rescue) run_rescue "$@" ;;
   service) run_service "$@" ;;
+  doctor) run_doctor "$@" ;;
   otbr) run_otbr "$@" ;;
   matter) run_matter "$@" ;;
   *)

@@ -40,12 +40,18 @@ Thread network.
    sudo ./lisa-edge bootstrap
    ```
 
-5. Verify attachment and dataset identity:
+5. Verify attachment and dataset identity (no secrets are printed):
 
    ```bash
    sudo ./lisa-edge health
-   docker exec lisa-otbr ot-ctl state
-   docker exec lisa-otbr ot-ctl dataset active -x
+   sudo ./lisa-edge otbr status
+   sudo ./lisa-edge otbr dataset show
+   ```
+
+6. Re-sync the Matter server's Thread credentials when Matter is selected:
+
+   ```bash
+   sudo ./lisa-edge matter thread sync
    ```
 
 An attached network normally reports `child`, `router` or `leader`. Confirm
@@ -53,8 +59,24 @@ Thread devices reconnect and Matter automations work before declaring recovery
 complete.
 
 Keep `OTBR_AUTO_RESTORE_DATASET=1` and `OTBR_AUTO_CREATE_NETWORK=0` in
-production. Without a dataset backup, a new Thread network must be created and
-devices may need factory reset or re-pairing.
+production. Without a dataset backup, create a new Thread network with
+`sudo ./lisa-edge otbr network create` (named `THREAD_NETWORK_NAME`); every
+Thread device must then be factory-reset and re-commissioned.
+
+## Development reset
+
+During development the whole Thread/Matter state is disposable. The clean
+reset sequence is:
+
+```bash
+sudo ./lisa-edge matter reset            # wipe the fabric (typed RESET)
+sudo ./lisa-edge otbr network create     # form the new LISA-HOME-01 network
+sudo ./lisa-edge matter thread status    # confirm credentials + no drift
+sudo ./lisa-edge doctor matter-thread    # end-to-end readiness
+```
+
+`otbr network create` syncs the new dataset into the Matter server itself
+when Matter is selected; re-commission test devices afterwards.
 
 ## Agent not ready: "connect session failed"
 

@@ -45,6 +45,23 @@ export LISA_EFFECTIVE_PULL_POLICY="$PULL_POLICY"
 . "$EDGE_REPO/lib/images.sh"
 lisa_build_compose_files "$EDGE_REPO"
 lisa_validate_selected_images
+
+# Validate service-specific mandatory configuration before any container
+# is touched; deploying with invalid Matter/Thread settings would come up
+# in a broken or unsafe state.
+# shellcheck disable=SC1091
+. "$EDGE_REPO/lib/service-config.sh"
+if lisa_has_service matter; then
+  lisa_validate_matter_config || exit 1
+  if [ "${MATTER_LISTEN_ADDRESS:-127.0.0.1}" = "0.0.0.0" ]; then
+    echo "[LISA] WARNING: MATTER_LISTEN_ADDRESS=0.0.0.0 exposes the unauthenticated" >&2
+    echo "[LISA] Matter WebSocket API on every interface. Restrict it to a trusted" >&2
+    echo "[LISA] address and firewall TCP ${MATTER_SERVER_PORT:-5580}." >&2
+  fi
+fi
+if lisa_has_service otbr; then
+  lisa_validate_otbr_config || exit 1
+fi
 echo "[LISA] Selected container images:"
 lisa_print_selected_images
 FILES=("${LISA_COMPOSE_FILES[@]}")

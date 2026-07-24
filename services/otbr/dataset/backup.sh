@@ -1,10 +1,54 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Back up OTBR's active Thread operational dataset (operator entry point:
+# lisa-edge otbr dataset backup [--label <label>]; also run by the
+# lisa-otbr-dataset-backup timer and by deploy/restore flows).
+#
+# Each backup consists of:
+#   thread-dataset-<utc-ts>[-label].hex         complete dataset (secret, 0600)
+#   thread-dataset-<utc-ts>[-label].hex.sha256  integrity checksum
+#   thread-dataset-<utc-ts>[-label].hex.meta    non-secret identity metadata
+# plus the latest.dataset.hex symlink pointing at the newest archive.
+
 EDGE_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$EDGE_REPO"
 
+usage() {
+  cat <<'EOF'
+Usage: lisa-edge otbr dataset backup [--label <label>]
+
+Store OTBR's active Thread operational dataset under
+OTBR_DATASET_BACKUP_DIR with a checksum and a non-secret metadata sidecar.
+
+Options:
+  --label <label>  Optional label appended to the backup filename
+                   (sanitized for filesystem safety).
+  -h, --help       Show this help.
+EOF
+}
+
+LABEL_RAW=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --label)
+      [ "$#" -ge 2 ] || { echo "ERROR: --label requires a value." >&2; exit 2; }
+      LABEL_RAW="$2"
+      shift
+      ;;
+    -h|--help) usage; exit 0 ;;
+    -*) echo "ERROR: unknown option: $1" >&2; usage >&2; exit 2 ;;
+    *) echo "ERROR: unexpected argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+  shift
+done
+
+if [ ! -f .env ]; then
+  echo "ERROR: missing .env; run 'sudo ./lisa-edge configure' (or setup) first." >&2
+  exit 1
+fi
 set -a
+# shellcheck disable=SC1091
 source ./.env
 set +a
 
@@ -12,21 +56,20 @@ BACKUP_DIR="${OTBR_DATASET_BACKUP_DIR:-/srv/lisa-edge/backups/otbr}"
 # shellcheck disable=SC1091
 . "$EDGE_REPO/lib/paths.sh"
 # shellcheck disable=SC1091
+. "$EDGE_REPO/lib/thread-dataset.sh"
+# shellcheck disable=SC1091
 . "$EDGE_REPO/services/otbr/dataset/lib.sh"
 lisa_validate_persistent_path OTBR_DATASET_BACKUP_DIR "$BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
 chmod 0700 "$BACKUP_DIR"
 
-# Optional description appended to the backup filename:
-#   backup.sh [description]
-DESCRIPTION_RAW="${1:-}"
-
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 BASE_NAME="thread-dataset-$TS"
-# Reserve room for the base name, the '-' separator and the '.hex' extension.
-DESCRIPTION_MAX=$((OTBR_FILENAME_MAX_BYTES - ${#BASE_NAME} - 1 - 4))
-DESCRIPTION="$(otbr_sanitize_backup_description "$DESCRIPTION_RAW" "$DESCRIPTION_MAX")"
-OUT="$BACKUP_DIR/$BASE_NAME${DESCRIPTION:+-$DESCRIPTION}.hex"
+# Reserve room for the base name, the '-' separator and the '.hex.sha256'
+# extension (the longest sidecar suffix).
+LABEL_MAX=$((OTBR_FILENAME_MAX_BYTES - ${#BASE_NAME} - 1 - 11))
+LABEL="$(otbr_sanitize_backup_description "$LABEL_RAW" "$LABEL_MAX")"
+OUT="$BACKUP_DIR/$BASE_NAME${LABEL:+-$LABEL}.hex"
 LATEST="$BACKUP_DIR/latest.dataset.hex"
 RETENTION_DAYS="${OTBR_DATASET_RETENTION_DAYS:-30}"
 
@@ -60,12 +103,39 @@ if [ -z "$DATASET" ]; then
   exit 1
 fi
 
-printf '%s\n' "$DATASET" > "$OUT"
-chmod 0600 "$OUT"
+# Stage in the destination directory, then rename: a power loss mid-write
+# must never leave a truncated file behind the latest symlink.
+TMP_FILE="$(umask 077 && mktemp "$BACKUP_DIR/.thread-dataset.XXXXXX")"
+cleanup() { rm -f -- "$TMP_FILE" 2>/dev/null || true; }
+trap cleanup EXIT
+printf '%s\n' "$DATASET" > "$TMP_FILE"
+chmod 0600 "$TMP_FILE"
+mv -- "$TMP_FILE" "$OUT"
+trap - EXIT
+
+sha256sum "$OUT" | awk -v name="$(basename "$OUT")" '{print $1 "  " name}' > "$OUT.sha256"
+chmod 0600 "$OUT.sha256"
+
+# Non-secret identity metadata: enough to pick the right backup later
+# without ever opening the secret dataset file.
+{
+  echo "created_utc=$TS"
+  echo "label=$LABEL"
+  echo "network_name=$(thread_dataset_network_name "$DATASET")"
+  echo "channel=$(thread_dataset_channel "$DATASET")"
+  echo "pan_id=$(thread_dataset_pan_id "$DATASET")"
+  echo "ext_pan_id=$(thread_dataset_ext_pan_id "$DATASET")"
+  echo "mesh_local_prefix=$(thread_dataset_mesh_local_prefix "$DATASET")"
+  echo "active_timestamp=$(thread_dataset_active_timestamp "$DATASET")"
+} > "$OUT.meta"
+chmod 0600 "$OUT.meta"
+
 ln -sfn "$(basename "$OUT")" "$LATEST"
 
 if [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] && [ "$RETENTION_DAYS" -gt 0 ]; then
-  find "$BACKUP_DIR" -maxdepth 1 -type f -name 'thread-dataset-*.hex' \
+  find "$BACKUP_DIR" -maxdepth 1 -type f \
+    \( -name 'thread-dataset-*.hex' -o -name 'thread-dataset-*.hex.sha256' \
+       -o -name 'thread-dataset-*.hex.meta' \) \
     -mtime "+$RETENTION_DAYS" -delete
 fi
 

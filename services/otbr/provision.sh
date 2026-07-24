@@ -27,21 +27,53 @@ otbr_default_route_interface() {
     awk '{for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit }}'
 }
 
+# Print every vYYYY.MM.N release tag found in Docker Hub tag-list JSON on
+# stdin, one per line. Prints nothing when no release tag is present.
+otbr_release_tags_from_page() {
+  grep -oE '"name"[[:space:]]*:[[:space:]]*"v[0-9]{4}\.[0-9]{2}\.[0-9]+"' |
+    grep -oE 'v[0-9]{4}\.[0-9]{2}\.[0-9]+' || true
+}
+
 # Read Docker Hub tag-list JSON on stdin and print the newest vYYYY.MM.N
 # release tag. Prints nothing when no release tag is present.
 otbr_latest_release_tag() {
-  grep -oE '"name"[[:space:]]*:[[:space:]]*"v[0-9]{4}\.[0-9]{2}\.[0-9]+"' |
-    grep -oE 'v[0-9]{4}\.[0-9]{2}\.[0-9]+' | sort -uV | tail -n 1
+  otbr_release_tags_from_page | sort -uV | tail -n 1
 }
 
-# Resolve the newest OTBR release image reference from Docker Hub.
-# Fails (non-zero) when offline, curl is missing, or no release tag exists.
+# Print the "next" page URL from Docker Hub tag-list JSON on stdin, or
+# nothing at the last page. Only hub.docker.com URLs are followed, so a
+# hostile response cannot redirect the query elsewhere.
+otbr_tags_next_url() {
+  local url
+  url="$(grep -oE '"next"[[:space:]]*:[[:space:]]*"[^"]+"' |
+    head -n 1 | sed -E 's/.*"next"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
+  case "$url" in
+    https://hub.docker.com/*) printf '%s\n' "$url" ;;
+    *) : ;;
+  esac
+}
+
+# Fetch one URL with a bounded timeout. Overridable in tests.
+otbr_fetch_url() {
+  curl -fsS --max-time "${OTBR_IMAGE_QUERY_TIMEOUT:-8}" "$1" 2>/dev/null
+}
+
+# Resolve the newest OTBR release image reference from Docker Hub, following
+# tag-list pagination with a bounded page count (release tags are not
+# guaranteed to appear on the first page between releases). Fails (non-zero)
+# when offline, curl is missing, or no release tag exists on any fetched page.
 otbr_query_latest_image() {
   local url="https://hub.docker.com/v2/repositories/$OTBR_IMAGE_REPOSITORY/tags?page_size=100"
-  local response tag
+  local max_pages="${OTBR_IMAGE_QUERY_MAX_PAGES:-5}"
+  local pages=0 response all_tags="" tag
   command -v curl >/dev/null 2>&1 || return 1
-  response="$(curl -fsS --max-time "${OTBR_IMAGE_QUERY_TIMEOUT:-8}" "$url" 2>/dev/null)" || return 1
-  tag="$(printf '%s' "$response" | otbr_latest_release_tag)"
+  while [ -n "$url" ] && [ "$pages" -lt "$max_pages" ]; do
+    response="$(otbr_fetch_url "$url")" || return 1
+    all_tags+="$(printf '%s' "$response" | otbr_release_tags_from_page)"$'\n'
+    url="$(printf '%s' "$response" | otbr_tags_next_url)"
+    pages=$((pages + 1))
+  done
+  tag="$(printf '%s' "$all_tags" | grep -E '^v' | sort -uV | tail -n 1 || true)"
   [ -n "$tag" ] || return 1
   printf '%s:%s\n' "$OTBR_IMAGE_REPOSITORY" "$tag"
 }
@@ -132,7 +164,7 @@ configure_otbr_image() {
 # True when the lisa-otbr container is currently running on this host.
 otbr_container_running() {
   command -v docker >/dev/null 2>&1 || return 1
-  docker ps --format '{{.Names}}' 2>/dev/null | grep -qx lisa-otbr
+  grep -qx lisa-otbr <<<"$(docker ps --format '{{.Names}}' 2>/dev/null || true)"
 }
 
 # Detect existing Thread dataset backups and stage the operator's choice as a
@@ -221,7 +253,7 @@ configure_otbr_dataset_source() {
     fi
     if [ "${DRY_RUN:-0}" -eq 1 ]; then
       info "Dry run: backup of the running dataset skipped."
-    elif "$EDGE_REPO/services/otbr/dataset/backup.sh" ${description:+"$description"}; then
+    elif "$EDGE_REPO/services/otbr/dataset/backup.sh" ${description:+--label "$description"}; then
       :
     else
       warn "Could not back up the running dataset now; deploy backs it up again before applying the change."
@@ -251,6 +283,24 @@ configure_otbr_dataset_source() {
   info "To cancel before deploying, delete $pending_dataset and $pending_new_network."
 }
 
+# Ask for the Thread network name (used when a NEW network is created; an
+# established network is never renamed). The name identifies the logical
+# site mesh, not the host, the border router, or the radio: it must survive
+# hardware replacement.
+configure_otbr_network_name() {
+  # shellcheck disable=SC1091
+  . "$EDGE_REPO/lib/service-config.sh"
+  while :; do
+    ask_value THREAD_NETWORK_NAME \
+      "Thread network name (max 16 bytes, used when creating a NEW network)" \
+      "${THREAD_NETWORK_NAME:-LISA-HOME-01}"
+    if lisa_validate_thread_network_name "$THREAD_NETWORK_NAME"; then
+      break
+    fi
+    echo "Try again." >&2
+  done
+}
+
 configure_otbr() {
   local answer
   echo
@@ -258,6 +308,7 @@ configure_otbr() {
   configure_otbr_radio
   configure_otbr_backbone
   configure_otbr_image
+  configure_otbr_network_name
   ask_value OTBR_THREAD_IF "Thread interface name" "${OTBR_THREAD_IF:-wpan0}"
   ask_value OTBR_LOG_LEVEL "OTBR log level" "${OTBR_LOG_LEVEL:-5}"
   ask_value OTBR_DATASET_BACKUP_DIR "Thread dataset backup directory" "${OTBR_DATASET_BACKUP_DIR:-$DATA_ROOT/backups/otbr}"

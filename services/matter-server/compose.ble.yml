@@ -1,0 +1,21 @@
+# Included by lib/compose.sh only when MATTER_BLUETOOTH_ADAPTER selects an
+# adapter (anything but "none"). BLE commissioning needs direct HCI access,
+# and the kernel only honors HCI commands from a process with effective
+# NET_RAW/NET_ADMIN. The image's default unprivileged user (1000:1000) never
+# gets effective capabilities (cap_add only extends the container's bounding
+# set), so BLE discovery silently finds nothing unless the server runs as
+# root; upstream documents no unprivileged alternative. Disabling BLE
+# (MATTER_BLUETOOTH_ADAPTER=none) therefore also drops the root user and the
+# extra capabilities. The data scripts keep the store owned by 1000:1000 so
+# both modes can read it.
+services:
+  matter-server:
+    user: "0:0"
+    cap_add:
+      # Open the raw HCI socket for BLE scanning and commissioning.
+      - NET_RAW
+      # Power and configure the Bluetooth adapter when bluetoothd is not
+      # managing it on the host.
+      - NET_ADMIN
+    environment:
+      BLUETOOTH_ADAPTER: ${MATTER_BLUETOOTH_ADAPTER:-0}

@@ -11,8 +11,10 @@ policy. Then deploy and verify:
 ```bash
 sudo ./lisa-edge deploy
 sudo ./lisa-edge health
-docker exec lisa-otbr ot-ctl state
-sudo ./lisa-edge otbr dataset   # print the active dataset hex (secret)
+sudo ./lisa-edge otbr status
+sudo ./lisa-edge otbr dataset show              # redacted summary
+sudo ./lisa-edge otbr dataset show --show-secret # complete dataset (secret)
+sudo ./lisa-edge otbr network create            # form a NEW network (replacement)
 ```
 
 The Thread dataset is a secret and the identity of the network. Dataset tools
@@ -24,6 +26,6 @@ filename description. Production should keep `OTBR_AUTO_RESTORE_DATASET=1` and
 `OTBR_AUTO_CREATE_NETWORK=0`. The units in `systemd/` schedule dataset backups
 when OTBR is selected.
 
-Owned files: `compose.yml`, `provision.sh`, `dataset/` and `systemd/`. See the
+Owned files: `compose.yml`, `provision.sh`, `status.sh`, `network-create.sh`, `dataset/` and `systemd/`. See the
 [service reference](../../docs/services/otbr.md) and
 [recovery runbook](../../docs/operations/service-recovery/otbr.md).

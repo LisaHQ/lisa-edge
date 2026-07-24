@@ -59,8 +59,8 @@ while IFS= read -r -d '' script; do
 done < <(find "${syntax_roots[@]}" -type f -name '*.sh' -print0)
 
 echo "Checking stale file references..."
-if grep -RInE --exclude='validate-repo.sh' \
-  '\.env\.example|40-mosquitto-defaults\.sh|docs/getting-started/deployment-validation\.md' \
+if grep -RInE --exclude='validate-repo.sh' --exclude='test-layout.sh' \
+  '\.env\.example|40-mosquitto-defaults\.sh|docs/getting-started/deployment-validation\.md|sync-thread-dataset\.sh|matter sync-dataset' \
   README.md docs install ops rescue services lib tools tests
 then
   echo "Stale file reference found." >&2
@@ -80,6 +80,27 @@ ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env.template}" \
 
 echo "Checking Thread dataset helpers..."
 bash "$REPO_ROOT/tests/unit/test-thread-dataset-lib.sh"
+
+echo "Checking service-specific configuration validation..."
+bash "$REPO_ROOT/tests/unit/test-service-config.sh"
+
+echo "Checking OTBR CLI..."
+bash "$REPO_ROOT/tests/unit/test-otbr-cli.sh"
+
+echo "Checking OTBR network creation flow..."
+bash "$REPO_ROOT/tests/unit/test-otbr-network-create.sh"
+
+echo "Checking OTBR image resolver..."
+bash "$REPO_ROOT/tests/unit/test-otbr-image-resolver.sh"
+
+echo "Checking Matter WebSocket client..."
+bash "$REPO_ROOT/tests/unit/test-matter-ws-client.sh"
+
+echo "Checking Matter CLI..."
+bash "$REPO_ROOT/tests/unit/test-matter-cli.sh"
+
+echo "Checking health outcome modes..."
+bash "$REPO_ROOT/tests/unit/test-health-modes.sh"
 
 echo "Checking service selection and image policy..."
 bash "$REPO_ROOT/tests/unit/test-service-selection.sh"
@@ -107,6 +128,7 @@ bash "$REPO_ROOT/tests/security/test-backup-mount-guard.sh"
 bash "$REPO_ROOT/tests/security/test-path-safety.sh"
 bash "$REPO_ROOT/tests/security/test-restore-target-root.sh"
 bash "$REPO_ROOT/tests/security/test-usb-device-guard.sh"
+bash "$REPO_ROOT/tests/security/test-dataset-secret-safety.sh"
 
 echo "Checking Rescue OS path guardrails..."
 bash "$REPO_ROOT/tests/security/test-recovery-safety.sh"

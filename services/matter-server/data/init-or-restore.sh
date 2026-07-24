@@ -34,7 +34,7 @@ matter_data_set_store_ownership "$MATTER_DATA_DIR"
 
 matter_container_running() {
   command -v docker >/dev/null 2>&1 || return 1
-  docker ps --format '{{.Names}}' 2>/dev/null | grep -qx lisa-matter
+  grep -qx lisa-matter <<<"$(docker ps --format '{{.Names}}' 2>/dev/null || true)"
 }
 
 stop_matter_if_running() {
@@ -54,6 +54,7 @@ snapshot_data() {
   out="$BACKUP_DIR/matter-data-$(date -u +%Y%m%dT%H%M%SZ)-$suffix.tar.gz"
   tar -C "$MATTER_DATA_DIR" -czf "$out" .
   chmod 0600 "$out"
+  matter_data_write_archive_sidecars "$out" "$suffix"
   ln -sfn "$(basename "$out")" "$BACKUP_DIR/latest.matter-data.tar.gz"
   echo "Matter fabric data backed up to: $out"
 }
@@ -66,6 +67,10 @@ extract_archive() {
   local archive_file="$1"
   if ! matter_data_archive_is_valid "$archive_file"; then
     echo "ERROR: Matter data archive is not a readable tar.gz with safe relative members: $archive_file" >&2
+    exit 1
+  fi
+  if ! matter_data_archive_checksum_ok "$archive_file"; then
+    echo "ERROR: Refusing to restore an archive that fails its checksum." >&2
     exit 1
   fi
   tar -C "$MATTER_DATA_DIR" -xzf "$archive_file"

@@ -1,8 +1,13 @@
 services:
   matter-server:
-    # Pinned to a verified release tag: the :stable tag can serve nightly
-    # matter.js alpha builds (a 2026-07-22 alpha shipped a BLE regression
-    # that hung commissioning right after the ATT MTU exchange).
+    # Pinned to a verified release tag. Release tags are fixed, tested
+    # server snapshots; the :stable tag can move underneath a deployment and
+    # has served untested nightly server builds (a 2026-07-22 nightly shipped
+    # a BLE regression that hung commissioning right after the ATT MTU
+    # exchange). Note the distinction: even release-tagged servers embed
+    # alpha/nightly builds of the matter.js SDK (1.3.1 ships a 0.17.7
+    # alpha), so "release tag" means a tested server build, not a stable
+    # SDK underneath. Evaluate upgrades explicitly; see lisa-edge update.
     image: ${MATTER_SERVER_IMAGE:-ghcr.io/matter-js/matterjs-server:1.3.0}
     container_name: lisa-matter
     restart: unless-stopped
@@ -10,30 +15,19 @@ services:
     # rely on mDNS multicast and direct IPv6 reachability to devices on the
     # LAN and Thread (via OTBR) networks.
     network_mode: host
-    # BLE commissioning needs direct HCI access, and the kernel only honors
-    # HCI commands from a process with effective NET_RAW/NET_ADMIN. The
-    # image's default unprivileged user (1000:1000) never gets effective
-    # capabilities (cap_add only extends the container's bounding set), so
-    # BLE discovery silently finds nothing unless the server runs as root;
-    # upstream documents no unprivileged alternative. This trades away
-    # in-container user isolation (python-matter-server used the same root
-    # model).
-    user: "0:0"
-    cap_add:
-      # Open the raw HCI socket for BLE scanning and commissioning.
-      - NET_RAW
-      # Power and configure the Bluetooth adapter when bluetoothd is not
-      # managing it on the host.
-      - NET_ADMIN
     volumes:
       # /data holds the Matter fabric credentials and commissioned-device
       # state. Losing it requires re-commissioning every Matter device.
-      # matterjs-server migrates existing python-matter-server storage found
-      # here in place (one-way); deploy backs this directory up beforehand.
       - ${DATA_ROOT:-/srv/lisa-edge}/docker/volumes/matter-server:/data
     environment:
-      # Effective WebSocket/dashboard listen port (matterjs-server honors PORT).
+      # Effective WebSocket/dashboard listen port (matterjs-server env PORT).
       PORT: ${MATTER_SERVER_PORT:-5580}
+      # The WebSocket API is unauthenticated. Default to loopback; set an
+      # explicitly trusted address only for a remote Home Assistant, and
+      # keep the port firewalled. Never expose it through a reverse proxy.
+      LISTEN_ADDRESS: ${MATTER_LISTEN_ADDRESS:-127.0.0.1}
+      # Pins the fabric label; set_default_fabric_label requests via the
+      # WebSocket API are then ignored (upstream --default-fabric-label).
+      DEFAULT_FABRIC_LABEL: ${MATTER_FABRIC_LABEL:-LISA Home}
       LOG_LEVEL: ${MATTER_LOG_LEVEL:-info}
       TZ: ${TZ:-America/Los_Angeles}
-      BLUETOOTH_ADAPTER: "0"

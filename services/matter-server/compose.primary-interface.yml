@@ -1,0 +1,9 @@
+# Included by lib/compose.sh only when MATTER_PRIMARY_INTERFACE is set.
+# matterjs-server reads env vars through commander's .env(), which applies
+# even an empty value, so the variable must be absent (not empty) for the
+# upstream auto-detect default to stay in effect. Keeping it in a separate
+# compose slice is what guarantees that.
+services:
+  matter-server:
+    environment:
+      PRIMARY_INTERFACE: ${MATTER_PRIMARY_INTERFACE}

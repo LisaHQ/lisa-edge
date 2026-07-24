@@ -91,6 +91,33 @@ When OTBR or Matter is selected, `lisa-otbr-dataset-backup.timer` (03:15) and
 `lisa-matter-data-backup.timer` (03:45) additionally snapshot the Thread
 dataset and the Matter fabric data into their own backup directories.
 
+## OTBR dataset and Matter data backups
+
+The OTBR operational dataset and the Matter fabric data are separate but
+related recovery assets: the dataset is the Thread network's identity, the
+Matter store holds the fabric credentials plus a COPY of the Thread
+credentials used for commissioning. Restoring one without the other leaves a
+detectable identity drift that `lisa-edge health` reports; after restoring an
+OTBR dataset, re-sync with `sudo ./lisa-edge matter thread sync`.
+
+Both service-level backups share the same format:
+
+- OTBR: `thread-dataset-<utc>[-label].hex` (0600, secret) with `.sha256`
+  and non-secret `.meta` (network name, channel, PAN IDs, prefix) sidecars,
+  plus the `latest.dataset.hex` symlink. Created by
+  `sudo ./lisa-edge otbr dataset backup [--label <label>]`, the deploy flow,
+  and the timer.
+- Matter: `matter-data-<utc>[-label].tar.gz` (0600, secret) with `.sha256`
+  and `.meta` sidecars, plus the `latest.matter-data.tar.gz` symlink.
+  Created by `services/matter-server/data/backup.sh [--label <label>]`, the
+  deploy flow, and the timer.
+
+Restores validate structure and, when a `.sha256` sidecar is present, refuse
+archives that fail their checksum. `sudo ./lisa-edge otbr dataset restore`
+backs the current dataset up first, requires typed confirmation when it
+would replace a live network, and verifies the committed dataset by reading
+it back.
+
 Test restore on representative spare hardware. A backup is not proven until
 the restored services, credentials, OTBR dataset and Matter fabric data have
 been verified.

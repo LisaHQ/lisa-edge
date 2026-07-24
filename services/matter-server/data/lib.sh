@@ -74,6 +74,39 @@ matter_data_archive_is_valid() {
   return 0
 }
 
+# Verify an archive against its .sha256 sidecar when one exists. Returns 0
+# when the sidecar is absent (hand-copied file) or matches, 1 on mismatch.
+matter_data_archive_checksum_ok() {
+  local archive_file="$1"
+  local sidecar="$archive_file.sha256"
+  local expected actual
+  [ -f "$sidecar" ] || return 0
+  expected="$(awk '{print $1; exit}' "$sidecar")"
+  actual="$(sha256sum "$archive_file" | awk '{print $1}')"
+  if [ "$expected" != "$actual" ]; then
+    echo "Checksum mismatch for $archive_file (sidecar $sidecar)." >&2
+    return 1
+  fi
+  return 0
+}
+
+# Write the .sha256 and .meta sidecars for a Matter data archive.
+#   matter_data_write_archive_sidecars <archive> [label]
+matter_data_write_archive_sidecars() {
+  local archive_file="$1"
+  local label="${2:-}"
+  sha256sum "$archive_file" |
+    awk -v name="$(basename "$archive_file")" '{print $1 "  " name}' \
+      > "$archive_file.sha256"
+  chmod 0600 "$archive_file.sha256"
+  {
+    echo "created_utc=$(date -u +%Y%m%dT%H%M%SZ)"
+    echo "label=$label"
+    echo "matter_server_image=${MATTER_SERVER_IMAGE:-}"
+  } > "$archive_file.meta"
+  chmod 0600 "$archive_file.meta"
+}
+
 # True when the Matter data directory contains persisted state worth
 # protecting. An absent or empty directory means a fresh fabric would be
 # created on the next start, so there is nothing to back up.

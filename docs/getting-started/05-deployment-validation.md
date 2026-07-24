@@ -11,7 +11,10 @@ sudo ./lisa-edge health
 ```
 
 Both commands must complete without hiding failed or unhealthy selected
-services.
+services. `health` reports an overall `HEALTHY`, `DEGRADED`, or `FAILED`
+result; `health --strict` also exits nonzero (3) on `DEGRADED` for
+monitoring. Stable exit codes: 0 healthy (or degraded without `--strict`),
+1 failed, 2 usage error, 3 degraded with `--strict`.
 
 ## Host
 
@@ -71,10 +74,26 @@ validation targets.
 When OTBR is selected:
 
 - [ ] the RCP device uses a stable device path
-- [ ] the expected Thread network is visible
-- [ ] a current Thread Dataset backup exists outside ephemeral container state
+- [ ] `sudo ./lisa-edge otbr status` shows the expected network name and role
+- [ ] a current Thread Dataset backup (with `.sha256` sidecar) exists outside
+      ephemeral container state
 - [ ] dataset restore has been tested or rehearsed
 - [ ] Matter devices remain functional after an OTBR restart
+
+When Matter is selected:
+
+- [ ] `sudo ./lisa-edge matter status` reports the expected listen address,
+      fabric label, and Bluetooth availability
+- [ ] `sudo ./lisa-edge matter thread status` reports no detectable Thread
+      credential drift
+- [ ] `sudo ./lisa-edge doctor matter-thread` ends with 0 failed checks
+- [ ] the WebSocket port is reachable only from trusted controller networks
+
+Health and drift checks compare identity fields (credential ID, network
+name, extended PAN ID; channel/PAN ID/prefix where available from logs).
+They CANNOT prove that the stored network key or PSKc match — the API never
+returns them — and they cannot prove BLE end-to-end: a real BLE
+commissioning of a test device on physical hardware is the only proof.
 
 ## Backup and restore
 

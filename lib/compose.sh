@@ -80,6 +80,28 @@ lisa_build_compose_files() {
       return 1
     }
     LISA_COMPOSE_FILES+=(-f "$service_file")
+    if [ "$service" = "matter" ]; then
+      # BLE needs root + HCI capabilities; commissioning-over-network-only
+      # deployments (MATTER_BLUETOOTH_ADAPTER=none) run without both.
+      if [ "$(lisa_matter_ble_adapter)" != "none" ]; then
+        LISA_COMPOSE_FILES+=(-f "$repo_root/services/$(lisa_service_directory "$service")/compose.ble.yml")
+      fi
+      # PRIMARY_INTERFACE must be absent (not empty) for upstream
+      # auto-detection, so it lives in its own conditional slice.
+      if [ -n "${MATTER_PRIMARY_INTERFACE:-}" ]; then
+        LISA_COMPOSE_FILES+=(-f "$repo_root/services/$(lisa_service_directory "$service")/compose.primary-interface.yml")
+      fi
+    fi
     added="${added:+$added }$service"
   done
+}
+
+# Effective Matter Bluetooth adapter selection: an hci adapter number, or
+# the literal "none" to disable BLE commissioning support entirely.
+lisa_matter_ble_adapter() {
+  # Unset defaults to adapter 0; an explicitly EMPTY value means "none"
+  # (${VAR-default} keeps the empty string, unlike ${VAR:-default}).
+  local adapter="${MATTER_BLUETOOTH_ADAPTER-0}"
+  [ -n "$adapter" ] || adapter=none
+  printf '%s\n' "$adapter"
 }

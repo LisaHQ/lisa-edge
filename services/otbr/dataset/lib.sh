@@ -41,3 +41,90 @@ otbr_dataset_file_is_valid_hex() {
   [ -f "$dataset_file" ] || return 1
   tr -d '[:space:]' < "$dataset_file" | grep -Eq '^[0-9a-fA-F]+$'
 }
+
+# Verify a backup file against its .sha256 sidecar when one exists. Returns
+# 0 when the sidecar is absent (older or hand-copied file) or matches, 1 on
+# mismatch. Prints the failure reason to stderr.
+otbr_dataset_file_checksum_ok() {
+  local dataset_file="$1"
+  local sidecar="$dataset_file.sha256"
+  local expected actual
+  [ -f "$sidecar" ] || return 0
+  expected="$(awk '{print $1; exit}' "$sidecar")"
+  actual="$(sha256sum "$dataset_file" | awk '{print $1}')"
+  if [ "$expected" != "$actual" ]; then
+    echo "Checksum mismatch for $dataset_file (sidecar $sidecar)." >&2
+    return 1
+  fi
+  return 0
+}
+
+# True when the lisa-otbr container is currently running.
+otbr_container_is_running() {
+  command -v docker >/dev/null 2>&1 || return 1
+  grep -qx lisa-otbr <<<"$(docker ps --format '{{.Names}}' 2>/dev/null || true)"
+}
+
+# Wait until otbr-agent accepts ot-ctl commands. Args: [attempts] [sleep_s].
+otbr_wait_for_agent() {
+  local attempts="${1:-60}" delay="${2:-2}" i
+  for ((i = 0; i < attempts; i++)); do
+    if docker exec lisa-otbr ot-ctl state >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+  return 1
+}
+
+# Classify OTBR's active dataset instead of trusting a single read. A
+# transient ot-ctl failure must never be mistaken for "no dataset": that
+# could replace a live Thread network and orphan its devices.
+# Sets OTBR_ACTIVE_DATASET_HEX. Returns 0=present, 1=agent confirmed absent,
+# 2=undetermined.
+otbr_classify_active_dataset() {
+  local output=""
+  OTBR_ACTIVE_DATASET_HEX=""
+  if output="$(docker exec lisa-otbr ot-ctl dataset active -x 2>&1)"; then
+    # ot-ctl terminates lines with CRLF; strip \r or the hex line never matches.
+    OTBR_ACTIVE_DATASET_HEX="$(printf '%s\n' "$output" | tr -d '\r' |
+      awk '/^[0-9a-fA-F]+$/ {print $1; exit}')"
+    [ -n "$OTBR_ACTIVE_DATASET_HEX" ] && return 0
+  fi
+  if printf '%s' "$output" | grep -qi 'NotFound'; then
+    return 1
+  fi
+  return 2
+}
+
+# Classify with retries: repeatedly calls otbr_classify_active_dataset until
+# it answers present/absent or attempts run out. Same return codes.
+otbr_classify_active_dataset_retry() {
+  local attempts="${1:-30}" delay="${2:-2}" i rc
+  for ((i = 0; i < attempts; i++)); do
+    rc=0
+    otbr_classify_active_dataset || rc=$?
+    [ "$rc" -ne 2 ] && return "$rc"
+    sleep "$delay"
+  done
+  return 2
+}
+
+# Print OTBR's Thread role (leader/router/child/detached/disabled), or
+# nothing when unavailable.
+otbr_thread_state() {
+  docker exec lisa-otbr ot-ctl state 2>/dev/null | head -n 1 | tr -d '\r' || true
+}
+
+# Wait until the node attaches (leader/router/child). Args: [attempts] [sleep].
+otbr_wait_for_attach() {
+  local attempts="${1:-60}" delay="${2:-2}" i state
+  for ((i = 0; i < attempts; i++)); do
+    state="$(otbr_thread_state)"
+    case "$state" in
+      leader|router|child) return 0 ;;
+    esac
+    sleep "$delay"
+  done
+  return 1
+}

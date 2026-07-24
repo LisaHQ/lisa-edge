@@ -25,13 +25,57 @@ Wi-Fi and Ethernet work without OTBR.
 
 Use `sudo ./lisa-edge setup` to select it. The wizard asks for
 `MATTER_SERVER_PORT` (passed to the server as its listen port and used by
-health checks), the Matter data backup directory and restore policy, and can
-stage a data restore or fabric reset for the next deploy. Deploy and verify:
+health checks), `MATTER_LISTEN_ADDRESS`, an optional
+`MATTER_PRIMARY_INTERFACE`, the Bluetooth adapter (detected from
+`/sys/class/bluetooth/`), the fabric label, the Thread credential ID, the
+Matter data backup directory and restore policy, and can stage a data
+restore or fabric reset for the next deploy. Deploy and verify:
 
 ```bash
 sudo ./lisa-edge deploy
 sudo ./lisa-edge health
+sudo ./lisa-edge matter status
 ```
+
+## Naming model
+
+Four independent names, four different things:
+
+| Setting | Default | Names |
+| --- | --- | --- |
+| `LISA_EDGE_HOSTNAME` | `lisa-edge-01` | the infrastructure host |
+| `THREAD_NETWORK_NAME` | `LISA-HOME-01` | the Thread mesh (the logical site network) |
+| `MATTER_FABRIC_LABEL` | `LISA Home` | the Matter fabric label shown on devices |
+| `MATTER_THREAD_CREDENTIAL_ID` | `lisa-home-01` | the named Thread credential entry stored on the Matter server |
+
+The Thread network and the Matter fabric outlive any specific host or border
+router, so none of them are named after hardware.
+
+## Thread credential management
+
+The server stores a copy of OTBR's Thread credentials and hands it to new
+devices during commissioning; OTBR's active operational dataset stays the
+authoritative network configuration. WebSocket schema 12 supports multiple
+named credential entries, and LISA Edge stores its entry under
+`MATTER_THREAD_CREDENTIAL_ID`:
+
+```bash
+sudo ./lisa-edge matter thread sync            # from OTBR (default)
+sudo ./lisa-edge matter thread sync --file <f> # from an exported dataset file
+sudo ./lisa-edge matter thread sync --stdin    # from stdin
+sudo ./lisa-edge matter credentials list       # non-secret summaries
+sudo ./lisa-edge matter thread status          # relationship with OTBR
+sudo ./lisa-edge matter thread remove --id <id>
+```
+
+Sync validates the dataset, sends `set_thread_dataset` with the credential
+ID over one WebSocket connection, verifies the stored summary through
+`get_all_credentials`, and does NOT restart the server. The verification is
+honest about its limits: the API returns the credential ID, network name and
+extended PAN ID, so those identity fields are compared; the network key and
+PSKc are never returned and therefore never claimed as verified. The raw
+dataset is never accepted as a command-line argument and never appears in
+process listings, logs, or error messages.
 
 ## BLE commissioning
 
@@ -40,15 +84,37 @@ during commissioning via Bluetooth LE, so the dashboard's "Commission node"
 needs working BLE on the edge host. Three configuration points make it work,
 all encoded in `compose.yml`:
 
-- The container runs as **root** (`user: "0:0"`). The kernel only honors HCI
-  commands from a process with effective `NET_RAW`/`NET_ADMIN`; the image's
-  default unprivileged user never gets effective capabilities, so BLE
-  discovery silently finds nothing (the server still logs `BLE is enabled`).
-  Upstream documents no unprivileged alternative.
-- `cap_add: NET_RAW, NET_ADMIN` for the raw HCI socket and adapter control.
-- The image is pinned to a **release tag**. The `:stable` tag can serve
-  nightly matter.js alpha builds; a 2026-07-22 alpha shipped a BLE
-  regression that hung commissioning right after the ATT MTU exchange.
+- `MATTER_BLUETOOTH_ADAPTER` selects the hci adapter (default `0`; the
+  wizard lists detected adapters and validates the value; `none` disables
+  BLE and is a valid mode — network-based Matter control keeps working and
+  health reports DEGRADED only for the commissioning capability).
+- With BLE enabled, the `compose.ble.yml` slice runs the container as
+  **root** (`user: "0:0"`) with `cap_add: NET_RAW, NET_ADMIN`. The kernel
+  only honors HCI commands from a process with effective
+  `NET_RAW`/`NET_ADMIN`; the image's default unprivileged user never gets
+  effective capabilities, so BLE discovery silently finds nothing (the
+  server still logs `BLE is enabled`). Upstream documents no unprivileged
+  alternative. With `MATTER_BLUETOOTH_ADAPTER=none` the slice is omitted and
+  the container runs unprivileged.
+- The image is pinned to a **release tag**. Release tags are fixed, tested
+  server snapshots; `:stable` can move underneath a deployment and has
+  served untested nightly server builds (a 2026-07-22 nightly shipped a BLE
+  regression that hung commissioning right after the ATT MTU exchange).
+  Note that even release-tagged servers embed alpha builds of the matter.js
+  SDK (1.3.1 ships a 0.17.7 alpha), so a "stable release" refers to the
+  server build, not the SDK version string inside it. Evaluate upgrades
+  explicitly against the upstream changelog and re-validate BLE on hardware
+  before repinning.
+
+  Version policy status: `1.3.1` (2026-07-23) was evaluated and NOT adopted.
+  Per the upstream changelog it only adds dashboard features and updates the
+  embedded matter.js SDK to a newer 0.17.7 alpha; schema 12, named Thread
+  credentials, `DEFAULT_FABRIC_LABEL`, and `LISTEN_ADDRESS` already exist in
+  the pinned `1.3.0` (they landed in 1.2.0), and the SDK bump's BLE behavior
+  cannot be verified without physical commissioning hardware. Re-evaluate
+  when a hardware BLE validation pass (see
+  [Deployment Validation](../getting-started/05-deployment-validation.md))
+  can accompany the repin.
 
 Troubleshooting, in the order that localizes the fault fastest:
 
@@ -71,16 +137,18 @@ always means the Thread dataset the server hands to devices has drifted from
 OTBR's active dataset (for example after an OTBR dataset restore or
 regeneration). Symptom: the device never appears in
 `sudo docker exec lisa-otbr ot-ctl child table` and SRP stays empty.
-`lisa-edge health` (deploy runs it too) compares OTBR's active dataset with
-the server's registered credentials and warns on drift. Fix it with:
+`lisa-edge health` (deploy runs it too) compares the identity fields of
+OTBR's active dataset with the server's stored credential and reports
+DEGRADED on drift. Fix it with:
 
 ```bash
-sudo ./lisa-edge matter sync-dataset
+sudo ./lisa-edge matter thread sync
 ```
 
-which pushes OTBR's active dataset over the WebSocket API and restarts
-`lisa-matter` to re-register it (`sudo ./lisa-edge otbr dataset` prints the
-same dataset hex for manual use). Then factory-reset the device — failed
+which stores OTBR's active dataset over the WebSocket API as the named
+credential and verifies it without restarting the server
+(`sudo ./lisa-edge otbr dataset export --output <file>` produces the same
+dataset for manual use elsewhere). Then factory-reset the device — failed
 attempts leave stale state on it — and commission again.
 
 ## Migration from python-matter-server
@@ -95,10 +163,16 @@ the only way back to the old server.
 
 ## Security
 
-The WebSocket API has no authentication. Because the container uses host
-networking, the port is reachable on every host address. Restrict it with
-firewall or VLAN rules so only trusted controllers (for example the Home
-Assistant host) can reach it. Never expose it beyond the local network.
+The WebSocket API has no authentication. The container uses host
+networking, but the server binds only to `MATTER_LISTEN_ADDRESS` (default
+`127.0.0.1`, which keeps it host-local and still works for a co-located
+Home Assistant). For a REMOTE Home Assistant, set the address to the
+specific trusted host address it should connect through — never `0.0.0.0`
+unless firewall policy explicitly protects the port — and restrict
+`MATTER_SERVER_PORT` with firewall or VLAN rules so only trusted controllers
+can reach it. Never expose it beyond the local network and never publish it
+through a public reverse proxy. Deploy refuses invalid values and warns
+loudly about `0.0.0.0`.
 
 ## Fabric data safety
 
@@ -126,11 +200,16 @@ Protection mirrors the OTBR dataset tooling:
   `MATTER_DATA_BACKUP_DIR` (default `/srv/lisa-edge/backups/matter/`); the
   timer is enabled automatically when Matter is selected. The snapshot stops
   `lisa-matter` for a few seconds so the archive is consistent.
-- `services/matter-server/data/backup.sh [description]`,
-  `restore.sh [archive]` and `reset.sh` are the manual entry points. Restore
-  and reset always preserve the current store as a `pre-restore` /
-  `pre-reset` archive first; reset requires typing `RESET` and creates a
-  fresh fabric on the next start.
+- `services/matter-server/data/backup.sh [--label <label>]` and
+  `restore.sh [archive]` are the manual data entry points, and
+  `sudo ./lisa-edge matter reset` is the operator-facing fabric reset.
+  Every archive gets a `.sha256` checksum and a non-secret `.meta` sidecar;
+  restore refuses archives whose checksum does not match. Restore and reset
+  always preserve the current store as a `pre-restore` / `pre-reset`
+  archive first; reset requires typing `RESET`, recreates the empty store
+  with safe ownership, restarts the server, and verifies over the WebSocket
+  API that it starts with an empty fabric (0 nodes, 0 stored credentials).
+  Reset is never part of a normal deploy or update.
 
 The live store is also included in the standard full-stack backup
 (`sudo ./lisa-edge backup`); keep a copy outside the edge host.

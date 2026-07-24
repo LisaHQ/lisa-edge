@@ -50,6 +50,48 @@ lisa_validate_persistent_path() {
   esac
 }
 
+# Validate a user-supplied output file path for writing sensitive exports.
+# Prints the fully resolved path on success. Fail-closed rules: no traversal
+# components, target must not already exist (no silent overwrite, no
+# symlink redirection, no directory target), parent directory must exist.
+lisa_validate_secret_output_file() {
+  local label="$1"
+  local value="$2"
+  local resolved parent
+
+  case "$value" in
+    "") echo "$label requires a file path." >&2; return 1 ;;
+    */) echo "$label must be a file, not a directory: $value" >&2; return 1 ;;
+  esac
+  case "/$value/" in
+    */../*|*/./*)
+      echo "$label cannot contain . or .. path components: $value" >&2
+      return 1
+      ;;
+  esac
+  command -v readlink >/dev/null 2>&1 || {
+    echo "readlink is required to validate $label safely." >&2
+    return 1
+  }
+  resolved="$(readlink -m -- "$value")" || {
+    echo "Cannot resolve $label: $value" >&2
+    return 1
+  }
+  case "$resolved" in
+    ""|/) echo "$label resolves to an unsafe path: $value" >&2; return 1 ;;
+  esac
+  if [ -e "$resolved" ] || [ -L "$resolved" ]; then
+    echo "$label already exists; refusing to overwrite: $resolved" >&2
+    return 1
+  fi
+  parent="$(dirname -- "$resolved")"
+  if [ ! -d "$parent" ]; then
+    echo "$label parent directory does not exist: $parent" >&2
+    return 1
+  fi
+  printf '%s\n' "$resolved"
+}
+
 lisa_verify_mounted_destination() {
   local destination="$1"
   local expected_source="${2:-}"

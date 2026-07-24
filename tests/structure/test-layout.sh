@@ -57,6 +57,24 @@ canonical_files=(
   lib/compose.sh
   lib/images.sh
   lib/paths.sh
+  lib/service-config.sh
+  lib/thread-dataset.sh
+  services/otbr/status.sh
+  services/otbr/network-create.sh
+  services/otbr/dataset/show.sh
+  services/otbr/dataset/export.sh
+  services/otbr/dataset/backup.sh
+  services/otbr/dataset/restore.sh
+  services/otbr/dataset/init-or-restore.sh
+  services/matter-server/status.sh
+  services/matter-server/thread.sh
+  services/matter-server/credentials.sh
+  services/matter-server/lib/ws.sh
+  services/matter-server/lib/ws-client.js
+  services/matter-server/compose.ble.yml
+  services/matter-server/compose.primary-interface.yml
+  services/matter-server/data/reset.sh
+  ops/diagnostics/doctor-matter-thread.sh
   tests/README.md
   tools/validate-repo.sh
 )
@@ -89,7 +107,7 @@ echo "Checking stable operator CLI..."
 help_output="$(bash "$REPO_ROOT/lisa-edge" help)"
 for command in \
   setup configure bootstrap deploy stop update health status diagnostics \
-  backup restore usb rescue service
+  backup restore usb rescue service otbr matter doctor
 do
   grep -Fq "$command" <<<"$help_output" ||
     fail "CLI help does not advertise command: $command"
@@ -103,6 +121,9 @@ done
 
 bash "$REPO_ROOT/lisa-edge" restore --help >/dev/null 2>&1
 bash "$REPO_ROOT/lisa-edge" rescue restore-backup --help >/dev/null 2>&1
+bash "$REPO_ROOT/lisa-edge" otbr dataset show --help >/dev/null 2>&1
+bash "$REPO_ROOT/lisa-edge" matter thread --help >/dev/null 2>&1
+bash "$REPO_ROOT/lisa-edge" doctor matter-thread --help >/dev/null 2>&1
 if bash "$REPO_ROOT/lisa-edge" definitely-not-a-command >/dev/null 2>&1; then
   fail "unknown CLI command was accepted"
 fi
@@ -186,6 +207,7 @@ legacy_paths=(
   rescue/scripts/bootstrap-rescue.sh
   rescue/scripts/reinstall-production.sh
   rescue/scripts/restore-production.sh
+  services/matter-server/data/sync-thread-dataset.sh
 )
 for path in "${legacy_paths[@]}"; do
   [ ! -e "$path" ] ||

@@ -45,7 +45,8 @@ commissioned-device state; whoever holds it can control the fabric.
 
    ```bash
    sudo ./lisa-edge health
-   docker logs --tail 50 lisa-matter
+   sudo ./lisa-edge matter status
+   sudo ./lisa-edge matter thread status
    ```
 
    Then confirm in Home Assistant that the Matter integration reconnects and
@@ -73,10 +74,14 @@ matterjs-server store and are lost by the revert.
 
 ## Fabric reset
 
-`services/matter-server/data/reset.sh` wipes the store after typing `RESET`,
-preserving it first as a `pre-reset` archive. A fresh fabric is created on
-the next start and every device must be re-commissioned. The wizard can also
-stage a reset for the next deploy.
+`sudo ./lisa-edge matter reset` wipes the store after typing `RESET`,
+preserving it first as a `pre-reset` archive (with checksum and metadata
+sidecars), recreates the empty store with safe ownership, restarts the
+server, and verifies over the WebSocket API that it starts with an empty
+fabric. Every device must be re-commissioned afterwards, and the Thread
+credentials must be stored again with `sudo ./lisa-edge matter thread sync`.
+The wizard can also stage a reset for the next deploy. Reset is never part
+of a normal deploy or update.
 
 Implementation ownership:
 [`services/matter-server/`](../../../services/matter-server/README.md).
