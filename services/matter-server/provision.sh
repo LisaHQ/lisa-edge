@@ -159,11 +159,11 @@ configure_matter_network() {
   local interfaces=() interface answer
   # shellcheck disable=SC1091
   . "$EDGE_REPO/lib/service-config.sh"
-  info "The Matter WebSocket API is unauthenticated. 127.0.0.1 keeps it local;"
-  info "set a trusted LAN address ONLY for a remote Home Assistant, and firewall the port."
+  info "127.0.0.1 keeps the WebSocket API host-local."
+  info "For remote access, bind to a trusted host LAN address and firewall the port."
   while :; do
     ask_value MATTER_LISTEN_ADDRESS \
-      "Matter WebSocket listen address" "${MATTER_LISTEN_ADDRESS:-127.0.0.1}"
+      "Matter WebSocket listen IPv4 address" "${MATTER_LISTEN_ADDRESS:-127.0.0.1}"
     lisa_validate_matter_listen_address "$MATTER_LISTEN_ADDRESS" && break
     echo "Try again." >&2
   done
@@ -172,7 +172,7 @@ configure_matter_network() {
   fi
 
   mapfile -t interfaces < <(matter_detect_active_interfaces)
-  ask_yes_no answer "Pin the Matter mDNS primary interface (empty default = auto-detect)" "no"
+  ask_yes_no answer "Pin Matter mDNS to a specific host interface? (otherwise auto-detect)" "no"
   if [ "$answer" = "yes" ]; then
     if [ "${#interfaces[@]}" -gt 0 ]; then
       ask_choice MATTER_PRIMARY_INTERFACE "Active network interfaces" \
@@ -192,14 +192,14 @@ configure_matter_identity() {
   . "$EDGE_REPO/lib/service-config.sh"
   while :; do
     ask_value MATTER_FABRIC_LABEL \
-      "Matter fabric label (shown on devices, max 32 bytes)" \
+      "Matter fabric label (stored on devices, max 32 UTF-8 bytes)" \
       "${MATTER_FABRIC_LABEL:-LISA Home}"
     lisa_validate_matter_fabric_label "$MATTER_FABRIC_LABEL" && break
     echo "Try again." >&2
   done
   while :; do
     ask_value MATTER_THREAD_CREDENTIAL_ID \
-      "Matter Thread credential ID (names the stored Thread dataset entry)" \
+      "Matter Thread credential ID (stored dataset key; lowercase, max 64 chars)" \
       "${MATTER_THREAD_CREDENTIAL_ID:-lisa-home-01}"
     lisa_validate_matter_thread_credential_id "$MATTER_THREAD_CREDENTIAL_ID" && break
     echo "Try again." >&2
@@ -210,14 +210,14 @@ configure_matter() {
   local answer
   echo
   echo "--- Matter Server wizard ---"
-  info "Matter Server (matterjs-server) uses host networking (mDNS commissioning) and stores its fabric data under DATA_ROOT."
+  info "Matter Server (matterjs-server) uses host networking for mDNS commissioning and stores its fabric data under DATA_ROOT."
   info "The WebSocket API has no authentication; restrict TCP ${MATTER_SERVER_PORT:-5580} to trusted controller networks."
-  ask_value MATTER_SERVER_PORT "Matter Server WebSocket port" "${MATTER_SERVER_PORT:-5580}"
+  ask_value MATTER_SERVER_PORT "Matter WebSocket/API port" "${MATTER_SERVER_PORT:-5580}"
   require_port MATTER_SERVER_PORT "$MATTER_SERVER_PORT"
   configure_matter_network
   configure_matter_bluetooth
   configure_matter_identity
-  ask_value MATTER_DATA_BACKUP_DIR "Matter data backup directory" "${MATTER_DATA_BACKUP_DIR:-$DATA_ROOT/backups/matter}"
+  ask_value MATTER_DATA_BACKUP_DIR "Matter backup archive directory" "${MATTER_DATA_BACKUP_DIR:-$DATA_ROOT/backups/matter}"
   require_persistent_data_path "MATTER_DATA_BACKUP_DIR" "$MATTER_DATA_BACKUP_DIR"
   # Looks unused here, but lisa-first-boot.sh writes it into .env via env_line().
   # shellcheck disable=SC2034

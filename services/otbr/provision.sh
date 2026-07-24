@@ -309,7 +309,7 @@ configure_otbr() {
   configure_otbr_backbone
   configure_otbr_image
   configure_otbr_network_name
-  ask_value OTBR_THREAD_IF "Thread interface name" "${OTBR_THREAD_IF:-wpan0}"
+  ask_value OTBR_THREAD_IF "Thread interface name (custom allowed, max 15 chars; default recommended)" "${OTBR_THREAD_IF:-wpan0}"
   ask_value OTBR_LOG_LEVEL "OTBR log level" "${OTBR_LOG_LEVEL:-5}"
   ask_value OTBR_DATASET_BACKUP_DIR "Thread dataset backup directory" "${OTBR_DATASET_BACKUP_DIR:-$DATA_ROOT/backups/otbr}"
   require_persistent_data_path "OTBR_DATASET_BACKUP_DIR" "$OTBR_DATASET_BACKUP_DIR"
