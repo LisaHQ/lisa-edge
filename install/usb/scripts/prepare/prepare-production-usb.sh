@@ -361,7 +361,7 @@ config_wizard() {
         local_key="$(head -n 1 "$HOME/.ssh/id_ed25519.pub")"
         if validate_ssh_key "$local_key"; then
             printf 'Detected SSH public key:\n  %s\n' "$local_key"
-            printf 'Use this key? [Y/n]: '
+            printf 'Use this key? [Y/n] '
             IFS= read -r answer || answer=""
             case "$answer" in
                 ""|y|Y|yes|YES|Yes) ssh_key="$local_key" ;;

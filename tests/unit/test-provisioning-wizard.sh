@@ -34,6 +34,33 @@ if (require_persistent_data_path DATA_ROOT /etc/lisa-edge) >/dev/null 2>&1; then
   exit 1
 fi
 
+# --- yes/no prompt format: "Question? [y/N]" with no trailing colon ---
+prompt="$(format_yes_no_prompt "Enable feature" no)"
+[ "$prompt" = "Enable feature? [y/N] " ] || {
+  echo "Yes/no prompts must render 'Question? [y/N] ' (got: '$prompt')." >&2
+  exit 1
+}
+prompt="$(format_yes_no_prompt "Apply now" yes)"
+[ "$prompt" = "Apply now? [Y/n] " ] || {
+  echo "Yes/no prompts with a yes default must render '? [Y/n] ' (got: '$prompt')." >&2
+  exit 1
+}
+# A label already ending in '?' must not get a second question mark.
+prompt="$(format_yes_no_prompt "Ready?" no)"
+[ "$prompt" = "Ready? [y/N] " ] || {
+  echo "Yes/no prompts must not duplicate the question mark (got: '$prompt')." >&2
+  exit 1
+}
+case "$prompt" in
+  *:*) echo "Yes/no prompts must not contain a colon." >&2; exit 1 ;;
+esac
+# ask_yes_no still accepts the default on empty input with the new prompt.
+YESNO=""
+ask_yes_no YESNO "Enable feature" no <<< ""
+[ "$YESNO" = "no" ] || { echo "ask_yes_no must keep the default on empty input." >&2; exit 1; }
+ask_yes_no YESNO "Enable feature" yes <<< ""
+[ "$YESNO" = "yes" ] || { echo "ask_yes_no must keep a yes default on empty input." >&2; exit 1; }
+
 # --- ask_choice behavior ---
 CHOICE=""
 ask_choice CHOICE "Menu default" "beta" alpha beta >/dev/null <<< ""
@@ -75,5 +102,92 @@ if otbr_image_is_floating "registry.local/otbr:latest"; then
   echo "Expected a custom registry image to be left untouched." >&2
   exit 1
 fi
+
+# --- OTBR image selection menu (release tags mocked, no network) ---
+otbr_query_release_tags() {
+  printf 'v2026.07.1\nv2026.06.0\nv2026.05.2\n'
+}
+OTBR_IMAGE="openthread/border-router:latest"
+menu_output="$(configure_otbr_image <<< "" 2>&1)"
+grep -q '2) openthread/border-router:v2026.06.0' <<<"$menu_output" || {
+  echo "OTBR image menu must list the available releases." >&2
+  exit 1
+}
+OTBR_IMAGE="openthread/border-router:latest"
+configure_otbr_image <<< "" >/dev/null 2>&1
+[ "$OTBR_IMAGE" = "openthread/border-router:v2026.07.1" ] || {
+  echo "OTBR image menu default must stay the newest release, got: $OTBR_IMAGE" >&2
+  exit 1
+}
+OTBR_IMAGE="openthread/border-router:latest"
+configure_otbr_image <<< "3" >/dev/null 2>&1
+[ "$OTBR_IMAGE" = "openthread/border-router:v2026.05.2" ] || {
+  echo "OTBR image menu must honor a numbered selection, got: $OTBR_IMAGE" >&2
+  exit 1
+}
+# A pinned release stays untouched and is offered as the plain default.
+OTBR_IMAGE="openthread/border-router:v2026.04.0"
+configure_otbr_image <<< "" >/dev/null 2>&1
+[ "$OTBR_IMAGE" = "openthread/border-router:v2026.04.0" ] || {
+  echo "A pinned OTBR release must remain the default, got: $OTBR_IMAGE" >&2
+  exit 1
+}
+
+# --- Matter wizard menus (detection mocked, no host access) ---
+EDGE_REPO="$REPO_ROOT"
+# shellcheck disable=SC1091
+. "$REPO_ROOT/services/matter-server/provision.sh"
+
+[ "$(matter_normalize_bluetooth_choice "hci1")" = "1" ] ||
+  { echo "hciN choices must normalize to the adapter number." >&2; exit 1; }
+[ "$(matter_normalize_bluetooth_choice "$MATTER_BLE_DISABLE_LABEL")" = "none" ] ||
+  { echo "The disable label must normalize to 'none'." >&2; exit 1; }
+[ "$(matter_normalize_bluetooth_choice "2")" = "2" ] ||
+  { echo "Bare adapter numbers must pass through." >&2; exit 1; }
+
+matter_detect_bluetooth_adapters() { printf '0\n1\n'; }
+MATTER_BLUETOOTH_ADAPTER=""
+bt_output="$(configure_matter_bluetooth <<< "" 2>&1)"
+grep -q '1) hci0' <<<"$bt_output" && grep -q '2) hci1' <<<"$bt_output" || {
+  echo "Bluetooth menu must number the detected adapters." >&2
+  exit 1
+}
+grep -q '3) none (disable BLE commissioning)' <<<"$bt_output" || {
+  echo "Bluetooth menu must offer a numbered 'none' option." >&2
+  exit 1
+}
+configure_matter_bluetooth <<< "" >/dev/null 2>&1
+[ "$MATTER_BLUETOOTH_ADAPTER" = "0" ] || {
+  echo "Bluetooth menu default must select the first adapter, got: $MATTER_BLUETOOTH_ADAPTER" >&2
+  exit 1
+}
+configure_matter_bluetooth <<< "3" >/dev/null 2>&1
+[ "$MATTER_BLUETOOTH_ADAPTER" = "none" ] || {
+  echo "Selecting the none option must disable BLE, got: $MATTER_BLUETOOTH_ADAPTER" >&2
+  exit 1
+}
+
+matter_detect_active_interfaces() { printf 'enp1s0\nwlan0\n'; }
+MATTER_LISTEN_ADDRESS="127.0.0.1"
+MATTER_PRIMARY_INTERFACE=""
+if_output="$(configure_matter_network <<< $'\n\n' 2>&1)"
+grep -q '1) auto-detect (recommended)' <<<"$if_output" || {
+  echo "Interface menu must offer auto-detect as the first option." >&2
+  exit 1
+}
+grep -q '2) enp1s0' <<<"$if_output" && grep -q '3) wlan0' <<<"$if_output" || {
+  echo "Interface menu must list the detected interfaces." >&2
+  exit 1
+}
+configure_matter_network <<< $'\n\n' >/dev/null 2>&1
+[ -z "$MATTER_PRIMARY_INTERFACE" ] || {
+  echo "Interface menu default must keep auto-detect (empty), got: $MATTER_PRIMARY_INTERFACE" >&2
+  exit 1
+}
+configure_matter_network <<< $'\n2\n' >/dev/null 2>&1
+[ "$MATTER_PRIMARY_INTERFACE" = "enp1s0" ] || {
+  echo "Interface menu must honor a numbered selection, got: $MATTER_PRIMARY_INTERFACE" >&2
+  exit 1
+}
 
 echo "Provisioning-wizard tests passed."

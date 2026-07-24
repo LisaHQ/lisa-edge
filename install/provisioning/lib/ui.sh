@@ -80,16 +80,30 @@ ask_secret() {
   printf -v "$variable" '%s' "$value"
 }
 
+# Render a yes/no prompt as "Question? [y/N] " (or "[Y/n] " for a yes
+# default) with no trailing colon; colons are reserved for prompts that
+# request a value, path, selection, or free-form input. Pure so tests can
+# verify the format.
+format_yes_no_prompt() {
+  local label="$1"
+  local default_value="${2:-no}"
+  local hint="[y/N]"
+  case "$label" in
+    *\?) ;;
+    *) label="$label?" ;;
+  esac
+  [ "$default_value" = "yes" ] && hint="[Y/n]"
+  printf '%s %s ' "$label" "$hint"
+}
+
 ask_yes_no() {
   local variable="$1"
   local label="$2"
   local default_value="${3:-no}"
-  local prompt="[y/N]"
   local input
 
-  [ "$default_value" = "yes" ] && prompt="[Y/n]"
   while true; do
-    read -r -p "$label $prompt: " input
+    read -r -p "$(format_yes_no_prompt "$label" "$default_value")" input
     input="${input:-$default_value}"
     case "${input,,}" in
       y|yes) printf -v "$variable" '%s' "yes"; return 0 ;;

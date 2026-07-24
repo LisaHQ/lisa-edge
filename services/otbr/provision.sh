@@ -58,14 +58,15 @@ otbr_fetch_url() {
   curl -fsS --max-time "${OTBR_IMAGE_QUERY_TIMEOUT:-8}" "$1" 2>/dev/null
 }
 
-# Resolve the newest OTBR release image reference from Docker Hub, following
-# tag-list pagination with a bounded page count (release tags are not
-# guaranteed to appear on the first page between releases). Fails (non-zero)
-# when offline, curl is missing, or no release tag exists on any fetched page.
-otbr_query_latest_image() {
+# Print the OTBR release tags found on Docker Hub, newest first and unique,
+# following tag-list pagination with a bounded page count (release tags are
+# not guaranteed to appear on the first page between releases). Fails
+# (non-zero) when offline, curl is missing, or no release tag exists on any
+# fetched page.
+otbr_query_release_tags() {
   local url="https://hub.docker.com/v2/repositories/$OTBR_IMAGE_REPOSITORY/tags?page_size=100"
   local max_pages="${OTBR_IMAGE_QUERY_MAX_PAGES:-5}"
-  local pages=0 response all_tags="" tag
+  local pages=0 response all_tags="" tags
   command -v curl >/dev/null 2>&1 || return 1
   while [ -n "$url" ] && [ "$pages" -lt "$max_pages" ]; do
     response="$(otbr_fetch_url "$url")" || return 1
@@ -73,9 +74,16 @@ otbr_query_latest_image() {
     url="$(printf '%s' "$response" | otbr_tags_next_url)"
     pages=$((pages + 1))
   done
-  tag="$(printf '%s' "$all_tags" | grep -E '^v' | sort -uV | tail -n 1 || true)"
-  [ -n "$tag" ] || return 1
-  printf '%s:%s\n' "$OTBR_IMAGE_REPOSITORY" "$tag"
+  tags="$(printf '%s' "$all_tags" | grep -E '^v' | sort -urV || true)"
+  [ -n "$tags" ] || return 1
+  printf '%s\n' "$tags"
+}
+
+# Resolve the newest OTBR release image reference from Docker Hub.
+otbr_query_latest_image() {
+  local tags
+  tags="$(otbr_query_release_tags)" || return 1
+  printf '%s:%s\n' "$OTBR_IMAGE_REPOSITORY" "$(head -n 1 <<<"$tags")"
 }
 
 # True when the image reference is the default repository on a floating tag.
@@ -149,14 +157,23 @@ configure_otbr_backbone() {
 
 configure_otbr_image() {
   local current_image="${OTBR_IMAGE:-$OTBR_IMAGE_REPOSITORY:latest}"
-  local default_image="$current_image" detected_image
+  local default_image="$current_image" release_tags="" options=() tag count=0
   if otbr_image_is_floating "$current_image"; then
-    info "Resolving the latest OTBR release tag from Docker Hub..."
-    if detected_image="$(otbr_query_latest_image)"; then
-      default_image="$detected_image"
-    else
-      warn "Could not resolve an OTBR release tag (offline or Docker Hub unreachable); keeping $current_image."
+    info "Resolving recent OTBR release tags from Docker Hub..."
+    if release_tags="$(otbr_query_release_tags)"; then
+      # Offer the newest releases as a numbered menu; the newest one stays
+      # the default (a custom reference can still be typed in).
+      while IFS= read -r tag; do
+        [ "$count" -lt "${OTBR_IMAGE_CHOICE_COUNT:-5}" ] || break
+        options+=("$OTBR_IMAGE_REPOSITORY:$tag")
+        count=$((count + 1))
+      done <<<"$release_tags"
+      default_image="${options[0]}"
+      ask_choice OTBR_IMAGE "Recent OTBR release images (newest first)" \
+        "$default_image" "${options[@]}"
+      return 0
     fi
+    warn "Could not resolve OTBR release tags (offline or Docker Hub unreachable); keeping $current_image."
   fi
   ask_value OTBR_IMAGE "OTBR container image" "$default_image"
 }

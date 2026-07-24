@@ -125,28 +125,47 @@ matter_detect_active_interfaces() {
     grep -Ev '^(lo|docker.*|br-.*|veth.*|wpan.*|tailscale.*|tun.*|tap.*|virbr.*)$' || true
 }
 
+# Selectable label for disabling BLE in the adapter menu.
+MATTER_BLE_DISABLE_LABEL="none (disable BLE commissioning)"
+
+# Normalize an adapter menu selection or free-form answer to the stored
+# MATTER_BLUETOOTH_ADAPTER value: "hci0" -> "0", the disable label (or any
+# 'none...' answer, or an empty answer) -> "none", numbers pass through.
+matter_normalize_bluetooth_choice() {
+  local choice="${1-}"
+  case "$choice" in
+    ""|none*) printf 'none\n' ;;
+    hci*) printf '%s\n' "${choice#hci}" ;;
+    *) printf '%s\n' "$choice" ;;
+  esac
+}
+
 configure_matter_bluetooth() {
-  local adapters=() adapter default_adapter current
+  local adapters=() adapter options=() default_option choice current
   # shellcheck disable=SC1091
   . "$EDGE_REPO/lib/service-config.sh"
   mapfile -t adapters < <(matter_detect_bluetooth_adapters)
   current="${MATTER_BLUETOOTH_ADAPTER:-0}"
   if [ "${#adapters[@]}" -gt 0 ]; then
-    default_adapter="${adapters[0]}"
     for adapter in "${adapters[@]}"; do
-      [ "$adapter" = "$current" ] && default_adapter="$adapter"
+      options+=("hci$adapter")
     done
-    info "Detected Bluetooth adapters: $(printf 'hci%s ' "${adapters[@]}")"
-    ask_value MATTER_BLUETOOTH_ADAPTER \
-      "Bluetooth adapter for BLE commissioning (number, or 'none' to disable BLE)" \
-      "$default_adapter"
+    options+=("$MATTER_BLE_DISABLE_LABEL")
+    default_option="hci${adapters[0]}"
+    for adapter in "${adapters[@]}"; do
+      [ "$adapter" = "$current" ] && default_option="hci$adapter"
+    done
+    [ "$current" = "none" ] && default_option="$MATTER_BLE_DISABLE_LABEL"
+    ask_choice choice "Detected Bluetooth adapters for BLE commissioning" \
+      "$default_option" "${options[@]}"
   else
     warn "No Bluetooth adapter found under /sys/class/bluetooth/."
     warn "BLE commissioning will be unavailable; Matter-over-Thread devices can still be commissioned via another BLE-capable controller."
-    ask_value MATTER_BLUETOOTH_ADAPTER \
-      "Bluetooth adapter (number, or 'none' to disable BLE)" \
+    ask_value choice \
+      "Bluetooth adapter (hciN or number, or 'none' to disable BLE)" \
       "none"
   fi
+  MATTER_BLUETOOTH_ADAPTER="$(matter_normalize_bluetooth_choice "$choice")"
   lisa_validate_matter_bluetooth_adapter "$MATTER_BLUETOOTH_ADAPTER" ||
     die "Invalid MATTER_BLUETOOTH_ADAPTER."
   if [ "$MATTER_BLUETOOTH_ADAPTER" != "none" ] &&
@@ -154,6 +173,9 @@ configure_matter_bluetooth() {
     warn "hci$MATTER_BLUETOOTH_ADAPTER does not exist yet; BLE will report degraded until it is present."
   fi
 }
+
+# Selectable label for keeping the upstream mDNS interface auto-detection.
+MATTER_IF_AUTO_LABEL="auto-detect (recommended)"
 
 configure_matter_network() {
   local interfaces=() interface answer
@@ -172,16 +194,25 @@ configure_matter_network() {
   fi
 
   mapfile -t interfaces < <(matter_detect_active_interfaces)
-  ask_yes_no answer "Pin Matter mDNS to a specific host interface? (otherwise auto-detect)" "no"
-  if [ "$answer" = "yes" ]; then
-    if [ "${#interfaces[@]}" -gt 0 ]; then
-      ask_choice MATTER_PRIMARY_INTERFACE "Active network interfaces" \
-        "${MATTER_PRIMARY_INTERFACE:-${interfaces[0]}}" "${interfaces[@]}"
+  if [ "${#interfaces[@]}" -gt 0 ]; then
+    local if_options=("$MATTER_IF_AUTO_LABEL" "${interfaces[@]}")
+    local default_if="$MATTER_IF_AUTO_LABEL" interface choice
+    for interface in "${interfaces[@]}"; do
+      [ "$interface" = "${MATTER_PRIMARY_INTERFACE:-}" ] && default_if="$interface"
+    done
+    ask_choice choice "Matter mDNS primary interface" "$default_if" "${if_options[@]}"
+    if [ "$choice" = "$MATTER_IF_AUTO_LABEL" ]; then
+      MATTER_PRIMARY_INTERFACE=""
     else
-      ask_value MATTER_PRIMARY_INTERFACE "Primary interface name" "${MATTER_PRIMARY_INTERFACE:-}"
+      MATTER_PRIMARY_INTERFACE="$choice"
     fi
   else
-    MATTER_PRIMARY_INTERFACE=""
+    ask_yes_no answer "Pin Matter mDNS to a specific host interface" "no"
+    if [ "$answer" = "yes" ]; then
+      ask_value MATTER_PRIMARY_INTERFACE "Primary interface name" "${MATTER_PRIMARY_INTERFACE:-}"
+    else
+      MATTER_PRIMARY_INTERFACE=""
+    fi
   fi
   lisa_validate_matter_primary_interface "$MATTER_PRIMARY_INTERFACE" ||
     die "Invalid MATTER_PRIMARY_INTERFACE."

@@ -46,6 +46,12 @@ result="$(otbr_query_latest_image)" || fail "first-page resolution failed"
 [ "$result" = "openthread/border-router:v2026.07.1" ] ||
   fail "expected v2026.07.1 from page 1, got: $result"
 
+# --- release tag listing: newest first, unique -------------------------------
+MOCK_PAGE_1="$(page 'null' latest v2026.06.0 v2026.07.1 v2026.06.0 v2026.05.2)"
+tags="$(otbr_query_release_tags)" || fail "release tag listing failed"
+[ "$tags" = "$(printf 'v2026.07.1\nv2026.06.0\nv2026.05.2')" ] ||
+  fail "release tags must be unique and newest first, got: $tags"
+
 # --- release tags only on a later page ---------------------------------------
 MOCK_PAGE_1="$(page '"https://hub.docker.com/v2/repositories/openthread/border-router/tags?page=2"' latest main sha-1234567)"
 MOCK_PAGE_2="$(page '"https://hub.docker.com/v2/repositories/openthread/border-router/tags?page=3"' nightly sha-89abcde)"

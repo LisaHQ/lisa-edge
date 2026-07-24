@@ -15,10 +15,10 @@ Use `sudo ./lisa-edge setup` to select OTBR and configure
 `THREAD_RADIO_DEVICE`, `OTBR_BACKBONE_IF`, dataset storage and restore policy.
 The wizard lists serial radios detected under `/dev/serial/by-id/` and active
 host interfaces (defaulting to the default-route interface) as selectable
-choices. When `OTBR_IMAGE` is left on a floating tag, the wizard also resolves
-the newest `openthread/border-router` release tag (`vYYYY.MM.N`) from Docker
-Hub as the default image; if the host is offline it keeps the configured
-reference. Host bootstrap prepares Avahi and IPv6 forwarding when OTBR is
+choices. When `OTBR_IMAGE` is left on a floating tag, the wizard also lists the
+newest `openthread/border-router` release tags (`vYYYY.MM.N`) from Docker
+Hub as a numbered menu, defaulting to the most recent release; if the host
+is offline it keeps the configured reference. Host bootstrap prepares Avahi and IPv6 forwarding when OTBR is
 selected.
 
 Deploy and verify:
