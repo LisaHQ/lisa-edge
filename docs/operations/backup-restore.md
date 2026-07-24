@@ -32,6 +32,22 @@ The mount guard fails closed rather than writing to the root filesystem. Keep
 backups outside the edge host. Archives contain credentials and service state
 and are not encrypted; use encrypted storage or an encrypted backup repository.
 
+## Download a backup to a workstation
+
+After each run, backup ownership of the destination directory and the new
+archive set is handed to the operator who invoked `sudo`, so no root access is
+needed to download. The backup command prints ready-to-use `scp` commands; the
+same syntax works from Windows (PowerShell or CMD with the built-in OpenSSH
+client), macOS, and Linux:
+
+```bash
+scp "user@edge-host:/srv/lisa-edge/backups/lisa-edge-backup-<timestamp>.tar.gz*" <destination-dir>
+```
+
+The trailing `*` also fetches the `.sha256` checksum and `.manifest.json`
+metadata. Treat downloaded archives as sensitive: they contain credentials and
+service state.
+
 ## Restore to the live host
 
 ```bash

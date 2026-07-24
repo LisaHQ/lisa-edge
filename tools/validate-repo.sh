@@ -85,6 +85,9 @@ echo "Checking service selection and image policy..."
 bash "$REPO_ROOT/tests/unit/test-service-selection.sh"
 bash "$REPO_ROOT/tests/unit/test-image-policy.sh"
 
+echo "Checking update argument validation..."
+bash "$REPO_ROOT/tests/unit/test-update-args.sh"
+
 echo "Checking provisioning wizard..."
 bash "$REPO_ROOT/tests/unit/test-provisioning-wizard.sh"
 

@@ -13,7 +13,10 @@ Format v3 archives use logical members (`.env`, `data/`, `docker/`, `state/`,
 `secrets/`, `otbr/`) so they do not depend on the source checkout path. Backup
 briefly stops the selected stack, creates the archive and checksum, then restarts
 the stack. Configure `BACKUP_REQUIRE_MOUNT=1` for external destinations that
-must fail closed when absent.
+must fail closed when absent. Ownership of the destination and the new archive
+set is handed to the invoking `sudo` operator (permissions stay 0700/0600), and
+the command prints ready-to-use `scp` download commands for Windows, macOS,
+and Linux workstations.
 
 Restore verifies the adjacent `.sha256`, validates `.env` and every archive
 member, extracts into protected staging, and skips deployment by default. It

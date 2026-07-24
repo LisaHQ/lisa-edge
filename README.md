@@ -27,6 +27,7 @@ You should not need to know where an implementation script lives.
 | Start or reconcile services | `sudo ./lisa-edge deploy` |
 | Stop services | `sudo ./lisa-edge stop` |
 | Update Git and selected images | `sudo ./lisa-edge update` |
+| Discard local changes and update | `sudo ./lisa-edge update clean` |
 | See runtime state | `sudo ./lisa-edge status` |
 | Run readiness checks | `sudo ./lisa-edge health` |
 | List selectable services | `./lisa-edge service list` |

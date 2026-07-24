@@ -11,6 +11,8 @@ sudo ./lisa-edge status              # non-invasive state snapshot
 sudo ./lisa-edge health              # readiness checks
 sudo ./lisa-edge stop
 sudo ./lisa-edge update              # git fast-forward + refreshed images
+sudo ./lisa-edge update clean        # discard local changes to tracked files,
+                                     # reset to the remote branch, then refresh
 ```
 
 Deployment reads `.env`, validates `DATA_ROOT`, selection keys and image policy,

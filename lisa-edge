@@ -51,7 +51,8 @@ ${C_SECTION}Setup and installation:${C_RESET}
 ${C_SECTION}Runtime operations:${C_RESET}
   ${C_CMD}deploy${C_RESET} [--pull|--offline]      Start or refresh selected services
   ${C_CMD}stop${C_RESET}                           Stop selected services
-  ${C_CMD}update${C_RESET}                         Fast-forward the repository and refresh images
+  ${C_CMD}update${C_RESET} [clean]                 Fast-forward the repository and refresh images
+                                ${C_DIM}(clean discards local changes to tracked files first)${C_RESET}
   ${C_CMD}health${C_RESET}                         Run readiness checks
   ${C_CMD}status${C_RESET}                         Show selected services and runtime state
   ${C_CMD}diagnostics${C_RESET} [output-dir]       Create a diagnostics bundle

@@ -143,6 +143,22 @@ if command -v jq >/dev/null 2>&1; then
   chmod 0600 "$ARCHIVE.manifest.json"
 fi
 
+# Hand ownership of the backup destination and this archive set to the
+# operator who invoked sudo, so the files can be listed and downloaded
+# (scp/rsync/sftp) without root. Permissions stay restrictive (0700/0600).
+BACKUP_OWNER="${SUDO_USER:-}"
+if [ -n "$BACKUP_OWNER" ] && [ "$BACKUP_OWNER" != "root" ] && id "$BACKUP_OWNER" >/dev/null 2>&1; then
+  BACKUP_GROUP="$(id -gn "$BACKUP_OWNER")"
+  if ! chown "$BACKUP_OWNER:$BACKUP_GROUP" "$BACKUP_DIR" 2>/dev/null; then
+    echo "[LISA] WARNING: could not change ownership of $BACKUP_DIR; downloads may require root." >&2
+  fi
+  for artifact in "$ARCHIVE" "$ARCHIVE.sha256" "$ARCHIVE.manifest.json"; do
+    [ -f "$artifact" ] || continue
+    chown "$BACKUP_OWNER:$BACKUP_GROUP" "$artifact" 2>/dev/null || \
+      echo "[LISA] WARNING: could not change ownership of $artifact; download may require root." >&2
+  done
+fi
+
 if [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] && [ "$RETENTION_DAYS" -gt 0 ]; then
   while IFS= read -r -d '' old_archive; do
     rm -f "$old_archive" "$old_archive.sha256" "$old_archive.manifest.json"
@@ -151,3 +167,18 @@ if [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] && [ "$RETENTION_DAYS" -gt 0 ]; then
 fi
 
 echo "[LISA] Backup completed: $ARCHIVE"
+
+# Print copy-paste download commands for the operator's workstation. The
+# trailing '*' also fetches the .sha256 checksum and .manifest.json metadata.
+DOWNLOAD_USER="${BACKUP_OWNER:-$(id -un)}"
+HOST_ADDR="$(hostname -I 2>/dev/null | awk '{print $1}')"
+[ -n "$HOST_ADDR" ] || HOST_ADDR="$(hostname)"
+cat <<HINT
+
+[LISA] Download this backup to your workstation:
+  Windows (PowerShell or CMD):
+    scp "${DOWNLOAD_USER}@${HOST_ADDR}:${ARCHIVE}*" "D:\lisa-edge-backups"
+  macOS / Linux:
+    scp "${DOWNLOAD_USER}@${HOST_ADDR}:${ARCHIVE}*" ~/lisa-edge-backups/
+  Replace the destination directory with your own (it must already exist).
+HINT
