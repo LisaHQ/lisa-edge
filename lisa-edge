@@ -79,6 +79,11 @@ ${C_SECTION}Data protection:${C_RESET}
   ${C_CMD}backup${C_RESET}                         Create a production backup
   ${C_CMD}restore${C_RESET} [options] <archive>    Validate and restore a backup archive
 
+${C_SECTION}Reset lifecycle (destructive; each mode supports --dry-run):${C_RESET}
+  ${C_CMD}reset data${C_RESET}          Erase service runtime state and redeploy with current configuration
+  ${C_CMD}reset provisioning${C_RESET}  Remove LISA state/configuration and return to first-boot provisioning
+  ${C_CMD}reset factory${C_RESET}       Reinstall the Production OS through the Rescue Layer
+
 ${C_SECTION}Rescue layer:${C_RESET}
   ${C_CMD}rescue bootstrap${C_RESET}              Install rescue tools
   ${C_CMD}rescue doctor${C_RESET}                 Collect rescue-host diagnostics
@@ -279,6 +284,7 @@ case "$COMMAND" in
   diagnostics|diag) run_script "diagnostics" "ops/diagnostics/collect-diag.sh" "$@" ;;
   backup) run_script "backup" "ops/backup-restore/backup.sh" "$@" ;;
   restore) run_script "restore" "ops/backup-restore/restore.sh" "$@" ;;
+  reset) run_script "node reset" "ops/deploy/reset-node.sh" "$@" ;;
   usb) run_usb "$@" ;;
   rescue) run_rescue "$@" ;;
   service) run_service "$@" ;;

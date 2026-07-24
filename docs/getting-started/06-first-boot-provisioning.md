@@ -123,3 +123,27 @@ sudo ./lisa-edge setup
 Existing values become defaults. The current `.env` is backed up before
 replacement. Deselected containers are removed as orphans, but their
 bind-mounted persistent data is retained for deliberate cleanup or later reuse.
+
+## Returning to the unprovisioned state
+
+To wipe LISA state and configuration and run first-boot provisioning again
+without reinstalling Ubuntu:
+
+```bash
+sudo ./lisa-edge reset provisioning --dry-run   # review the full plan first
+sudo ./lisa-edge reset provisioning             # confirm with: RESET LISA
+sudo lisa-edge-provision                        # provision again
+```
+
+This removes all service runtime data, generated secrets, local backups
+inside `DATA_ROOT`, `.env` (with its wizard backups), the provision marker
+and the production systemd units, then re-enables `lisa-first-boot.service`
+and the `lisa-edge-provision` command. Ubuntu, Docker (including images),
+SSH access and the host bootstrap configuration are retained; backups
+stored outside `DATA_ROOT` are preserved. It does not deploy anything.
+
+To recreate services from clean runtime data while keeping the current
+configuration, use `sudo ./lisa-edge reset data` instead; for a clean
+Ubuntu install through the Rescue Layer, use `sudo ./lisa-edge reset
+factory`. The modes are compared in
+[ops/deploy/README.md](../../ops/deploy/README.md#reset-lifecycle).

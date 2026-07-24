@@ -17,6 +17,9 @@ questions live in `services/`.
 
 The systemd unit in `systemd/` only notifies an unprovisioned host. The installer
 creates the `lisa-edge-provision` command as a link to the main entrypoint.
+`sudo ./lisa-edge reset provisioning` returns a provisioned host to this
+unprovisioned first-boot state (see
+[ops/deploy/README.md](../../ops/deploy/README.md#reset-lifecycle)).
 
 Do not store production credentials in this directory. Generated values belong
 in the ignored `.env` file or an external secret manager.

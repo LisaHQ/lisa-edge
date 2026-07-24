@@ -46,6 +46,10 @@ You should not need to know where an implementation script lives.
 | Diagnose Matter-over-Thread end to end | `sudo ./lisa-edge doctor matter-thread` |
 | Create a backup | `sudo ./lisa-edge backup` |
 | Restore a backup | `sudo ./lisa-edge restore <archive>` |
+| Recreate services from clean data (keeps `.env`) | `sudo ./lisa-edge reset data` |
+| Return the host to first-boot provisioning | `sudo ./lisa-edge reset provisioning` |
+| Reinstall the Production OS via the Rescue Layer | `sudo ./lisa-edge reset factory` |
+| Preview any reset without changing anything | `sudo ./lisa-edge reset <mode> --dry-run` |
 | Collect diagnostics | `sudo ./lisa-edge diagnostics` |
 | List removable/USB disks | `./lisa-edge usb list` |
 | Build a full installer USB | `sudo ./lisa-edge usb build <profile>` |
@@ -53,7 +57,10 @@ You should not need to know where an implementation script lives.
 | Prepare a rescue USB | `sudo ./lisa-edge usb prepare rescue <mount-path>` |
 | Work from the Rescue OS | `sudo ./lisa-edge rescue <command>` |
 
-Run `./lisa-edge help` for the complete command map.
+Run `./lisa-edge help` for the complete command map. The three reset modes
+(clean data / clean LISA / clean Ubuntu) are compared in
+[ops/deploy/README.md](ops/deploy/README.md#reset-lifecycle); each supports
+`--dry-run` and requires an exact confirmation phrase.
 
 ## Fastest fresh install
 

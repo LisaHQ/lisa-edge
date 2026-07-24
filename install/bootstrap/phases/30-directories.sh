@@ -29,6 +29,7 @@ set -euo pipefail
 # .\
 # └─ srv/lisa-edge/
 #    ├─ backups
+#    │  ├─ matter
 #    │  └─ otbr
 #    ├─ data
 #    │  ├─ tailscale

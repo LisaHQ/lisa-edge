@@ -107,10 +107,16 @@ echo "Checking stable operator CLI..."
 help_output="$(bash "$REPO_ROOT/lisa-edge" help)"
 for command in \
   setup configure bootstrap deploy stop update health status diagnostics \
-  backup restore usb rescue service otbr matter doctor
+  backup restore reset usb rescue service otbr matter doctor
 do
   grep -Fq "$command" <<<"$help_output" ||
     fail "CLI help does not advertise command: $command"
+done
+for reset_line in \
+  'reset data' 'reset provisioning' 'reset factory'
+do
+  grep -Fq "$reset_line" <<<"$help_output" ||
+    fail "CLI help does not advertise reset mode: $reset_line"
 done
 
 service_output="$(bash "$REPO_ROOT/lisa-edge" service list)"

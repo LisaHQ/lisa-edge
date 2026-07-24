@@ -21,6 +21,7 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 | `lisa-edge usb prepare production` | `install/usb/scripts/prepare/prepare-production-usb.sh` |
 | `lisa-edge usb prepare rescue` | `install/usb/scripts/prepare/prepare-rescue-usb.sh` |
 | `lisa-edge deploy` / `stop` / `update` / `health` / `status` | `ops/deploy/*.sh` |
+| `lisa-edge reset data` / `provisioning` / `factory` | `ops/deploy/reset-node.sh` |
 | `lisa-edge diagnostics` | `ops/diagnostics/collect-diag.sh` |
 | `lisa-edge backup` / `restore` | `ops/backup-restore/*.sh` |
 | `lisa-edge service list` | `services/list.sh` |
@@ -92,7 +93,7 @@ For task-oriented guides, start at [docs/README.md](../README.md).
 | `status.sh` | Show selection and runtime state. |
 | `install-systemd.sh` | Install/refresh the runtime unit below. |
 | `systemd/lisa-edge.service` | Boot-time unit that brings the stack up. |
-| `reset-node.sh` | Destructive node reset. Read it before running it. |
+| `reset-node.sh` | The canonical reset lifecycle behind `lisa-edge reset` (modes: `data`, `provisioning`, `factory`): mode-specific plans, exact confirmation phrases, `--dry-run`, project-scoped Docker cleanup, mount/path fail-closed guards. See [ops/deploy/README.md](../../ops/deploy/README.md#reset-lifecycle). |
 
 ### ops/backup-restore/
 
@@ -192,7 +193,11 @@ Matter/Thread configuration before deploy.
 | `security/test-path-safety.sh` | `lib/paths.sh` traversal and symlink defenses. |
 | `security/test-restore-target-root.sh` | `--target-root` argument hardening. |
 | `security/test-recovery-safety.sh` | Rescue mount/overlap guards. |
+| `security/test-reset-safety.sh` | Reset guardrails: unsafe `DATA_ROOT`, traversal/symlink attacks, nested-mount fail-closed behavior, no global Docker prune, no disk tooling. |
+| `unit/test-reset-cli.sh` | Reset CLI contract: help/usage, dispatch, unknown modes, `--dry-run` zero-mutation, exact confirmation phrases. |
+| `lib/reset-harness.sh` | Shared fake-repo/stub harness for the reset tests. |
 | `integration/test-restore-integration.sh` | Full backup→restore round-trips for v2 and v3 archives in temporary trees. |
+| `integration/test-reset-modes.sh` | Full reset data/provisioning/factory flows against a stubbed fake repository. |
 
 ## docs/ — documentation
 

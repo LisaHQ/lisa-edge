@@ -498,6 +498,7 @@ If the project uses Git or SVN, every response following file changes must inclu
 - Do not replace the summary with the bullet list.
 - Do not omit the per-change bullets.
 - Enclose the entire `Commit description` content in a standalone fenced code block labeled `text`.
+- Leave all changes uncommitted by default; Do not run any command that creates or modifies a commit unless the user explicitly requests it.
 
 Required format:
 

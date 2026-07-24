@@ -123,6 +123,11 @@ disk.
 sudo /opt/lisa-rescue/scripts/reinstall-guide.sh
 ```
 
+`sudo ./lisa-edge reset factory`, run from the Rescue Layer, hands off to
+this same procedure after the `RESET UBUNTU` confirmation; the disk wipe
+happens only through the reviewed production autoinstall USB. See
+[ops/deploy/README.md](../ops/deploy/README.md#reset-lifecycle).
+
 ## Safety guarantees
 
 - Restore targets must resolve below `/mnt` and cannot be `/mnt` itself.

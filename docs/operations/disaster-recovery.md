@@ -42,6 +42,19 @@ sudo ./lisa-edge rescue restore-backup /path/to/backup.tar.gz
 `restore-snapshot` command is only for an explicitly maintained raw filesystem
 snapshot; it is not the output of `lisa-edge backup`.
 
+## Reinstall the Production OS (factory reset)
+
+`sudo ./lisa-edge reset factory` is the guarded entry point for a clean
+Production Ubuntu installation. Run from the Production OS it refuses to
+erase the disk it is running from and prints the steps to boot the Rescue
+Layer; run from the Rescue Layer it hands off to the canonical reinstall
+procedure after the `RESET UBUNTU` confirmation. The disk wipe itself
+happens only through the reviewed production autoinstall USB, matched to
+the target disk by serial. The lighter-weight alternatives —
+`reset data` (clean runtime state, keep configuration) and
+`reset provisioning` (return to first-boot provisioning, keep Ubuntu) —
+are compared in [ops/deploy/README.md](../../ops/deploy/README.md#reset-lifecycle).
+
 ## Critical state
 
 | Service | Critical state |

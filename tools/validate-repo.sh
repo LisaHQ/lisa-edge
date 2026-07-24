@@ -109,6 +109,9 @@ bash "$REPO_ROOT/tests/unit/test-image-policy.sh"
 echo "Checking update argument validation..."
 bash "$REPO_ROOT/tests/unit/test-update-args.sh"
 
+echo "Checking reset CLI contract..."
+bash "$REPO_ROOT/tests/unit/test-reset-cli.sh"
+
 echo "Checking provisioning wizard..."
 bash "$REPO_ROOT/tests/unit/test-provisioning-wizard.sh"
 
@@ -133,8 +136,14 @@ bash "$REPO_ROOT/tests/security/test-dataset-secret-safety.sh"
 echo "Checking Rescue OS path guardrails..."
 bash "$REPO_ROOT/tests/security/test-recovery-safety.sh"
 
+echo "Checking reset safety guardrails..."
+bash "$REPO_ROOT/tests/security/test-reset-safety.sh"
+
 echo "Checking v2 and v3 restore integration..."
 PYTHON_BIN="$PYTHON_BIN" \
   bash "$REPO_ROOT/tests/integration/test-restore-integration.sh"
+
+echo "Checking reset mode integration..."
+bash "$REPO_ROOT/tests/integration/test-reset-modes.sh"
 
 echo "Repository validation passed."
